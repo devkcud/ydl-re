@@ -2,86 +2,91 @@
 
 [Documentation index](README.md)
 
-This guide describes the planned v0.1 workflow. There is no runnable YoinkDL implementation in this checkout yet.
+Milestone A provides a working sequential download CLI. Resume and parallel transfers are still planned.
 
-## Installation status
+## Build locally
 
-The repository has no `go.mod`, source packages, release binaries, or installer configuration. A Go version, module path, distribution channel, and license still need to be chosen.
+Use Go 1.27 or newer and GNU Make. From the repository root:
 
-There is no verified `go install`, package-manager, or binary-download command to use today. Contributors can start with the [development guide](development.md) and [Milestone A](roadmap.md#milestone-a--reliable-single-stream).
+```sh
+make build
+./bin/yoinkdl version
+```
 
-The following examples become usable after the CLI is implemented and installed. `example.org` is a placeholder; replace it with a direct file URL you can access.
+The executable is `bin/yoinkdl`; the default version is `dev`. This is a source build, not a published release or package-manager installation.
+
+Linux is tested locally. macOS storage operations are enabled but need native validation; Windows downloads are unsupported. The destination filesystem must support hard links and directory sync.
+
+Run tests or the full gate:
+
+```sh
+make test
+make check
+```
+
+Tests use local HTTP servers. `make check` also checks formatting, runs vet and race tests, and builds. See [development](development.md) for all targets.
 
 ## Download a file
 
-```sh
-yoinkdl download 'https://example.org/archive.zip'
-```
-
-The intended default is to save into the current directory using a safe filename derived from the URL path. When no usable name exists, use `download`.
-
-Choose a destination explicitly:
+Example URLs are placeholders. Replace them with an accessible direct file URL:
 
 ```sh
-yoinkdl download 'https://example.org/archive.zip' --output ./downloads/archive.zip
+./bin/yoinkdl download 'https://example.org/archive.zip'
 ```
 
-Use an existing writable parent directory until automatic directory creation is specified. Quote URLs, particularly when they contain query parameters.
+The default destination uses a safe filename from the URL path in the current directory, falling back to `download`. Query strings do not become filenames.
 
-## Control parallelism and speed
+Create a destination directory yourself when needed:
 
 ```sh
-yoinkdl download 'https://example.org/archive.zip' --connections 4 --limit 5MB/s
+mkdir -p downloads
+./bin/yoinkdl download 'https://example.org/archive.zip' --output ./downloads/archive.zip
 ```
 
-Four connections is a desired worker count. The engine may use fewer workers for a small file or a server that cannot support safe ranged downloads.
+The CLI does not create missing parent directories. Quote URLs, especially when they contain query parameters.
 
-`5MB/s` means an aggregate cap of 5,000,000 bytes per second across the transfer's workers. The cap is optional; the default is unlimited. See [configuration and units](configuration.md#units).
+## Read progress and results
 
-## Interrupt and resume
+Known-size downloads show bytes, percentage, average speed, ETA, and one worker. Unknown-size downloads show bytes and speed. Progress goes to stderr; success prints the absolute final path to stdout.
 
-Interrupt the foreground process with Ctrl+C. The planned shutdown cancels requests and attempts to preserve a safe checkpoint. A forced termination may lose progress since the last durable checkpoint.
-
-Run the same request with the same output path:
+Use quiet mode for less terminal output:
 
 ```sh
-yoinkdl download 'https://example.org/archive.zip' --output ./downloads/archive.zip --resume
+./bin/yoinkdl download 'https://example.org/archive.zip' -o ./archive.zip --quiet
 ```
 
-Compatible partial state is intended to resume automatically, with `--resume` also supported explicitly. Reuse depends on the remote resource version, destination, manifest, and partial file agreeing. A changed resource or incompatible state must not be silently combined with old bytes.
-
-The design does not yet fix the restart interaction for every incompatible case. A fresh output path is the conservative way to start a separate transfer while preserving existing artifacts.
-
-## Inspect local state
+A stalled connection or body read fails after the configured inactivity timeout. To use two minutes:
 
 ```sh
-yoinkdl inspect ./downloads/archive.zip
+./bin/yoinkdl download 'https://example.org/archive.zip' --timeout 2m
 ```
 
-`inspect` is intended to show locally stored transfer metadata for that destination. It is not a promise of completed-download history: the successful transfer normally removes its metadata. The output layout and behavior when metadata is absent are still open.
+Active downloads may take longer than that timeout overall.
 
-Typical planned artifacts during a transfer are:
+## Interrupt a transfer
+
+Press Ctrl+C. The process cancels the request, syncs and closes received data, and reports any retained partial file. Interruption exits with status `130` and does not publish an incomplete output.
+
+A typical retained artifact is:
 
 ```text
-downloads/
-├── archive.zip.yoinkdl.part
-└── archive.zip.yoinkdl.json
+archive.zip.yoinkdl.part
 ```
 
-Successful finalization publishes `archive.zip` and cleans up transfer metadata when safe. Keep the partial file and manifest together while recovery may still be needed. See [resume and storage](resume-and-storage.md).
+Resume and manifests are not implemented yet. A new attempt at the same path refuses existing partial state. Use a fresh output path, or deliberately remove abandoned partial data only after no writer is active. Do not rename a partial file into a final output manually.
 
 ## Replace a completed output
 
 ```sh
-yoinkdl download 'https://example.org/archive.zip' --output ./downloads/archive.zip --overwrite
+./bin/yoinkdl download 'https://example.org/archive.zip' --output ./archive.zip --overwrite
 ```
 
-`--overwrite` deliberately allows replacing a completed destination. Without it, a destination collision must fail. This flag is not permission to merge incompatible partial state or skip verification.
+This allows replacing an existing regular file after the new transfer verifies successfully. It does not discard existing partial files or manifests, and does not follow destination symlinks.
 
-## Read progress and results
+## Current limits
 
-For a known total, the terminal should show transferred bytes, percentage, speed, useful ETA, and active workers. For an unknown total, it should show bytes and speed without inventing a percentage or ETA.
+The engine uses one stream and no automatic retries. `inspect`, `--resume`, `--connections`, `--retries`, `--limit`, and `--json` are not available yet. Configuration files are not loaded.
 
-Success prints the final path and exits with `0`. Failure exits nonzero, explains the reason, and states whether partial data was preserved. Exact text and JSON formats are not frozen.
+The engine asks for identity encoding and saves the exact bytes the server returns. If the server still applies content encoding, those bytes are preserved without transparent decoding. Unknown-length completion can establish clean HTTP completion, not the publisher's intended size without additional metadata.
 
-See the [CLI reference](cli.md) for all proposed flags and [troubleshooting](troubleshooting.md) for expected recovery situations.
+See the [CLI reference](cli.md), [troubleshooting](troubleshooting.md), and [roadmap](roadmap.md).

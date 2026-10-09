@@ -6,7 +6,7 @@ YoinkDL aims to turn a direct HTTP(S) URL into a correct local file. Users shoul
 
 **Product promise:** Yoink a file. Keep it intact. Pick up where you left off.
 
-The project is currently a design. See [project status](README.md#project-status) before using any command examples.
+Milestone A now implements sequential downloads, progress, cancellation, and verified publication. Resume and parallel transfers remain planned. See [project status](README.md#project-status) and the [current CLI](cli.md).
 
 ## Design principles
 
@@ -55,7 +55,7 @@ Resumption depends on compatible local state and trustworthy evidence that the r
 
 Unknown-length responses can be downloaded sequentially, but the UI cannot show a meaningful total percentage or ETA. A clean end of such a response establishes transport completion; without an expected size or checksum, it cannot establish what size the publisher intended.
 
-The design targets Linux, macOS, and Windows build checks. None is qualified by implementation or tests yet. Filesystem locking, crash durability, and final publication need platform-specific validation.
+Linux/amd64 has local build, integration, and race-test evidence. macOS operations are enabled but need native qualification; Windows downloads are rejected until publication is implemented there. Broader filesystem crash-durability and platform qualification remain release work.
 
 ## Terms
 

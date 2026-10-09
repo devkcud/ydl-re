@@ -2,100 +2,94 @@
 
 [Documentation index](README.md)
 
-Implementation has not started in this checkout. This guide separates what contributors can review today from the build workflow to adopt once source code exists.
+The repository now contains the Milestone A CLI, HTTP engine, storage layer, and tests. Read [AGENTS.md](../AGENTS.md) and the current handoff in [STATUS.md](../STATUS.md) before making changes.
 
 ## Current checkout
 
 ```text
 yoink-reborn/
 ├── AGENTS.md
+├── Makefile
 ├── README.md
 ├── STATUS.md
+├── cmd/yoinkdl/
 ├── docs/
+├── internal/
+│   ├── cli/
+│   ├── storage/
+│   └── transfer/
+├── go.mod
 └── yoinkdl-design.md
 ```
 
-The directory is named `yoink-reborn`; the proposed product and executable are `YoinkDL` and `yoinkdl`. There is no module path, minimum Go version, source tree, test suite, CI workflow, or license file yet.
+The module path is `yoinkdl`, with Go 1.27 as the minimum selected toolchain. All dependencies are from the standard library. The local module name does not imply a published remote package.
 
-Start with [AGENTS.md](../AGENTS.md) and the current handoff in [STATUS.md](../STATUS.md), then read the relevant [design](../yoinkdl-design.md), [architecture](architecture.md), and [roadmap](roadmap.md) sections. The first implementation task is Milestone A: a reliable single stream.
+The original [architecture](architecture.md) also describes future boundaries. Add packages only when a distinct responsibility needs them; do not scaffold every proposed component in advance.
 
-## Before scaffolding
+## Build and check
 
-Choose the Go version and module path, then create the smallest structure needed for `download` and `version`. Select a license before distributing the project as open source. Record decisions in the relevant documentation.
+Use GNU Make from the repository root:
 
-Do not create every proposed package just to match a diagram. Add boundaries as responsibilities emerge. Do not add a daemon, database, framework, or workflow runtime to bootstrap a file transfer.
+```sh
+make build
+./bin/yoinkdl version
+```
 
-Dependencies should be justified against the standard library. CLI parsing and TOML loading may use small libraries if chosen; no particular dependency is required by the current design.
+The ignored `bin/` directory contains build output. The default version label is `dev`; `make build VERSION=0.1.0-dev` sets another label without creating a release tag.
 
-## Planned build workflow
+| Target | Action |
+|---|---|
+| `make`, `make build` | Build the executable with trimmed source paths |
+| `make test` | Run `go test ./...` |
+| `make vet` | Run `go vet ./...` |
+| `make race` | Run `go test -race ./...` |
+| `make fmt` | Run `gofmt -w cmd internal` |
+| `make fmt-check` | Fail if Go source needs formatting |
+| `make check` | Formatting check, vet, tests, race tests, then build |
+| `make help` | List targets |
 
-These commands are templates for the [proposed source layout](architecture.md#proposed-repository-layout). They do not work in the current documentation-only checkout.
-
-After the module, entry point, and source packages exist:
+Go's build and test caches are used normally. The Makefile does not clear them. A direct build also works:
 
 ```sh
 go build -o ./bin/yoinkdl ./cmd/yoinkdl
 ```
 
-Choose an `.exe` output name for a Windows binary. Use the toolchain selected in `go.mod`; this documentation does not prescribe an unverified version.
+## Test environment
 
-Run the entry point during development:
+Tests use localhost HTTP servers, temporary directories, and subprocesses. Sandboxes must allow local socket listeners. The race detector requires a supported Go/CGO environment.
 
-```sh
-go run ./cmd/yoinkdl version
-```
+The implementation was checked with Go 1.27.2 on Linux/amd64. Initial sandboxed Go checks could not resolve standard packages, and HTTP tests could not open sockets; equivalent checks outside the sandbox passed. These are environment restrictions, not skipped correctness cases.
 
-Run the future verification commands:
-
-```sh
-go test ./...
-go vet ./...
-go test -race ./...
-```
-
-Race testing requires a supported environment. Cross-compiling alone cannot validate signal behavior, filesystem locking, or publication guarantees on another operating system.
+Only Linux has native runtime evidence. macOS code paths are enabled but unqualified; Windows downloads are rejected until publication is implemented there. Cross-compiling would not establish filesystem or signal guarantees.
 
 ## Working on a change
 
-1. Identify the milestone and behavior the change is meant to deliver.
-2. Check existing code and local changes before editing.
-3. Add the smallest responsible implementation and meaningful tests for its behavior.
-4. Exercise both the success path and relevant interruption/error paths.
-5. Run focused checks, then the applicable project-wide checks.
-6. Update the affected docs with implemented behavior and remaining limitations.
-7. Update the root [STATUS.md](../STATUS.md) after every implementation step with the handoff, validation results, open issues, and ordered next steps. Include incomplete work and failed or skipped checks before ending the session.
+1. Resume the first unfinished next step in `STATUS.md` within the user's requested scope.
+2. Inspect local changes and the relevant contracts before editing.
+3. Implement one coherent behavior with meaningful success and failure tests.
+4. Keep code clearly spaced, following `gofmt` and the [agent rules](../AGENTS.md).
+5. Run focused checks, then the applicable full gate.
+6. Update the owning docs and the handoff, validation, open issues, and next steps in `STATUS.md`.
+7. Stage explicit paths or hunks and split focused commits by responsibility and dependency order. Never push.
 
-Keep unrelated work intact. A documentation update or proposed interface is not evidence that the feature works. Keep `STATUS.md` a current snapshot and remove stale next steps as work is completed.
+Update the handoff after every implementation step, even when work is incomplete or a check fails. Keep unrelated changes intact and replace stale next steps instead of accumulating a session log.
 
-## Code conventions
+## Code and package boundaries
 
-- Keep explanations, names, and functions clear and concise.
-- Use short variable names that still explain their role.
-- Do not prefix private identifiers with `_` unless an established project convention requires it.
-- Make visibility deliberate. In Go, exported identifiers use an uppercase initial; internal identifiers use a lowercase initial. Go has no explicit visibility modifiers.
-- Use `const` for values that are valid constants. Other bindings should have the narrowest useful scope.
-- Keep behavior that does not depend on an instance in an appropriate package function or type-level construct supported by the language.
-- Avoid comments unless logic is extremely complex or cannot be made clear in the code itself.
-- Format Go source with `gofmt` once it exists.
+`cmd/yoinkdl` owns process signals and the entry point. `internal/cli` owns parsing, stdout/stderr, and progress rendering. `internal/transfer` owns request validation, HTTP behavior, transfer completion, and snapshots. `internal/storage` owns exclusive partial creation and final publication.
 
-The project does not yet have a selected linter, coverage threshold, public Go API policy, or mandatory third-party testing framework.
+Use short, clear names, explicit visibility where supported, constants for fixed values, and blank lines between logical blocks. Go uses capitalization for visibility and package-level functions instead of class-level static methods. Avoid comments unless complex logic cannot be made clear in code.
 
-## Test design
-
-Use deterministic fixtures and local HTTP servers for correctness. Inject failures where the engine must preserve invariants: wrong ranges, resource changes, incomplete reads, failed writes, interrupted checkpoints, and concurrent ownership attempts.
-
-Do not depend on public download URLs for repeatable tests. Hash fixture output in integration tests even though a user-facing checksum flag is deferred. See the [full test plan](testing.md).
+Keep the transfer/storage packages independent of terminal rendering. Use deterministic fixtures and local servers for correctness, including interruption, malformed responses, resource conflicts, and failed publication.
 
 ## Documentation maintenance
 
-Keep user commands in [CLI](cli.md), defaults and paths in [configuration](configuration.md), and recovery guarantees in [resume and storage](resume-and-storage.md). Update cross-references when moving a page.
+Keep current commands in [CLI](cli.md), defaults in [configuration](configuration.md), and file guarantees in [resume and storage](resume-and-storage.md). Mark future interfaces as planned and update [open decisions](decisions.md) when choices are adopted.
 
-When a decision is resolved, update the owning page and remove or mark the corresponding item in [open decisions](decisions.md). When implementation arrives, replace planned examples with commands verified against it and update [project status](README.md#project-status).
-
-Check Markdown links, anchors, code fences, structured examples, and whitespace. For new untracked pages, use checks that read their contents; a plain `git diff --check` does not include them.
+Check local links, anchors, code fences, structured examples, shell syntax, and whitespace. Checks must include untracked files; `git diff --check` alone does not inspect them. The original design contains intentional Markdown hard-break spaces and remains unchanged.
 
 ## Release preparation
 
-Milestone D includes native platform checks, installation instructions, release binaries, and a changelog. The distribution mechanism, signing/checksum policy for artifacts, version injection, and CI provider are not decided.
+Milestones B, C, and D remain. There is no license, CI workflow, installer, or published release configuration yet. Select those before distribution and validate every claimed platform natively.
 
-Tagging a release requires the [acceptance criteria](roadmap.md#v010-acceptance) and actual test evidence. No build, integration test, race check, or platform qualification is claimed by this documentation work.
+Tag v0.1.0 only when the [release acceptance criteria](roadmap.md#v010-acceptance) have actual evidence. Milestone A success does not qualify resume, parallel ranges, retry policies, or the full v0.1 feature set.

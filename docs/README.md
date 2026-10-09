@@ -2,17 +2,17 @@
 
 *The download manager that yoinks.*
 
-YoinkDL is a proposed local-first download manager written in Go. Its first release focuses on reliable HTTP(S) downloads from a standalone CLI, with safe interruption, resumption, and file completion.
+YoinkDL is a local-first download manager written in Go. Its first working milestone provides reliable sequential HTTP(S) downloads; safe resumption and parallel ranges are planned next.
 
 ## Project status
 
-As of October 9, 2026, this checkout contains the [engineering design](../yoinkdl-design.md), documentation, and contributor workflow. It has no Go module, executable implementation, tests, or release tooling yet.
+As of October 9, 2026, Milestone A is implemented and tested locally on Linux. Use `make build` to build `bin/yoinkdl`, `make test` for tests, and `make check` for the full gate. There are no external Go dependencies.
 
 Use the root [README](../README.md) for an introduction, [STATUS.md](../STATUS.md) for the current handoff and next steps, and [AGENTS.md](../AGENTS.md) for implementation instructions.
 
-Command examples describe the planned interface. Package layouts, configuration, and state examples describe the design, not working software. No installation method is verified yet.
+The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands. Resume, `inspect`, ranges, retries, caps, JSON, and configuration loading remain planned. The manifest and later package layouts are still illustrative; no published installer or full v0.1 release is available.
 
-These pages expand the original design without marking proposed features as delivered. Requirements describe the intended product; recommendations and unresolved details are identified explicitly. The [open decisions](decisions.md) must be settled as implementation proceeds.
+These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions.
 
 ## Start here
 
@@ -66,4 +66,4 @@ The original design remains the source proposal. This map shows where its subjec
 
 `v0.1`, `v0.2`, and `v0.3` identify planned release boundaries, not existing releases. “Later” means unscheduled. “Illustrative” means an example is not a stable schema or output contract.
 
-All example URLs and filesystem paths are placeholders. A successful-looking progress display is never evidence that a transfer has passed verification.
+Remote example URLs are placeholders. Build commands use the actual repository layout; choose output paths appropriate to your filesystem. A successful-looking progress display is never evidence that a transfer has passed verification.

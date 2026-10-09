@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-This page describes the planned v0.1 scheduler. Worker, retry, and limiter implementations do not exist yet.
+Milestone A uses one sequential stream with cancellation and progress. This page describes the planned v0.1 scheduler; range workers, retries, and the limiter are not implemented yet.
 
 ## Range planning
 
@@ -75,7 +75,7 @@ Track useful completed or reliably received bytes without double-counting retrie
 
 Show speed and ETA only as advisory estimates. Suppress total percentage and ETA when total length is unknown. Report the active worker count rather than implying the configured maximum is always in use.
 
-The event cadence, speed window, transient retry accounting, and slow-subscriber behavior still need an explicit contract. Coverage and final verification remain the authority for completion.
+The current CLI renders received snapshots at most every 200 ms while data arrives and uses average speed since start, plus a final snapshot. Retry accounting, a durable event schema, and slow-subscriber behavior still need a contract for later consumers. Coverage and final verification remain the authority for completion.
 
 ## Deferred tuning
 

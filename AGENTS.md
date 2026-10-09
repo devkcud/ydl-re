@@ -44,9 +44,9 @@ The standalone CLI comes first. Daemons, queues, TUIs, extra protocols, and work
 
 ## Validation
 
-Run checks appropriate to the change. For implementation work, test the changed behavior and relevant failure paths, then run the applicable broader checks. Use deterministic fixtures and local HTTP servers.
+Run checks appropriate to the change. For implementation work, test the changed behavior and relevant failure paths, then run `make check` for the full gate. Use deterministic fixtures and local HTTP servers.
 
-Once the Go module and source exist, the baseline commands are:
+The Makefile wraps the baseline Go commands:
 
 ```sh
 go build ./...
@@ -55,7 +55,7 @@ go vet ./...
 go test -race ./...
 ```
 
-Use a supported environment for race checks. Record failures, skipped checks, and environment limitations accurately. These commands cannot validate the current documentation-only checkout.
+Use a supported environment for race checks and allow localhost listeners for integration tests. Record failures, skipped checks, and environment limitations accurately.
 
 For documentation changes, check local links and anchors, examples, and whitespace, including new untracked files.
 

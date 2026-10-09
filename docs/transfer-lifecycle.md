@@ -4,6 +4,8 @@
 
 This page defines the lifecycle intended for v0.1. State names are conceptual; serialized state and event schemas are not frozen.
 
+Milestone A implements validation, a full HTTP GET, sequential streaming, completion checks, and publication. Metadata probes, range planning, retries, and durable checkpoints in the full lifecycle remain planned.
+
 ## States
 
 ```mermaid
@@ -88,7 +90,7 @@ The destination check must cover a file created after initial validation. A simp
 
 Atomic visibility and survival after power loss are separate guarantees. The design requires safe publication, but the implementation must qualify rename and directory durability behavior for each supported platform. Go's `os.Rename` can replace an existing file and does not promise atomic behavior on non-Unix platforms. [Go file operations](https://pkg.go.dev/os#Rename).
 
-Failure to publish must not result in a success message. Failure to remove metadata after publication must not cause the completed output to be resumed or truncated. The latter result/recovery policy still needs to be specified.
+Failure to publish must not result in a success message. The current CLI reports a nonzero result and identifies verified published output when a later directory-sync or partial-cleanup error occurs. Manifest reconciliation after publication remains to be specified before resume is added.
 
 ## Interruption and failures
 

@@ -15,18 +15,19 @@ Resolve each decision before the milestone or interface depending on it is decla
 - Sequential transfers request identity encoding and save served bytes unchanged, including any encoding returned anyway. Known lengths refer to those same bytes.
 - Use a 30-second network inactivity timeout for connection, TLS, response headers, and individual body reads, with no total transfer deadline. Reject nonpositive CLI timeout values.
 - Allow at most ten requests in a redirect chain, reject HTTPS downgrades and URL credentials, and strip sensitive headers across origins.
+- Use exit codes `0` for success/help, `1` for transfer/output failures, `2` for command/option errors, and `130` for interruption. Success prints an absolute path to stdout; progress/errors go to stderr.
+- Render progress at most every 200 ms while data arrives, plus a final snapshot; use average rate since start. Build versions default to `dev` and can be set through the Makefile.
 
 ## Command and output decisions
 
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
-| C02 | Accepted flag values, bounds, and timeout syntax/defaults | Users need unambiguous validation and predictable long-transfer behavior | [CLI](cli.md) |
+| C02 | Bounds and grammar for future connections, retries, and rate options | Keeps new options unambiguous; current timeout syntax/defaults are implemented | [CLI](cli.md) |
 | C03 | Whether `--retries 3` means three retries after the first attempt; budgets for probes and streams | Defines bounded attempts consistently across modes | [Concurrency](concurrency.md) |
 | C04 | Explicit `--resume` without state; `resume = false`; combination with `--overwrite` | Avoids accidental deletion or ambiguous restart behavior | [CLI](cli.md) |
 | C05 | JSON event/result schema, framing, stream routing, `--quiet` interaction, compatibility | Makes machine output safe to script against | [CLI](cli.md) |
-| C06 | Interrupt exit status, dedicated error codes, exact final-result semantics | Makes process outcomes predictable | [CLI](cli.md) |
-| C07 | `inspect` output and behavior for absent/corrupt state; version output | Prevents invented history or metadata guarantees | [CLI](cli.md) |
-| C08 | Progress cadence, speed smoothing, retry counters, subscriber backpressure | Keeps UI observations consistent without controlling correctness | [Concurrency](concurrency.md) |
+| C07 | `inspect` output and behavior for absent/corrupt state | Prevents invented history or metadata guarantees | [CLI](cli.md) |
+| C08 | Future event schema, retry counters, and subscriber backpressure | Extends the implemented CLI snapshots for other consumers | [Concurrency](concurrency.md) |
 | C09 | TOML loader, precedence, unknown keys, rate/unit grammar, overflow/zero handling | Turns the illustrative configuration into a contract | [Configuration](configuration.md) |
 
 The default worker preference is four, the proposed retry default is three per range, and the default rate is unlimited. Preserve those choices unless a deliberate product change is made. The exact parser and boundary behavior still need decisions.
@@ -40,14 +41,14 @@ The default worker preference is four, the proposed retry default is three per r
 | S03 | Destination normalization, name sanitization, parent creation, symlinks, artifact collisions | Defines safe path ownership across platforms | [Security](security.md) |
 | S04 | Exclusive lock primitive and stale-lock recovery on each OS | Prevents simultaneous writers without breaking active ownership | [Resume and storage](resume-and-storage.md) |
 | S05 | Checkpoint interval, durability ordering, conservative re-fetch, temporary files | Ensures saved metadata never overstates recoverable bytes | [Resume and storage](resume-and-storage.md#checkpoint-ordering) |
-| S06 | Atomic publication, overwrite races, directory durability, cleanup-failure outcome | Makes completion and recovery trustworthy on each supported platform | [Lifecycle](transfer-lifecycle.md#7-finalize) |
+| S06 | Windows publication, wider durability qualification, and manifest reconciliation after publication | Extends the implemented Linux publication/result policy safely | [Lifecycle](transfer-lifecycle.md#7-finalize) |
 | S07 | Refusal/restart interaction for changed resources or incompatible artifacts | Avoids silently discarding data or combining versions | [Resume and storage](resume-and-storage.md) |
 | S08 | Platform config discovery and XDG handling | The suggested Unix path does not define a portable loader | [Configuration](configuration.md) |
 | S09 | Credential-bearing URL persistence, redaction, and refreshed signed-URL matching | Preserves identity without unnecessary secret exposure | [Security](security.md) |
 
 Internal half-open intervals are the design's preferred arithmetic convention. Changing the sample to that convention on disk is still a schema decision, not a documentation-only substitution.
 
-Atomic final publication is a product requirement. Its platform implementation is unresolved; writing “rename” in a design does not prove that every operating system meets it.
+Atomic final publication is implemented and tested locally on Linux. Windows publication, native macOS qualification, and deeper filesystem crash-durability evidence remain open.
 
 ## HTTP and scheduling decisions
 

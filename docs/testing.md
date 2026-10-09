@@ -2,7 +2,21 @@
 
 [Documentation index](README.md)
 
-This is the planned validation strategy. No executable tests or implementation are present yet, and no runtime checks have passed by virtue of writing these docs.
+Milestone A has executable tests and a passing local `make check` on Go 1.27.2, Linux/amd64. The full matrix below also covers later milestones and must not be read as fully implemented.
+
+## Current evidence
+
+| Test file | Coverage |
+|---|---|
+| [Storage](../internal/storage/file_test.go) | Publication, overwrite, destination races, exclusive writers, retained partials, unsafe paths, sync failure |
+| [Transfer](../internal/transfer/download_test.go) | Fixture hashes, known/unknown/encoded/empty bodies, bad statuses, truncation, cancellation, timeouts, redirects, publication failure |
+| [HTTP policy](../internal/transfer/http_test.go) | Safe derived names, cross-origin credential stripping, downgrade and credential rejection |
+| [CLI](../internal/cli/cli_test.go) | Argument ordering, invalid options, help/version, progress, quiet output, overwrite, error codes |
+| [Process](../cmd/yoinkdl/main_test.go) | Entry point, successful download, real SIGINT with retained partial bytes and no final output |
+
+`make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
+
+Resume, range planning, retries, caps, manifest recovery, real disk exhaustion, post-publication fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete.
 
 ## Test layers
 
@@ -72,9 +86,9 @@ Use controlled time and randomness where practical for retry tests. Assert attem
 
 The race detector only finds races on executed paths. It does not replace crash, protocol, or leak testing. [Go race detector documentation](https://go.dev/doc/articles/race_detector).
 
-## Planned commands
+## Commands
 
-Once Go packages and tests exist, the baseline commands are:
+The Makefile exposes `make test`, `make vet`, `make race`, and the full `make check` gate. The underlying commands are:
 
 ```sh
 go test ./...
@@ -82,7 +96,7 @@ go vet ./...
 go test -race ./...
 ```
 
-These are future commands, not checks that can pass in the current checkout. Use the supported toolchain selected by the project. Race testing and native filesystem tests must run in suitable platform environments.
+These checks pass locally on Linux. Use the toolchain selected by the project; race testing and native filesystem tests need suitable platform environments. Other operating systems have not been qualified by these results.
 
 ## Release evidence
 

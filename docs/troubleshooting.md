@@ -2,35 +2,33 @@
 
 [Documentation index](README.md)
 
-The CLI is not implemented in this checkout yet. Apart from that current limitation, the situations below describe expected behavior and recovery guidance for the planned product, not observed runtime diagnostics.
+The current CLI supports sequential downloads. Resume, retries, parallel ranges, and manifest recovery remain planned; this guide distinguishes their limits from working behavior.
 
 ## The command or build is unavailable
 
-There is no executable or `go.mod` to run today. Installing Go alone will not create YoinkDL. Follow the [development guide](development.md) if implementing the project; the [getting-started examples](getting-started.md) describe the future interface.
+Run `make build` from the repository root, then use `./bin/yoinkdl`. The project needs Go 1.27 or newer and GNU Make; it is not automatically installed on your shell's PATH. See [getting started](getting-started.md).
+
+If tests fail with a socket permission error, allow localhost listeners in the test environment. `make check` includes the race detector, which also needs a supported Go/CGO environment.
 
 ## Download and network issues
 
 | Situation | Expected explanation | Useful next step |
 |---|---|---|
-| Only one worker is active | Unknown length, unsuitable encoding, unproven ranges, or a small object can require fewer workers | Treat one stream as a valid fallback; inspect available metadata |
+| Only one worker is active | Milestone A implements one sequential stream | Parallel range workers are a later milestone |
 | Percentage or ETA is absent | The server did not provide a reliable total | Use transferred bytes and speed; wait for verified completion |
-| Speed is lower than requested | `--limit` is a ceiling, not a target; the server, network, disk, or worker overhead may be slower | Check the configured cap and compare with fewer workers |
+| Speed is low | The server, network, proxy, or disk can limit a single stream | Check those resources; there is no implemented rate cap or worker-count option yet |
 | `404` | The resource is unavailable at that URL | Verify the direct file URL; blind retries should not continue |
-| `429` or transient `503` | The server is limiting or temporarily unable to serve requests | Allow bounded backoff; reduce requested concurrency if appropriate |
-| Short body, wrong length, invalid range | The response cannot establish a complete interval | Keep valid recovery data and retry only through the engine's safe policy |
+| `429` or transient `503` | The server is limiting or temporarily unable to serve requests | Retry later; automatic retries are not implemented |
+| Short body or wrong length | The response cannot establish a complete file | Preserve useful partial data; a new attempt currently needs a fresh path or deliberate abandonment of the old partial |
 | TLS or proxy failure | Certificate verification or proxy connectivity failed | Correct the certificate/proxy environment; no insecure-TLS bypass is specified |
 
 An HTTP success status does not necessarily mean the server sent the file the user intended. v0.1 has no content-specific authentication flow or checksum option. Verify the source URL and access requirements when a server returns an unexpected resource.
 
 ## A transfer will not resume
 
-Use the same intended output path and keep both sidecars. The planned command is:
+Resume and `--resume` are not implemented. The current CLI retains nonempty `.yoinkdl.part` files but refuses to reuse or overwrite existing partials/manifests. Use another output path or deliberately discard an abandoned partial after confirming no writer is active.
 
-```sh
-yoinkdl download 'https://example.org/archive.zip' --output ./downloads/archive.zip --resume
-```
-
-Potential reasons for refusing reuse include:
+Milestone B will validate saved metadata and remote identity before reuse. Potential reasons for refusing future resume include:
 
 - The server serves a different representation or lacks a usable validator.
 - Range support or encoding changed.
@@ -38,7 +36,7 @@ Potential reasons for refusing reuse include:
 - The partial file is absent or inconsistent with saved coverage.
 - Another process owns the transfer.
 
-The precise failure messages and restart interaction are not decided. `--resume` must not bypass validation, and `--overwrite` must not make incompatible partial state safe. A new output path can preserve the old artifacts while starting a fresh transfer.
+The future restart interaction remains undecided. `--overwrite` currently permits replacing a completed regular file; it does not discard partial state.
 
 If a signed URL expires, obtain a valid source URL through the normal provider flow. Whether a refreshed URL may reuse old state depends on a future identity policy; do not edit the manifest to force a match.
 
@@ -52,11 +50,11 @@ Destination conflicts can also arise while a transfer is running. The final publ
 
 Check that the output parent exists, is writable, and has space for the transfer and metadata. Free space or correct permissions without deleting valid partial artifacts automatically. Resume only after the underlying problem is corrected.
 
-If another writer is active, stop or wait for that process through its normal lifecycle. Do not delete its lock while it may still be writing. No stale-lock recovery command or algorithm has been selected yet.
+If another writer is active, stop or wait for that process through its normal lifecycle. Exclusive creation of the partial file blocks other writers; do not remove it while a process may still be writing. There is no separate lockfile or automatic stale-part recovery yet.
 
-## Progress went backward after a crash
+## A partial remains after a crash
 
-The display may include received bytes newer than the last durable checkpoint. Re-fetching those bytes after a crash is expected under a conservative recovery policy. It is safer than trusting data whose persistence cannot be established.
+A crash may leave partial bytes without evidence that they form a complete file. The current CLI refuses that artifact on a new attempt. Future recovery will trust only validated checkpoints, which may lag behind displayed progress; uncertain bytes will need to be fetched again.
 
 ## Progress reached the end but finalization failed
 
@@ -68,7 +66,7 @@ Keep the partial file and manifest for diagnosis. Do not rename the partial file
 
 Publication may have succeeded before metadata cleanup. The recovery policy must distinguish this case from an interrupted download. Do not truncate the final file or force resumption based on leftover metadata alone.
 
-The exact cleanup/error result is an [open decision](decisions.md#storage-and-recovery-decisions). `inspect` is planned for local state, but no automatic cleanup command is part of v0.1.
+The current CLI reports a failure and identifies the published output if a later directory-sync or partial-cleanup operation fails. Manifest reconciliation is an [open decision](decisions.md#storage-and-recovery-decisions). `inspect` is planned for local state; there is no automatic cleanup command.
 
 ## Information for a useful report
 

@@ -2,9 +2,15 @@
 
 [Documentation index](README.md)
 
-This page describes proposed defaults and an optional configuration format. No configuration loader exists yet.
+The current CLI uses built-in defaults and flags. No configuration loader exists yet; the TOML format below remains a proposal.
 
-## Built-in defaults
+## Current defaults
+
+Milestone A uses one stream, no retries, no resume, no overwrite, and no rate cap. The network inactivity timeout is `30s`. Available overrides are `--output`, `--overwrite`, `--quiet`, and `--timeout`; see [CLI](cli.md).
+
+No configuration directories or files are created or read. The only per-transfer artifact is the partial data file.
+
+## Planned v0.1 defaults
 
 | Setting | Proposed value | Meaning |
 |---|---|---|
@@ -13,7 +19,7 @@ This page describes proposed defaults and an optional configuration format. No c
 | Resume | Enabled for compatible partial state | Revalidate before trusting saved bytes |
 | Rate limit | Absent | No configured transfer cap |
 | Overwrite | Disabled | Preserve a completed destination unless explicitly allowed |
-| Timeout | Undecided | Must distinguish idle connections from slow but active transfers |
+| Timeout | `30s` | Current network inactivity timeout; no total transfer deadline |
 
 The standalone CLI must work with defaults and no configuration file, daemon, or database.
 

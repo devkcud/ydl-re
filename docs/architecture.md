@@ -2,7 +2,18 @@
 
 [Documentation index](README.md)
 
-This is the proposed architecture. None of the packages or APIs below exists yet.
+Milestone A implements the packages below. The diagrams and proposed layout describe the larger target architecture.
+
+## Current packages
+
+| Package | Implemented responsibility |
+|---|---|
+| `cmd/yoinkdl` | Entry point, build version, SIGINT/SIGTERM cancellation |
+| `internal/cli` | Standard-library argument parsing, stdout/stderr, terminal progress |
+| `internal/transfer` | Sequential HTTP requests, timeouts, byte checks, filename derivation, snapshots |
+| `internal/storage` | Exclusive partial creation, preservation, syncing, safe publication |
+
+`transfer.Download` is the current application entry point. No separate app, scheduler, configuration, or progress package is needed for this slice. Tests live beside the code, including subprocess checks in `cmd/yoinkdl`.
 
 ## Component flow
 

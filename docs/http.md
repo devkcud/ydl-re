@@ -86,7 +86,7 @@ Recommended conservative behavior is one fresh stream when a safe common validat
 
 For byte-range transfers, request `Accept-Encoding: identity` and disable transparent decompression. Go's transport can automatically request gzip and decode it; `DisableCompression` controls that automatic behavior. An explicitly unexpected content encoding still requires validation. [Go HTTP transport](https://pkg.go.dev/net/http#Transport).
 
-Compressed responses and unknown-size bodies use a sequential plan. The exact treatment of encoded sequential output remains undecided. Do not compare a decoded byte count against a size describing encoded bytes.
+Compressed responses and unknown-size bodies use a sequential plan. The current engine saves encoded bytes unchanged and checks lengths against those same bytes. Do not compare a decoded byte count against a size describing encoded bytes.
 
 Without a reliable total, report bytes and speed. Successful EOF must mean the HTTP body completed without a transport error. A clean EOF with no expected length cannot independently prove the publisher's intended object size.
 
@@ -108,6 +108,6 @@ Do not retry all `4xx` or all `5xx` indiscriminately. `Retry-After` handling and
 
 Bound redirects and track the effective URL. Reassess resource identity when redirects change. Do not forward credentials or cookies indiscriminately to another origin.
 
-Respect proxy and certificate verification defaults. A request can be slow without being stalled, so avoid one short overall timeout that kills legitimate large transfers. Exact dial, response, idle, and total timeout policies are not yet defined.
+Respect proxy and certificate verification defaults. The current network timeout defaults to 30 seconds for connection, TLS, response headers, and each idle body read; it does not cap total download duration.
 
 See [security](security.md) for credential handling and [testing](testing.md) for the HTTP fault matrix.

@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-These are design requirements and review topics for the future implementation. No security properties have been validated in running YoinkDL code yet.
+Milestone A tests cover artifact preservation, exclusive ownership, destination collisions, unsafe paths, redirects, and secret-safe errors. These requirements also guide the remaining v0.1 security review; they do not imply a completed security audit.
 
 ## Trust boundaries
 

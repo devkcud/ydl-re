@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Every implementation milestone below is pending. The repository currently contains a proposed design and documentation; no release dates or completed features are implied.
+Milestone A is implemented and passes local Linux checks. Milestones B, C, and D remain pending; there is no full v0.1 release or promised release date.
 
 ## Delivery sequence
 
@@ -17,13 +17,15 @@ Complete these in dependency order. A daemon or TUI should not delay the standal
 
 ## Milestone A — Reliable single stream
 
+**Status:** implemented and tested on Linux/amd64. See [testing](testing.md) for the evidence and [CLI](cli.md) for working commands.
+
 Deliver `download` and `version`, HTTP(S) streaming into a partial file, progress, cancellation, and verified final publication.
 
 Reject bad HTTP responses, incomplete bodies, and destination conflicts. Use local-server integration tests with deterministic content.
 
 Completion evidence: a direct download produces exactly the expected file; failed or interrupted transfers do not appear as completed output; publication obeys the chosen filesystem and overwrite policy.
 
-Resolve the initial Go/module choices, output policy, and publication strategy before this milestone is called complete.
+The initial choices are Go 1.27, local module `yoinkdl`, standard-library parsing, exclusive partial creation, and hard-link/rename publication with syncs. Other platforms and broader crash-durability qualification remain release work.
 
 ## Milestone B — Persistence and resume
 
