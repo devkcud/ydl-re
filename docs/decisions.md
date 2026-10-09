@@ -6,11 +6,17 @@ The original proposal leaves several implementation contracts unsettled. These a
 
 Resolve each decision before the milestone or interface depending on it is declared complete. Update the owning page when a choice is made; preserve the design's no-corruption and no-silent-overwrite requirements.
 
+## Milestone A decisions made
+
+- Use Go 1.27 or newer and the local module path `yoinkdl`. No remote/module publishing identity is assumed.
+- Use the standard library, including `flag` for the CLI; no external dependencies are required.
+- Require an existing output parent, reject destination symlinks/special files and reserved sidecar suffixes, and preserve incompatible artifacts.
+- Use exclusive partial-file creation, sync before publication, hard-link publication without overwrite, and rename with explicit overwrite. Linux is the initially tested platform; macOS still needs native validation and Windows publication is deferred.
+
 ## Command and output decisions
 
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
-| C01 | Minimum Go version, module path, CLI parser | Establishes a reproducible build and command grammar | [Development](development.md) |
 | C02 | Accepted flag values, bounds, and timeout syntax/defaults | Users need unambiguous validation and predictable long-transfer behavior | [CLI](cli.md) |
 | C03 | Whether `--retries 3` means three retries after the first attempt; budgets for probes and streams | Defines bounded attempts consistently across modes | [Concurrency](concurrency.md) |
 | C04 | Explicit `--resume` without state; `resume = false`; combination with `--overwrite` | Avoids accidental deletion or ambiguous restart behavior | [CLI](cli.md) |

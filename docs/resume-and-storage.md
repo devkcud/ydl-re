@@ -2,7 +2,17 @@
 
 [Documentation index](README.md)
 
-v0.1 is designed to recover transfers from local files without a daemon. This page describes the proposed storage model; filenames and schema are not a released compatibility contract.
+v0.1 is designed to recover transfers from local files without a daemon. The storage foundation is implemented; manifest-based recovery below remains planned.
+
+## Implemented storage foundation
+
+`internal/storage` exclusively creates `<output>.yoinkdl.part` with mode `0600`. Existing partials or manifests are refused even with overwrite enabled. Empty failed transfers are removed; nonempty partials are synced and retained. They cannot be resumed until Milestone B.
+
+Parents must exist. Output directories, symlinks, special files, and the reserved `.yoinkdl.part` / `.yoinkdl.json` output suffixes are rejected. Operations use an open directory root.
+
+After syncing and closing the file, default publication uses a same-directory hard link that fails if the destination exists, including a destination created during the transfer. Explicit overwrite uses a same-directory rename. Directory syncs cover publication and cleanup; errors after publication retain that fact in the result.
+
+These operations are enabled on Linux/macOS; only Linux has been tested locally. The filesystem must support hard links and directory sync. Windows downloads are rejected until publication is qualified there. This is atomic visibility with explicit sync operations, not a tested power-loss guarantee for every filesystem.
 
 ## Files and ownership
 

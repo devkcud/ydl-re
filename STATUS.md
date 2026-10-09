@@ -4,38 +4,30 @@ Updated: October 9, 2026.
 
 ## Current state
 
-- Design and documentation are in place, including 16 guides under [docs/](docs/README.md).
-- Root [README.md](README.md) introduces the project; [AGENTS.md](AGENTS.md) defines the implementation and handoff workflow.
-- Implementation has not started. There is no Go module, source tree, executable, test suite, CI, or release tooling.
-- The next milestone is [A: reliable single stream](docs/roadmap.md#milestone-a--reliable-single-stream). All implementation milestones remain pending.
+Milestone A is in progress. The Go 1.27 module (`yoinkdl`) and safe storage layer are implemented. The HTTP engine, executable, and requested Makefile are next. The existing design/documentation baseline is committed locally.
 
 ## Handoff
 
-The documentation and contributor workflow are in place. `AGENTS.md` now requires splitting changes into focused commits by responsibility and dependency order, validating each commit, and never pushing to any remote.
+`internal/storage` exclusively creates private partial files, rejects incompatible artifacts and unsafe output types, preserves nonempty failed transfers, and syncs before publication. Default hard-link publication cannot replace a destination that appears mid-transfer; explicit overwrite uses rename. Directory-sync and cleanup failures are reported separately from publication.
 
-Every implementation step must leave an updated handoff and ordered next steps here, including partial work and failed validation. Replace outdated status rather than accumulating a session log.
-
-The existing [engineering design](yoinkdl-design.md) remains unchanged. CLI examples, schemas, and package layouts are still proposals; do not infer working behavior from them. No application code was added in this update.
+The filesystem must support hard links and directory sync. Downloads are enabled on Linux/macOS; only Linux is locally tested. Windows publication is deferred. The original engineering design is unchanged.
 
 ## Validation
 
-- Previous documentation audit passed: 19 authored Markdown files, covering 184 local links and anchors, code fences, JSON/TOML examples, required status sections, and the unchanged original design checksum.
-- Previous example and whitespace checks passed: `zsh -n` for 18 shell examples and `git diff --no-index --check /dev/null <file>` for all 19 authored Markdown files.
-- Passed: local link/anchor and whitespace checks for the commit-workflow update to `AGENTS.md` and `STATUS.md`.
-- Not run: Go build, tests, vet, and race checks. There is no Go module or implementation to validate.
+- `go test ./internal/storage` passed before the final ownership cases were added.
+- `go test -race ./internal/storage` passed with concurrent ownership, collisions, symlinks, preservation, and sync-failure cases.
+- `go vet ./internal/storage` passed.
+- The sandboxed Go invocation could not resolve installed standard packages; the same toolchain works outside the sandbox.
 
 ## Next steps
 
-1. Settle the initial Milestone A choices: Go version, module path, minimal CLI parser, destination policy, and a platform-qualified publication strategy. Record the choices in the owning docs and [decision register](docs/decisions.md).
-2. Scaffold only the packages needed for `download` and `version`, then implement a foreground HTTP(S) stream into a separate partial file with progress, cancellation, response/length checks, and safe publication.
-3. Add deterministic local-server tests for exact output, bad statuses, incomplete bodies, unknown lengths, interruption, destination collisions, and publication failures.
-4. Run focused tests and the applicable build, test, vet, and race checks. Record actual results and platform limits here; update docs as proposed behavior becomes implemented.
-5. Begin [Milestone B](docs/roadmap.md#milestone-b--persistence-and-resume) only after Milestone A has its required evidence. Add persistence, resource identity, exclusive ownership, safe resume, and `inspect` in that order as their dependencies permit.
-
-Update this handoff after each implementation step within these tasks, not just after the entire list or milestone.
+1. Implement the sequential HTTP engine with input validation, bounded buffers, timeouts, cancellation, byte-count verification, and safe progress events.
+2. Add `download`, `version`, help, signal handling, terminal progress, and the Makefile build/test/check targets.
+3. Exercise the binary against local servers; run formatting, build, tests, vet, and race checks, then update the user docs to reflect actual commands.
+4. Complete Milestone A evidence before starting Milestone B manifests, validator-based resume, and `inspect`.
 
 ## Open decisions and blockers
 
-The next work requires the initial build and file-publication choices above. The [open decisions](docs/decisions.md) cover the remaining command, storage, HTTP, and release contracts; resolve them when their implementation depends on them.
+No external blocker remains for Milestone A. Go checks currently require execution outside the sandbox. License, distribution, Windows publication, native macOS qualification, and the later manifest/CLI contracts remain open in [the decision register](docs/decisions.md).
 
-No external blocker was found for the documentation/workflow update. License and distribution choices remain open before release. Platform support and atomic publication have not been validated.
+Update this handoff after every implementation step. Split focused local commits and never push.
