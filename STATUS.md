@@ -8,6 +8,8 @@ Milestone A is in progress. The Go 1.27 module (`yoinkdl`) and safe storage laye
 
 ## Handoff
 
+The HTTP engine is being implemented and is not validated yet. `AGENTS.md` now requires readable spacing and blank lines between logical blocks; apply this to new code and existing code being changed.
+
 `internal/storage` exclusively creates private partial files, rejects incompatible artifacts and unsafe output types, preserves nonempty failed transfers, and syncs before publication. Default hard-link publication cannot replace a destination that appears mid-transfer; explicit overwrite uses rename. Directory-sync and cleanup failures are reported separately from publication.
 
 The filesystem must support hard links and directory sync. Downloads are enabled on Linux/macOS; only Linux is locally tested. Windows publication is deferred. The original engineering design is unchanged.

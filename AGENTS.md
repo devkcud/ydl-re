@@ -15,6 +15,7 @@ Use the [roadmap](docs/roadmap.md) for milestone order and [open decisions](docs
 
 - Keep explanations short.
 - Use short, clear variable names.
+- Keep code visually spaced: use standard spaces around operators and after separators, and blank lines between logical blocks. Avoid dense, tightly packed statements while following the language formatter.
 - Do not prefix private fields or methods with `_` unless the project does.
 - Always declare visibility with `public`, `protected`, or `private` where the language supports it, including when `public` is implicit.
 - Apply visibility deliberately to classes, methods, fields, functions, and properties.

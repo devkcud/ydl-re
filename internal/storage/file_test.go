@@ -14,25 +14,31 @@ func TestPublish(t *testing.T) {
 			if overwrite {
 				write(t, path, "old")
 			}
+
 			f, err := Create(path, overwrite)
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			t.Cleanup(func() { f.Close() })
 			if _, err := f.Write([]byte("complete")); err != nil {
 				t.Fatal(err)
 			}
+
 			if overwrite {
 				assertData(t, path, "old")
 			} else {
 				assertAbsent(t, path)
 			}
+
 			if err := f.Finalize(); err != nil {
 				t.Fatal(err)
 			}
+
 			if err := f.Close(); err != nil {
 				t.Fatal(err)
 			}
+
 			assertData(t, path, "complete")
 			assertAbsent(t, path+PartSuffix)
 			if !f.Published() || f.Partial() != "" {
@@ -48,14 +54,17 @@ func TestDestinationAppearsBeforePublication(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	t.Cleanup(func() { f.Close() })
 	if _, err := f.Write([]byte("download")); err != nil {
 		t.Fatal(err)
 	}
+
 	write(t, path, "other writer")
 	if err := f.Finalize(); err == nil {
 		t.Fatal("publication replaced an unexpected destination")
 	}
+
 	assertData(t, path, "other writer")
 	assertData(t, path+PartSuffix, "download")
 	if f.Published() {
@@ -72,6 +81,7 @@ func TestExistingArtifactsArePreserved(t *testing.T) {
 				f.Close()
 				t.Fatal("accepted an existing artifact")
 			}
+
 			assertData(t, path+suffix, "preserve")
 		})
 	}
@@ -85,6 +95,7 @@ func TestOverwriteDoesNotDiscardPartial(t *testing.T) {
 		f.Close()
 		t.Fatal("overwrite discarded partial state")
 	}
+
 	assertData(t, path, "old")
 	assertData(t, path+PartSuffix, "partial")
 }
@@ -95,6 +106,7 @@ func TestSingleWriter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	t.Cleanup(func() { f.Close() })
 	if other, err := Create(path, true); err == nil {
 		other.Close()
@@ -114,6 +126,7 @@ func TestConcurrentOwnership(t *testing.T) {
 			results <- f
 		}()
 	}
+
 	close(start)
 	var owners []*File
 	for range count {
@@ -121,11 +134,13 @@ func TestConcurrentOwnership(t *testing.T) {
 			owners = append(owners, f)
 		}
 	}
+
 	for _, f := range owners {
 		if err := f.Close(); err != nil {
 			t.Fatal(err)
 		}
 	}
+
 	if len(owners) != 1 {
 		t.Fatalf("got %d owners, want one", len(owners))
 	}
@@ -139,12 +154,15 @@ func TestAbort(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			if _, err := f.Write([]byte(data)); err != nil {
 				t.Fatal(err)
 			}
+
 			if err := f.Close(); err != nil {
 				t.Fatal(err)
 			}
+
 			assertAbsent(t, path)
 			if data == "" {
 				assertAbsent(t, path+PartSuffix)
@@ -162,6 +180,7 @@ func TestUnsafePaths(t *testing.T) {
 			t.Fatalf("accepted reserved output %q", path)
 		}
 	}
+
 	for _, suffix := range []string{"", PartSuffix, ManifestSuffix} {
 		t.Run("symlink"+suffix, func(t *testing.T) {
 			dir := t.TempDir()
@@ -171,10 +190,12 @@ func TestUnsafePaths(t *testing.T) {
 			if err := os.Symlink(target, path+suffix); err != nil {
 				t.Fatal(err)
 			}
+
 			if f, err := Create(path, true); err == nil {
 				f.Close()
 				t.Fatal("accepted a symlink artifact")
 			}
+
 			assertData(t, target, "untouched")
 		})
 	}
@@ -184,6 +205,7 @@ func TestUnsafePaths(t *testing.T) {
 		f.Close()
 		t.Fatal("accepted directory destination")
 	}
+
 	if f, err := Create(filepath.Join(dir, "missing", "file"), false); err == nil {
 		f.Close()
 		t.Fatal("created missing parent unexpectedly")
@@ -196,16 +218,20 @@ func TestFailedSyncCannotPublish(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	t.Cleanup(func() { f.Close() })
 	if _, err := f.Write([]byte("data")); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := f.file.Close(); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := f.Finalize(); err == nil {
 		t.Fatal("reported completion after failed sync")
 	}
+
 	assertAbsent(t, path)
 	assertData(t, path+PartSuffix, "data")
 }
