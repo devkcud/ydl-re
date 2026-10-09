@@ -4,38 +4,31 @@ Updated: October 9, 2026.
 
 ## Current state
 
-Milestone A is implemented and passes local Linux checks. `bin/yoinkdl` is built and supports `download`, `version`, help, progress, cancellation, explicit overwrite, and network inactivity timeouts. The Go 1.27 module uses only the standard library.
-
-The requested Makefile provides build, test, vet, race, formatting, and full-check targets. Resume, manifests, `inspect`, parallel ranges, retries, bandwidth caps, JSON output, and configuration loading remain unimplemented.
+Milestone A is complete. Milestone B's storage APIs now implement manifests, verified prefix checkpoints, stable OS locking, and interrupted-publication recovery. HTTP resume and the CLI commands are not connected yet; the executable still exposes the Milestone A interface.
 
 ## Handoff
 
-- `cmd/yoinkdl` wires SIGINT/SIGTERM to cancellation. `internal/cli` parses options before or after the URL, prints progress/errors to stderr and the absolute completed path to stdout, and returns `130` for interruption.
-- `internal/transfer` streams full HTTP(S) responses with a 64 KiB buffer, known-length verification, clean unknown-length completion, and a default 30-second inactivity timeout. It preserves representation bytes, bounds redirects, and avoids URL tokens in request errors.
-- `internal/storage` exclusively creates private partial files, rejects incompatible artifacts, preserves nonempty failures, and syncs before publication. Default hard-link publication cannot replace an unexpected destination; explicit overwrite uses rename. Errors retain whether publication already happened.
-- `AGENTS.md` requires readable spacing, a current handoff after every implementation, focused local commits, and no pushes. The original design remains unchanged.
-
-The filesystem must support hard links and directory sync. Linux is tested locally; macOS still needs native qualification. Windows downloads are explicitly unsupported. Preserved partials cannot yet be resumed.
+- `internal/storage/manifest.go` defines strict schema version 1. `completed = n` denotes `[0, n)`; URL identities and saved prefixes use SHA-256. Raw URLs and query tokens are not persisted.
+- `checkpoint.go` syncs bytes before advancing progress, checkpoints during transfer and shutdown, verifies saved hashes, and only truncates uncertain tails when the caller explicitly starts validated continuation.
+- `file.go` preserves existing no-overwrite rules and reconciles `ready` partial/link/rename states. Complete checkpoints can finish publication locally after checksum validation.
+- Persistent `.yoinkdl.lock` files provide a stable inode for nonblocking advisory locks. Kernel ownership ends when the process closes or dies; lock files are never unlinked automatically. New reserved artifact names are handled by filename derivation.
+- The original design is unchanged. Go platform build directives keep Unix locking separate from unsupported targets; code otherwise has no explanatory comments and follows the spacing rule.
 
 ## Validation
 
-- `make check` passed: formatting, `go vet ./...`, `go test ./...`, `go test -race ./...`, and the executable build.
-- Tests cover exact fixture hashes, encoded and unknown-length bodies, empty files, bad statuses, short bodies, cancellation, inactivity versus active slow transfers, redirects, secret-safe errors, collisions, concurrent ownership, unsafe paths, sync failure, CLI parsing/output, and real process interruption.
-- `./bin/yoinkdl version` and `./bin/yoinkdl download --help` passed against the built executable.
-- Built-executable smoke checks passed on the workspace filesystem: known and unknown lengths matched fixture hashes; a truncated response failed and preserved only partial data.
-- Runtime environment: Go 1.27.2 on Linux/amd64. Tests needed execution outside the sandbox to permit localhost listeners; all runtime gates passed there.
-- Documentation audit passed: 19 pages, 173 local links/anchors, 19 shell examples, JSON/TOML examples, and whitespace. The original design checksum is unchanged.
+- `go test ./internal/storage` passed with checkpoint, corruption, invalid-schema, ownership, and interrupted-publication cases.
+- `make check` passed: formatting, vet, all tests, race checks, and build against the existing CLI.
+- Linux/amd64 is the tested runtime. Local test listeners require execution outside the sandbox. macOS native qualification, Windows storage, network filesystems, and real power-loss testing remain open.
 
 ## Next steps
 
-1. Start Milestone B by defining the manifest schema, persisted interval convention, and recovery behavior after interrupted publication. Preserve the current no-overwrite and exclusive-ownership rules.
-2. Implement metadata probing and strong representation identity, including explicit handling of missing/weak validators, changed content, and refreshed URLs.
-3. Add conservative checkpoints and compatible sequential resume with safe lock recovery. Never reinterpret existing untracked partial bytes as verified progress.
-4. Add `inspect`, `--resume`, and deterministic interrupt/relaunch and crash-recovery tests; update the CLI/docs with adopted behavior.
-5. Complete Milestone B evidence before moving to parallel ranges/retries in C and release hardening in D.
+1. Connect HTTP metadata to manifests and implement conservative GET-based resume validation: source/effective fingerprints, strong ETag, total size, encoding, and exact response bounds.
+2. Add automatic compatible resume, explicit `--resume`, and read-only `inspect`; reject mismatches without changing saved artifacts. Keep resumed progress/rate accounting accurate.
+3. Add end-to-end interruption/relaunch and forced-process-termination tests, refusal cases, and binary smoke checks. Run the full gate and refresh user docs.
+4. Complete Milestone B before parallel ranges/retries in C and release hardening in D.
 
 ## Open decisions and blockers
 
-No external blocker remains for the next implementation step. License/distribution, native macOS qualification, Windows publication, manifest/recovery contracts, and later interfaces remain open in [the decision register](docs/decisions.md).
+No external blocker remains. Manifest/schema, lock recovery, URL privacy, checkpoint ordering, and refusal policies are documented in [the decision register](docs/decisions.md). License/distribution and later features remain open.
 
-This is the first working milestone, not the complete v0.1 release. Update this handoff after every implementation step, split focused commits, and never push.
+Update this handoff after every implementation step. Split focused local commits and never push.

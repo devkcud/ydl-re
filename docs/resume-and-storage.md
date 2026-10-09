@@ -2,133 +2,104 @@
 
 [Documentation index](README.md)
 
-v0.1 is designed to recover transfers from local files without a daemon. The storage foundation is implemented; manifest-based recovery below remains planned.
-
-## Implemented storage foundation
-
-`internal/storage` exclusively creates `<output>.yoinkdl.part` with mode `0600`. Existing partials or manifests are refused even with overwrite enabled. Empty failed transfers are removed; nonempty partials are synced and retained. They cannot be resumed until Milestone B.
-
-Parents must exist. Output directories, symlinks, special files, and the reserved `.yoinkdl.part` / `.yoinkdl.json` output suffixes are rejected. Operations use an open directory root.
-
-After syncing and closing the file, default publication uses a same-directory hard link that fails if the destination exists, including a destination created during the transfer. Explicit overwrite uses a same-directory rename. Directory syncs cover publication and cleanup; errors after publication retain that fact in the result.
-
-These operations are enabled on Linux/macOS; only Linux has been tested locally. The filesystem must support hard links and directory sync. Windows downloads are rejected until publication is qualified there. This is atomic visibility with explicit sync operations, not a tested power-loss guarantee for every filesystem.
+The Milestone B storage APIs implement versioned manifests, durable prefix checkpoints, local checksum validation, exclusive ownership, and recovery after interrupted publication. HTTP resume and CLI integration are the next slice; see [STATUS.md](../STATUS.md) for current availability.
 
 ## Files and ownership
 
-For a destination named `archive.zip`, the design illustrates:
+For the destination `archive.zip`, storage uses:
 
 ```text
 archive.zip.yoinkdl.part
 archive.zip.yoinkdl.json
+archive.zip.yoinkdl.lock
 ```
 
-The partial file contains transfer bytes. The JSON manifest records identity and reusable progress. The final destination is published only after verification.
+Data and state files use private `0600` permissions. Partial data stays beside the destination, on the same filesystem. Parent directories must exist. Destination symlinks, directories, special files, invalid UTF-8 paths, and reserved artifact names are rejected.
 
-Place partial data on the destination's filesystem so finalization does not require a cross-filesystem copy. Transfer sidecars intentionally live outside the central configuration directory.
+The empty lock file is persistent. Every writer holds a nonblocking OS advisory lock on its inode until all writes and cleanup finish. Closing the descriptor or process termination releases ownership; a leftover lock file alone does not mean a writer is active. Keeping the inode avoids an unlink/recreate race between competing writers. Do not manually delete it while a transfer may be active. [Linux flock semantics](https://man7.org/linux/man-pages/man2/flock.2.html).
 
-One process may write a transfer at a time. Acquire an exclusive lock or equivalent ownership mechanism before creating, recovering, truncating, or publishing its files. The lock filename, primitive, and stale-owner recovery policy are undecided.
+The `.yoinkdl.part`, `.yoinkdl.json`, and `.yoinkdl.lock` suffixes and `.yoinkdl.tmp-` filename segment are reserved. Temporary manifests use unique names, are never recovery authority, and can remain after a crash. There is no automatic orphan-cleanup command.
 
-## Illustrative manifest
+Linux is tested locally. macOS operations are enabled but still need native qualification. Windows storage is unsupported. The filesystem must support advisory locks, hard links, and directory sync; network filesystems and power-loss guarantees are not qualified.
 
-This preserves the example convention from the original design:
+## Version 1 manifest
+
+The schema represents one sequential prefix. This example records the three bytes `abc` from a ten-byte representation:
 
 ```json
 {
   "schema_version": 1,
-  "source_url": "https://example.org/archive.zip",
-  "effective_url": "https://cdn.example.org/archive.zip",
-  "destination": "/home/user/Downloads/archive.zip",
-  "length": 104857600,
-  "etag": "\"example-validator\"",
-  "last_modified": null,
-  "mode": "ranged",
-  "completed_ranges": [[0, 16777215], [33554432, 50331647]],
-  "state": "interrupted"
+  "destination": "/home/user/Downloads/file",
+  "source_id": "18c6f551ea3482332a3ecb8399217217eb214fd68dab3c888af753a504929c82",
+  "effective_id": "18c6f551ea3482332a3ecb8399217217eb214fd68dab3c888af753a504929c82",
+  "length": 10,
+  "etag": "\"version-1\"",
+  "encoding": "identity",
+  "completed": 3,
+  "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  "state": "partial"
 }
 ```
 
-| Field | Intended meaning |
+| Field | Contract |
 |---|---|
-| `schema_version` | Identifies the manifest interpretation |
-| `source_url` | Original resource locator |
-| `effective_url` | Resource locator after redirects |
-| `destination` | Intended final local path |
-| `length` | Reliable total representation size, when available |
-| `etag` | Recorded ETag; eligibility still needs validation |
-| `last_modified` | Recorded modification date, if present |
-| `mode` | Selected transfer mode |
-| `completed_ranges` | Intervals safe to consider complete under this schema |
-| `state` | Last recorded lifecycle state |
+| `schema_version` | Exactly `1`; unknown versions are refused |
+| `destination` | Exact absolute output path |
+| `source_id` | SHA-256 of the normalized, fragment-free original URL |
+| `effective_id` | SHA-256 of the fragment-free effective URL after redirects |
+| `length` | Representation length, or `-1` while unknown |
+| `etag` | A usable strong ETag or the empty string |
+| `encoding` | `identity` or `encoded`; encoded bodies are saved unchanged |
+| `completed` | Number of durable, hashed prefix bytes |
+| `sha256` | SHA-256 of that prefix |
+| `state` | `partial` or `ready` |
 
-Nullability, enums, unknown-length encoding, required fields, migrations, and malformed-field behavior are not specified by this example. The URL values contain no credentials; a real persistence policy must reconcile resource identity with secret redaction.
+Every field must occur exactly once. Unknown or missing fields, duplicate keys, invalid values, trailing JSON, and manifests larger than 64 KiB are rejected. The format does not contain original URLs, query tokens, request headers, or credentials.
 
-Treat the source identity, destination, representation version, and interval convention as fixed for a compatible transfer. Changing these requires a new transfer or an explicitly validated transition, not silent manifest edits.
+URL fingerprints require the same URL spelling after parsing and fragment removal. Refreshed signed URLs and changed redirect targets are not silently treated as the same identity. A URL fingerprint is not a content checksum or an authentication mechanism.
 
 ## Interval convention
 
-The JSON example uses **inclusive endpoints**. `[0, 16777215]` contains 16,777,216 bytes. Its two saved intervals cover 33,554,432 bytes of a 104,857,600-byte object, with gaps still to download.
+`completed = n` means the half-open prefix `[0, n)`. There is no inclusive endpoint in this schema. A partial checkpoint for a positive known length must end before that length; only a verified `ready` checkpoint can claim the entire file.
 
-The design recommends internal half-open intervals `[start, end)`. For example, `[0, 16777216)` represents the same first interval, with length `end - start`.
-
-Before shipping, choose and document one on-disk convention. Never read the sample's inclusive endpoints as half-open endpoints. Never change a persisted convention without a versioned migration or a safe rejection policy. HTTP range conversion belongs at the transport boundary.
-
-## Conditions for safe resume
-
-Before reusing data, validate:
-
-1. The manifest can be read and its schema is understood.
-2. It identifies the intended destination and compatible source representation.
-3. The partial file exists and is usable under the ownership and permission policy.
-4. Every recorded interval is in bounds and coverage contains no invalid overlaps.
-5. The server still supports the requests needed to retrieve missing intervals safely.
-6. Saved bytes satisfy the checkpoint's durability assumptions.
-
-A filename, file size, or stored state of `interrupted` is insufficient. A preallocated file may contain holes. A matching URL may serve new content. A weak or missing validator may prevent reuse.
-
-Refuse unsafe reuse. Preserve incompatible state until a deliberate restart policy applies. `--overwrite` addresses a completed destination and does not establish partial-data compatibility.
+The original design's `completed_ranges` example was illustrative and used inclusive bounds. It is not schema version 1 and is not imported. Disjoint range persistence will require an explicit schema evolution during the parallel-transfer milestone.
 
 ## Checkpoint ordering
 
-The manifest is a recovery checkpoint, not a byte-by-byte activity log. It may lag behind the live progress display.
+While receiving data, storage checkpoints after four additional MiB or one second of arriving data, whichever happens first. Normal shutdown forces a checkpoint where safe.
 
-A recommended flush-before-checkpoint sequence is:
+1. Write received bytes and update the incremental prefix digest.
+2. Sync the data file before advancing saved progress.
+3. Write and sync a uniquely named temporary manifest.
+4. Publish the manifest atomically and sync the directory.
+5. Remove the temporary name when possible.
 
-1. Finish and validate an interval, then mark it eligible for checkpointing.
-2. Make eligible file writes durable under the selected platform policy.
-3. Snapshot only completed intervals covered by that durability boundary.
-4. Write the next manifest to a temporary file beside the current one.
-5. Sync and publish the manifest using the qualified atomic replacement strategy.
-6. Apply directory durability operations where required by the platform policy.
+The final bytes of a known-length response are not recorded as full coverage until the application verifies response completion. A read failure after those bytes therefore leaves an earlier checkpoint, forcing conservative re-fetching.
 
-The design also allows conservatively re-fetching uncertain bytes after restart. Whichever approach is chosen, a new manifest must not authorize trusting data that did not survive with it.
+Unacknowledged data can extend beyond the checkpoint after a crash. Recovery verifies the saved prefix hash and bounds, and does not truncate that tail until the application confirms a compatible remote response. A rejected resume leaves data and metadata unchanged.
 
-Checkpoint frequency, batching, file permissions, temporary naming, and platform durability details are open decisions. Do not sync on every byte or assume a successful buffered write proves persistence.
+## Resume requirements
 
-## Recovery cases
+Saved bytes require a valid manifest, the same destination/source identity, an intact partial file, and a matching prefix checksum. An old Milestone A partial without a manifest is refused; its length is not proof of downloaded coverage.
 
-| Observed artifacts | Safe interpretation |
+Network resume additionally requires a known length, identity encoding, a usable strong ETag, and a valid compatible response from the server. Unknown-length, encoded, weak-tagged, or unversioned partial transfers are retained for inspection but cannot reuse bytes. Last-Modified alone is not a resume validator in this milestone.
+
+Resource changes, unsupported ranges, changed effective URLs, corrupt state, and ambiguous artifacts are refused. There is no implicit destructive restart. Use another output path or deliberately abandon existing artifacts after confirming no writer owns them.
+
+## Final publication and recovery
+
+After successful transport and length checks, storage syncs the complete file and publishes a `ready` manifest with its full checksum. Only then does it publish the final output.
+
+Default publication uses a hard link that cannot replace an existing destination. Explicit overwrite uses rename. Directory sync occurs before removing the partial name; the manifest is removed last. Errors retain whether verified output was already published.
+
+| Recovery state | Behavior |
 |---|---|
-| Matching valid manifest and partial file | Candidate for resume after remote and local validation |
-| Partial file without a manifest | Bytes have no trustworthy recorded identity/coverage; do not silently resume |
-| Manifest without a partial file | Recorded progress cannot be reused |
-| Corrupt or unsupported manifest | Refuse unsafe recovery; preserve evidence |
-| Data written after the last checkpoint | Re-fetch any portion recovery cannot prove safe |
-| Completed output with leftover metadata | Reconcile finalization; do not truncate or resume the completed file automatically |
-| Lock apparently held by another process | Refuse a second writer until ownership is resolved safely |
+| `partial` manifest and valid prefix | Candidate for validated network resume |
+| `ready` manifest and intact complete partial | Can finish publication without downloading again |
+| `ready` with final/partial names for the same inode | Reconcile completed hard-link publication and cleanup |
+| `ready` with no partial and a matching complete final file | Verify full checksum and finish cleanup after rename |
+| Changed/missing bytes, unsupported metadata, or unrelated destination | Refuse; preserve evidence and existing files |
 
-The exact user interaction for each incompatible case is undecided. A separate fresh output path allows a new transfer without altering the old artifacts.
+Local `ready` recovery does not infer success from a `416` response or file length. It requires the previously recorded complete checksum and matching request identity. It can complete an already received resource version even if the server is now unavailable.
 
-## Interrupted writes and retries
-
-A failed interval must remain incomplete. The simplest proposed implementation re-fetches that interval and overwrites only its owned region. More granular sub-interval recovery needs its own validation and checkpoint rules.
-
-Retrying must not append a full response to an offset, overlap another worker, or mark an interval complete before its response and writes have been validated.
-
-## Final publication and cleanup
-
-Sync and close verified data before publication. Preserve the destination collision policy even if another file appears during the transfer. Remove metadata only after the final output is safely established.
-
-Crash recovery must handle a rename that succeeded before metadata cleanup. The cleanup outcome and final-result policy need explicit tests. See [finalization](transfer-lifecycle.md#7-finalize).
-
-There is no v0.1 cleanup command specified. Manual removal of sidecars discards recovery information and should only follow a deliberate decision to abandon a transfer, with no writer active. Do not manually rename a partial file to make it look completed.
+A persistent lock remains after success; partial and manifest files are removed. Completed-download history and automatic stale-artifact cleanup are not implemented.

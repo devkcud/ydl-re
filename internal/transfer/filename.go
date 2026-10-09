@@ -37,7 +37,11 @@ func filename(u *url.URL) string {
 		name = "_" + name
 	}
 
-	if strings.HasSuffix(name, storage.PartSuffix) || strings.HasSuffix(name, storage.ManifestSuffix) {
+	if strings.Contains(name, storage.TempPrefix) {
+		return "download"
+	}
+
+	if storage.Reserved(name) {
 		name += ".download"
 	}
 

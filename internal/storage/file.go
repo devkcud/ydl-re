@@ -1,20 +1,28 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"hash"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
+	"unicode/utf8"
 )
 
 const PartSuffix = ".yoinkdl.part"
 const ManifestSuffix = ".yoinkdl.json"
+const LockSuffix = ".yoinkdl.lock"
+const TempPrefix = ".yoinkdl.tmp-"
 
 type File struct {
 	root      *os.Root
 	file      *os.File
+	lock      *os.File
+	info      os.FileInfo
 	path      string
 	name      string
 	part      string
@@ -22,11 +30,23 @@ type File struct {
 	written   int64
 	partial   bool
 	published bool
+	fresh     bool
+	active    bool
+	fromFinal bool
+	manifest  *Manifest
+	digest    hash.Hash
+	last      time.Time
 }
 
-func Create(path string, overwrite bool) (*File, error) {
-	if path == "" || strings.HasSuffix(path, PartSuffix) || strings.HasSuffix(path, ManifestSuffix) {
-		return nil, errors.New("output must name a file outside the reserved .yoinkdl.part and .yoinkdl.json suffixes")
+func Reserved(path string) bool {
+	name := filepath.Base(path)
+	return strings.HasSuffix(name, PartSuffix) || strings.HasSuffix(name, ManifestSuffix) ||
+		strings.HasSuffix(name, LockSuffix) || strings.Contains(name, TempPrefix)
+}
+
+func newFile(path string, overwrite bool) (*File, error) {
+	if path == "" || Reserved(path) || !utf8.ValidString(path) {
+		return nil, errors.New("output must name a file outside the reserved transfer artifact names")
 	}
 
 	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
@@ -43,27 +63,83 @@ func Create(path string, overwrite bool) (*File, error) {
 		return nil, fmt.Errorf("open output directory: %w", err)
 	}
 
-	f := &File{root: root, path: path, name: filepath.Base(path), overwrite: overwrite}
+	f := &File{
+		root:      root,
+		path:      path,
+		name:      filepath.Base(path),
+		overwrite: overwrite,
+	}
 	f.part = f.name + PartSuffix
-	if err := f.checkDestination(); err != nil {
+	f.lock, err = acquireLock(root, f.name+LockSuffix)
+
+	if err != nil {
 		return nil, errors.Join(err, root.Close())
 	}
 
-	if _, err := root.Lstat(f.name + ManifestSuffix); !errors.Is(err, os.ErrNotExist) {
+	return f, nil
+}
+
+func Create(path string, overwrite bool) (*File, error) {
+	f, err := newFile(path, overwrite)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := f.create(); err != nil {
+		return nil, errors.Join(err, f.Close())
+	}
+
+	return f, nil
+}
+
+func Open(ctx context.Context, path string, overwrite, requireResume bool) (*File, error) {
+	f, err := newFile(path, overwrite)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = f.root.Lstat(f.name + ManifestSuffix)
+
+	switch {
+	case err == nil:
+		err = f.restore(ctx)
+	case !errors.Is(err, os.ErrNotExist):
+	case requireResume:
+		err = errors.New("no saved transfer manifest to resume")
+	default:
+		err = f.create()
+	}
+
+	if err != nil {
+		return nil, errors.Join(err, f.Close())
+	}
+
+	return f, nil
+}
+
+func (f *File) create() error {
+	if err := f.checkDestination(); err != nil {
+		return err
+	}
+
+	if _, err := f.root.Lstat(f.name + ManifestSuffix); !errors.Is(err, os.ErrNotExist) {
 		if err == nil {
 			err = errors.New("existing transfer manifest; choose another output path")
 		}
 
-		return nil, errors.Join(err, root.Close())
+		return err
 	}
 
-	f.file, err = root.OpenFile(f.part, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	var err error
+	f.file, err = f.root.OpenFile(f.part, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
-		return nil, errors.Join(fmt.Errorf("create partial file (existing partials are preserved): %w", err), root.Close())
+		return fmt.Errorf("create partial file (existing partials are preserved): %w", err)
 	}
 
 	f.partial = true
-	return f, nil
+	f.fresh = true
+	f.info, err = f.file.Stat()
+	return err
 }
 
 func (f *File) Path() string {
@@ -82,13 +158,40 @@ func (f *File) Published() bool {
 	return f.published
 }
 
+func (f *File) Metadata() (Manifest, bool) {
+	if f.manifest == nil {
+		return Manifest{}, false
+	}
+
+	return *f.manifest, true
+}
+
 func (f *File) Write(data []byte) (int, error) {
 	if f.file == nil {
 		return 0, os.ErrClosed
 	}
 
+	if f.manifest != nil {
+		if !f.active || f.manifest.State == StateReady {
+			return 0, errors.New("transfer is not ready to receive bytes")
+		}
+
+		if f.manifest.Length >= 0 && int64(len(data)) > f.manifest.Length-f.written {
+			return 0, errors.New("write exceeds the expected representation length")
+		}
+	}
+
 	n, err := f.file.Write(data)
 	f.written += int64(n)
+
+	if f.digest != nil {
+		f.digest.Write(data[:n])
+	}
+
+	if err == nil {
+		err = f.Checkpoint(false)
+	}
+
 	return n, err
 }
 
@@ -97,8 +200,12 @@ func (f *File) Finalize() error {
 		return os.ErrClosed
 	}
 
-	if err := f.file.Sync(); err != nil {
-		return fmt.Errorf("sync partial file: %w", err)
+	if err := f.prepare(); err != nil {
+		return err
+	}
+
+	if err := f.checkIdentity(); err != nil {
+		return err
 	}
 
 	err := f.file.Close()
@@ -107,13 +214,21 @@ func (f *File) Finalize() error {
 		return fmt.Errorf("close partial file: %w", err)
 	}
 
-	if f.overwrite {
+	info, statErr := f.root.Lstat(f.name)
+	linked := f.manifest != nil && statErr == nil && os.SameFile(info, f.info)
+
+	switch {
+	case f.fromFinal || linked:
+	case f.overwrite:
 		if err := f.checkDestination(); err != nil {
 			return err
 		}
 
 		err = f.root.Rename(f.part, f.name)
-	} else {
+		if err == nil {
+			f.partial = false
+		}
+	default:
 		err = f.root.Link(f.part, f.name)
 	}
 
@@ -122,10 +237,6 @@ func (f *File) Finalize() error {
 	}
 
 	f.published = true
-	if f.overwrite {
-		f.partial = false
-	}
-
 	if err := f.syncDirectory(); err != nil {
 		return fmt.Errorf("output published but directory sync failed: %w", err)
 	}
@@ -141,6 +252,16 @@ func (f *File) Finalize() error {
 		}
 	}
 
+	if f.manifest != nil {
+		if err := f.root.Remove(f.name + ManifestSuffix); err != nil {
+			return fmt.Errorf("output published but manifest cleanup failed: %w", err)
+		}
+
+		if err := f.syncDirectory(); err != nil {
+			return fmt.Errorf("output published but manifest cleanup sync failed: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -150,26 +271,55 @@ func (f *File) Close() error {
 	}
 
 	var err error
+
 	if f.file != nil {
+		err = f.Checkpoint(true)
+
 		if f.written > 0 {
-			err = f.file.Sync()
+			err = errors.Join(err, f.file.Sync())
 		}
 
 		err = errors.Join(err, f.file.Close())
 		f.file = nil
 	}
 
-	if f.partial && f.written == 0 && !f.published {
-		if removeErr := f.root.Remove(f.part); removeErr != nil {
+	if f.fresh && f.partial && f.written == 0 && !f.published && (f.manifest == nil || f.manifest.State != StateReady) {
+		if identityErr := f.checkIdentity(); identityErr != nil {
+			err = errors.Join(err, identityErr)
+		} else if removeErr := f.root.Remove(f.part); removeErr != nil {
 			err = errors.Join(err, removeErr)
 		} else {
 			f.partial = false
+
+			if f.manifest != nil {
+				err = errors.Join(err, f.root.Remove(f.name+ManifestSuffix))
+			}
+
+			err = errors.Join(err, f.syncDirectory())
 		}
+	}
+
+	if f.lock != nil {
+		err = errors.Join(err, f.lock.Close())
 	}
 
 	err = errors.Join(err, f.root.Close())
 	f.root = nil
 	return err
+}
+
+func (f *File) checkIdentity() error {
+	name := f.part
+	if f.fromFinal {
+		name = f.name
+	}
+
+	info, err := f.root.Lstat(name)
+	if err != nil || f.info == nil || !info.Mode().IsRegular() || !os.SameFile(info, f.info) {
+		return errors.New("transfer file changed while it was owned")
+	}
+
+	return nil
 }
 
 func (f *File) checkDestination() error {

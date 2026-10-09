@@ -16,6 +16,8 @@ func TestFilename(t *testing.T) {
 		"https://example.org/CON.txt":                 "_CON.txt",
 		"https://example.org/file%0A.zip":             "file_.zip",
 		"https://example.org/file.yoinkdl.part":       "file.yoinkdl.part.download",
+		"https://example.org/file.yoinkdl.lock":       "file.yoinkdl.lock.download",
+		"https://example.org/file.yoinkdl.tmp-abc":    "download",
 		"https://example.org/%5C..%5Cfile%3Fname.zip": "_.._file_name.zip",
 	}
 

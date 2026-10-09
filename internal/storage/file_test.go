@@ -174,14 +174,14 @@ func TestAbort(t *testing.T) {
 }
 
 func TestUnsafePaths(t *testing.T) {
-	for _, path := range []string{"", "file" + PartSuffix, "file" + ManifestSuffix} {
+	for _, path := range []string{"", "file" + PartSuffix, "file" + ManifestSuffix, "file" + LockSuffix, "file" + TempPrefix + "abc"} {
 		if f, err := Create(path, false); err == nil {
 			f.Close()
 			t.Fatalf("accepted reserved output %q", path)
 		}
 	}
 
-	for _, suffix := range []string{"", PartSuffix, ManifestSuffix} {
+	for _, suffix := range []string{"", PartSuffix, ManifestSuffix, LockSuffix} {
 		t.Run("symlink"+suffix, func(t *testing.T) {
 			dir := t.TempDir()
 			path := filepath.Join(dir, "file")
