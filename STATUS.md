@@ -4,11 +4,13 @@ Updated: October 9, 2026.
 
 ## Current state
 
-Milestone A is in progress. The Go 1.27 module (`yoinkdl`) and safe storage layer are implemented. The HTTP engine, executable, and requested Makefile are next. The existing design/documentation baseline is committed locally.
+Milestone A is in progress. The Go 1.27 module (`yoinkdl`), safe storage layer, and sequential HTTP engine are implemented and tested. The CLI and requested Makefile are being wired and are not yet validated.
 
 ## Handoff
 
-The HTTP engine is being implemented and is not validated yet. `AGENTS.md` now requires readable spacing and blank lines between logical blocks; apply this to new code and existing code being changed.
+`internal/transfer` streams full HTTP(S) responses with a 64 KiB buffer, exact known-length checks, unknown-length completion, cancellation, and a network inactivity timeout. It preserves raw representation bytes, bounds redirects, rejects HTTPS downgrade/URL credentials, and avoids URL tokens in request errors.
+
+`AGENTS.md` requires readable spacing and blank lines between logical blocks. Apply this to new code and existing code being changed.
 
 `internal/storage` exclusively creates private partial files, rejects incompatible artifacts and unsafe output types, preserves nonempty failed transfers, and syncs before publication. Default hard-link publication cannot replace a destination that appears mid-transfer; explicit overwrite uses rename. Directory-sync and cleanup failures are reported separately from publication.
 
@@ -16,17 +18,15 @@ The filesystem must support hard links and directory sync. Downloads are enabled
 
 ## Validation
 
-- `go test ./internal/storage` passed before the final ownership cases were added.
-- `go test -race ./internal/storage` passed with concurrent ownership, collisions, symlinks, preservation, and sync-failure cases.
-- `go vet ./internal/storage` passed.
+- `go test -race ./internal/storage` and `go vet ./internal/storage` passed.
+- `go test ./internal/transfer`, `go test -race ./internal/transfer`, and `go vet ./internal/transfer` passed. The final race run also covers slow active transfers and repeated redirect credential handling.
 - The sandboxed Go invocation could not resolve installed standard packages; the same toolchain works outside the sandbox.
 
 ## Next steps
 
-1. Implement the sequential HTTP engine with input validation, bounded buffers, timeouts, cancellation, byte-count verification, and safe progress events.
-2. Add `download`, `version`, help, signal handling, terminal progress, and the Makefile build/test/check targets.
-3. Exercise the binary against local servers; run formatting, build, tests, vet, and race checks, then update the user docs to reflect actual commands.
-4. Complete Milestone A evidence before starting Milestone B manifests, validator-based resume, and `inspect`.
+1. Finish and test `download`, `version`, help, signal handling, terminal progress, and the Makefile build/test/check targets.
+2. Exercise the binary against local servers; run formatting, build, tests, vet, and race checks, then update the user docs to reflect actual commands.
+3. Complete Milestone A evidence before starting Milestone B manifests, validator-based resume, and `inspect`.
 
 ## Open decisions and blockers
 

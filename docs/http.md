@@ -2,7 +2,17 @@
 
 [Documentation index](README.md)
 
-The v0.1 engine is planned for direct HTTP(S) transfers. This page explains the design's response-validation rules; the transport is not implemented yet.
+The sequential HTTP(S) engine is implemented. Range probing, parallel ranges, and resumption described below remain planned for later milestones.
+
+## Implemented sequential transfer
+
+The engine sends a full `GET`, accepts only `200`, uses a 64 KiB buffer, checks known body lengths, and requires clean completion for unknown lengths. It requests identity encoding and disables transparent decompression; if the server still sends encoded content, the exact served bytes are saved and counted without decoding.
+
+The default timeout is 30 seconds per connection, TLS handshake, response-header wait, or idle body read. It is not an overall download deadline: active transfers may run longer. Cancellation closes active requests and retains nonempty partial data without publishing it.
+
+Redirect chains allow at most ten requests. HTTPS-to-HTTP downgrades and URL credentials are rejected. Sensitive headers and referrers are stripped across origins, including subsequent redirects away from the original origin. Request errors avoid exposing URL tokens.
+
+There are no automatic retries, probes, ranges, or manifests yet. The tests use local servers and verify byte hashes, interruption, truncation, timeout behavior, and publication failures.
 
 ## Probe and select a mode
 

@@ -12,6 +12,9 @@ Resolve each decision before the milestone or interface depending on it is decla
 - Use the standard library, including `flag` for the CLI; no external dependencies are required.
 - Require an existing output parent, reject destination symlinks/special files and reserved sidecar suffixes, and preserve incompatible artifacts.
 - Use exclusive partial-file creation, sync before publication, hard-link publication without overwrite, and rename with explicit overwrite. Linux is the initially tested platform; macOS still needs native validation and Windows publication is deferred.
+- Sequential transfers request identity encoding and save served bytes unchanged, including any encoding returned anyway. Known lengths refer to those same bytes.
+- Use a 30-second network inactivity timeout for connection, TLS, response headers, and individual body reads, with no total transfer deadline. Reject nonpositive CLI timeout values.
+- Allow at most ten requests in a redirect chain, reject HTTPS downgrades and URL credentials, and strip sensitive headers across origins.
 
 ## Command and output decisions
 
@@ -53,11 +56,9 @@ Atomic final publication is a product requirement. Its platform implementation i
 | H01 | Probe order and behavior for empty resources or unreliable metadata | Selects a safe mode without relying solely on `HEAD` or headers | [HTTP](http.md) |
 | H02 | Validator selection, strong-date eligibility, missing/weak-validator policy | Protects both resume and parallel transfers against version mixing | [HTTP](http.md#representation-validators) |
 | H03 | Exact fallback/restart transition after `200`, `416`, or a changed representation | Prevents concurrent old/new plans writing incompatible bytes | [HTTP](http.md) |
-| H04 | Sequential content-encoding policy | Determines which bytes are saved and which length can be verified | [HTTP](http.md#encoding-and-unknown-lengths) |
 | H05 | Minimum chunk size, worker ceiling, queue and buffer bounds | Keeps concurrency and memory bounded without tiny-range overhead | [Concurrency](concurrency.md) |
 | H06 | Retry allowlist, backoff/jitter bounds, `Retry-After` ceiling | Avoids infinite waits and inappropriate repeated requests | [Concurrency](concurrency.md#retries) |
 | H07 | Limiter burst size, timing tolerance, and probe/retry accounting | Gives `--limit` a measurable testable meaning | [Concurrency](concurrency.md#aggregate-rate-cap) |
-| H08 | Redirect limit and credential forwarding/downgrade policy | Prevents secret leakage and ambiguous representation changes | [Security](security.md) |
 
 The safe fallback is a sequential transfer when parallel ranges cannot be trusted. Applying that fallback to existing partial data still requires an explicit, non-destructive state transition.
 
