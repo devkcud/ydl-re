@@ -280,7 +280,7 @@ func TestManifestValidation(t *testing.T) {
 }
 
 func TestManifestJSONValidation(t *testing.T) {
-	for _, kind := range []string{"duplicate", "missing", "unknown", "trailing", "oversized"} {
+	for _, kind := range []string{"duplicate", "missing", "unknown", "null", "trailing", "oversized"} {
 		t.Run(kind, func(t *testing.T) {
 			path, f := startTransfer(t, 10)
 			writeBytes(t, f, "abc")
@@ -303,6 +303,19 @@ func TestManifestJSONValidation(t *testing.T) {
 				text = strings.Replace(text, `"length": 10,`, "", 1)
 			case "unknown":
 				text = strings.Replace(text, `"length"`, `"unknown"`, 1)
+			case "null":
+				var fields map[string]any
+				if err := json.Unmarshal(data, &fields); err != nil {
+					t.Fatal(err)
+				}
+
+				fields["etag"] = nil
+				data, err = json.Marshal(fields)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				text = string(data)
 			case "trailing":
 				text += "{}"
 			case "oversized":

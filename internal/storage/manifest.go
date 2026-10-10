@@ -210,7 +210,9 @@ func manifestFields(data []byte) bool {
 		}
 
 		seen[key] = true
-		if err := dec.Decode(new(json.RawMessage)); err != nil {
+		var value json.RawMessage
+
+		if err := dec.Decode(&value); err != nil || bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
 			return false
 		}
 	}
