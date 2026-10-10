@@ -28,6 +28,7 @@ Resolve each decision before the milestone or interface depending on it is decla
 - Probe through actual GET responses. A resume response must match the requested range, total, ETag, and effective URL identity. Refuse mismatches and ignored ranges without destructive fallback.
 - Default downloads may resume compatible saved state automatically. Explicit `--resume` requires existing metadata; it never creates a fresh transfer. `--overwrite` remains permission to replace a completed destination, not incompatible state.
 - Recover an interrupted publication locally only from a `ready` checkpoint whose complete bytes still match its checksum. Completed metadata is removed after safe publication; the lock file remains.
+- `inspect` reads local manifest metadata without network access, hashing data, acquiring writer ownership, or changing artifacts. Missing/corrupt metadata exits `1`; malformed command arguments exit `2`. It does not provide completed-download history.
 
 ## Command and output decisions
 
@@ -36,7 +37,6 @@ Resolve each decision before the milestone or interface depending on it is decla
 | C02 | Bounds and grammar for future connections, retries, and rate options | Keeps new options unambiguous; current timeout syntax/defaults are implemented | [CLI](cli.md) |
 | C03 | Whether `--retries 3` means three retries after the first attempt; budgets for probes and streams | Defines bounded attempts consistently across modes | [Concurrency](concurrency.md) |
 | C05 | JSON event/result schema, framing, stream routing, `--quiet` interaction, compatibility | Makes machine output safe to script against | [CLI](cli.md) |
-| C07 | `inspect` output and behavior for absent/corrupt state | Prevents invented history or metadata guarantees | [CLI](cli.md) |
 | C08 | Future event schema, retry counters, and subscriber backpressure | Extends the implemented CLI snapshots for other consumers | [Concurrency](concurrency.md) |
 | C09 | TOML loader, precedence, unknown keys, rate/unit grammar, overflow/zero handling | Turns the illustrative configuration into a contract | [Configuration](configuration.md) |
 
@@ -47,7 +47,7 @@ The default worker preference is four, the proposed retry default is three per r
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
 | S03 | Destination normalization, name sanitization, parent creation, symlinks, artifact collisions | Defines safe path ownership across platforms | [Security](security.md) |
-| S06 | Windows publication, wider durability qualification, and manifest reconciliation after publication | Extends the implemented Linux publication/result policy safely | [Lifecycle](transfer-lifecycle.md#7-finalize) |
+| S06 | Windows publication and wider durability qualification | Extends the implemented Linux publication and manifest-reconciliation policy safely | [Lifecycle](transfer-lifecycle.md#7-finalize) |
 | S08 | Platform config discovery and XDG handling | The suggested Unix path does not define a portable loader | [Configuration](configuration.md) |
 
 Version 1 uses a half-open sequential prefix and rejects the original illustrative range-array format. Future disjoint ranges need explicit schema evolution rather than reinterpretation.

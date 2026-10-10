@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 
+	"yoinkdl/internal/storage"
 	"yoinkdl/internal/transfer"
 )
 
@@ -15,6 +16,7 @@ const usage = `Usage: yoinkdl <command>
 
 Commands:
   download <url> [options]  Download an HTTP(S) file
+  inspect <output>          Show saved transfer metadata
   version                   Show the installed version
   help                      Show this help
 
@@ -27,12 +29,19 @@ Options may appear before or after the URL.
 
   -o, --output <path>      Final file path (default: safe URL filename)
       --overwrite          Replace an existing completed file
+      --resume             Require a saved compatible transfer
       --quiet              Suppress progress; keep errors and final path
       --timeout <duration> Network inactivity timeout (default: 30s)
   -h, --help               Show this help
 
-The output directory must already exist. Interrupted partials are preserved;
-resume is not implemented yet. Existing partials are never overwritten.
+The output directory must already exist. Compatible saved transfers resume
+automatically; --resume requires saved state. Incompatible partials are preserved.
+`
+
+const inspectUsage = `Usage: yoinkdl inspect <output>
+
+Read local checkpoint metadata without contacting the server or changing files.
+This does not verify stored bytes or current remote identity.
 `
 
 func Run(ctx context.Context, args []string, out, errOut io.Writer, version string) int {
@@ -43,13 +52,19 @@ func Run(ctx context.Context, args []string, out, errOut io.Writer, version stri
 
 	switch args[0] {
 	case "help", "--help", "-h":
-		if len(args) == 2 && args[1] == "download" {
-			fmt.Fprint(out, downloadUsage)
-			return 0
+		if len(args) == 2 {
+			switch args[1] {
+			case "download":
+				fmt.Fprint(out, downloadUsage)
+				return 0
+			case "inspect":
+				fmt.Fprint(out, inspectUsage)
+				return 0
+			}
 		}
 
 		if len(args) != 1 {
-			fmt.Fprintln(errOut, "usage: yoinkdl help [download]")
+			fmt.Fprintln(errOut, "usage: yoinkdl help [download|inspect]")
 			return 2
 		}
 
@@ -70,6 +85,9 @@ func Run(ctx context.Context, args []string, out, errOut io.Writer, version stri
 
 	case "download":
 		return download(ctx, args[1:], out, errOut)
+
+	case "inspect":
+		return inspect(args[1:], out, errOut)
 
 	default:
 		fmt.Fprintln(errOut, "unknown command; run yoinkdl help")
@@ -140,6 +158,7 @@ func parseDownload(args []string) (transfer.Request, bool, error) {
 	fs.StringVar(&req.Output, "output", "", "output path")
 	fs.StringVar(&req.Output, "o", "", "output path")
 	fs.BoolVar(&req.Overwrite, "overwrite", false, "replace completed output")
+	fs.BoolVar(&req.Resume, "resume", false, "require existing transfer state")
 	fs.BoolVar(&quiet, "quiet", false, "suppress progress")
 	fs.DurationVar(&req.Timeout, "timeout", transfer.DefaultTimeout, "network inactivity timeout")
 
@@ -208,4 +227,44 @@ func parseDownload(args []string) (transfer.Request, bool, error) {
 
 	req.URL = urls[0]
 	return req, quiet, nil
+}
+
+func inspect(args []string, out, errOut io.Writer) int {
+	if len(args) == 1 && (args[0] == "-h" || args[0] == "--help") {
+		fmt.Fprint(out, inspectUsage)
+		return 0
+	}
+
+	if len(args) != 1 {
+		fmt.Fprintln(errOut, "inspect requires exactly one output path")
+		return 2
+	}
+
+	m, err := storage.Inspect(args[0])
+	if err != nil {
+		fmt.Fprintf(errOut, "inspect failed: %v\n", err)
+		return 1
+	}
+
+	total := "unknown"
+	if m.Length >= 0 {
+		total = fmt.Sprintf("%d", m.Length)
+	}
+
+	resume := "unavailable for this representation"
+	if m.State == storage.StateReady {
+		resume = "local publication pending validation"
+	} else if m.Resumable() {
+		resume = "eligible after local and server validation"
+	}
+
+	_, err = fmt.Fprintf(out,
+		"Destination: %q\nState: %s\nSaved bytes: %d\nTotal bytes: %s\nEncoding: %s\nResume: %s\n",
+		m.Destination, m.State, m.Completed, total, m.Encoding, resume)
+
+	if err != nil {
+		return 1
+	}
+
+	return 0
 }

@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestone A provides a working sequential download CLI. Resume and parallel transfers are still planned.
+Milestones A and B provide a working sequential download CLI with safe resume and local inspection. Parallel transfers are still planned.
 
 ## Build locally
 
@@ -15,7 +15,7 @@ make build
 
 The executable is `bin/yoinkdl`; the default version is `dev`. This is a source build, not a published release or package-manager installation.
 
-Linux is tested locally. macOS storage operations are enabled but need native validation; Windows downloads are unsupported. The destination filesystem must support hard links and directory sync.
+Linux is tested locally. macOS storage operations are enabled but need native validation; Windows downloads are unsupported. The destination filesystem must support advisory locks, hard links, and directory sync.
 
 Run tests or the full gate:
 
@@ -65,15 +65,28 @@ Active downloads may take longer than that timeout overall.
 
 ## Interrupt a transfer
 
-Press Ctrl+C. The process cancels the request, syncs and closes received data, and reports any retained partial file. Interruption exits with status `130` and does not publish an incomplete output.
+Press Ctrl+C. The process cancels the request, saves safe progress, closes received data, and reports the retained partial file. Interruption exits with status `130` and does not publish an incomplete output.
 
 A typical retained artifact is:
 
 ```text
 archive.zip.yoinkdl.part
+archive.zip.yoinkdl.json
+archive.zip.yoinkdl.lock
 ```
 
-Resume and manifests are not implemented yet. A new attempt at the same path refuses existing partial state. Use a fresh output path, or deliberately remove abandoned partial data only after no writer is active. Do not rename a partial file into a final output manually.
+Repeat the same URL and output to resume compatible state automatically, or require a saved transfer explicitly:
+
+```sh
+./bin/yoinkdl download 'https://example.org/archive.zip' -o ./archive.zip --resume
+./bin/yoinkdl inspect ./archive.zip
+```
+
+Resume requires a known total, identity encoding, a matching strong ETag, and valid local state. Inspection only shows saved metadata; the download performs the checks before reuse. Servers without safe validators/ranges and legacy partials without a manifest cannot resume.
+
+After a crash, the last validated checkpoint may be behind displayed progress. Recovery hashes the saved prefix before network reuse, which can take time for a large file, and re-fetches uncertain bytes. A lock file can remain after process death or success; the OS releases ownership automatically, so do not delete a lock merely because its file remains.
+
+Use a fresh output path when state is incompatible, or deliberately abandon old artifacts only after their writer has stopped. Do not rename a partial file into a final output manually.
 
 ## Replace a completed output
 
@@ -81,11 +94,11 @@ Resume and manifests are not implemented yet. A new attempt at the same path ref
 ./bin/yoinkdl download 'https://example.org/archive.zip' --output ./archive.zip --overwrite
 ```
 
-This allows replacing an existing regular file after the new transfer verifies successfully. It does not discard existing partial files or manifests, and does not follow destination symlinks.
+This allows replacing an existing regular file after the transfer verifies successfully. It can also accompany compatible resume, but never discards incompatible state or follows destination symlinks.
 
 ## Current limits
 
-The engine uses one stream and no automatic retries. `inspect`, `--resume`, `--connections`, `--retries`, `--limit`, and `--json` are not available yet. Configuration files are not loaded.
+The engine uses one stream and no automatic retries. `--connections`, `--retries`, `--limit`, and `--json` are not available yet. Configuration files are not loaded.
 
 The engine asks for identity encoding and saves the exact bytes the server returns. If the server still applies content encoding, those bytes are preserved without transparent decoding. Unknown-length completion can establish clean HTTP completion, not the publisher's intended size without additional metadata.
 

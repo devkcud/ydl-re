@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestone A is implemented and passes local Linux checks. Milestones B, C, and D remain pending; there is no full v0.1 release or promised release date.
+Milestones A and B are implemented and pass local Linux checks. Milestones C and D remain pending; there is no full v0.1 release or promised release date.
 
 ## Delivery sequence
 
@@ -29,11 +29,13 @@ The initial choices are Go 1.27, local module `yoinkdl`, standard-library parsin
 
 ## Milestone B — Persistence and resume
 
+**Status:** implemented and tested on Linux/amd64, including actual forced-process termination and validated suffix recovery. The current CLI supports automatic compatible resume, explicit `--resume`, and read-only `inspect`.
+
 Define the versioned manifest, interval convention, transfer identity, checkpoints, and exclusive ownership. Add server metadata probing, validator logic, safe sequential resumption when supported, and `inspect`.
 
 Specify refusal or deliberate restart when state or server behavior is incompatible. Test normal interruption, process termination, malformed state, and recovery ordering.
 
-Completion evidence: a supporting server can resume a terminated transfer without mixing versions or trusting undurable bytes. Competing processes cannot corrupt the same transfer.
+Completion evidence: local-server tests resume terminated transfers to exact fixture hashes, reject changed identity/bounds without altering saved artifacts, and recover ready publication checkpoints. Kernel locks prevent competing writers and release after process death. Native macOS, Windows, network-filesystem, and power-loss qualification remain release work.
 
 ## Milestone C — Multi-range engine
 

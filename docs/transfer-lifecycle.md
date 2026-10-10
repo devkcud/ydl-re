@@ -4,7 +4,7 @@
 
 This page defines the lifecycle intended for v0.1. State names are conceptual; serialized state and event schemas are not frozen.
 
-Milestone A implements validation, a full HTTP GET, sequential streaming, completion checks, and publication. Metadata probes, range planning, retries, and durable checkpoints in the full lifecycle remain planned.
+Milestones A and B implement input/local-state validation, GET-based identity checks, sequential streaming or suffix resume, durable checkpoints, verification, and publication recovery. Parallel planning and retries remain planned. The manifest records `partial` or verified `ready` checkpoints; these are distinct from the conceptual runtime states below.
 
 ## States
 
@@ -56,7 +56,7 @@ For known length, the planned intervals must cover the object without overlaps o
 
 Create or validate the manifest and same-filesystem partial data file. Check identity, destination, local file usability, schema, and saved coverage before trusting a checkpoint.
 
-Keep incompatible state intact until a deliberate restart policy applies. The exact incompatible-state interaction is an [open decision](decisions.md#storage-and-recovery-decisions).
+Keep incompatible state intact. The current policy refuses mismatches without destructive restart; a new output path starts an independent transfer. See [resume and storage](resume-and-storage.md).
 
 ## 5. Transfer and checkpoint
 
@@ -90,7 +90,7 @@ The destination check must cover a file created after initial validation. A simp
 
 Atomic visibility and survival after power loss are separate guarantees. The design requires safe publication, but the implementation must qualify rename and directory durability behavior for each supported platform. Go's `os.Rename` can replace an existing file and does not promise atomic behavior on non-Unix platforms. [Go file operations](https://pkg.go.dev/os#Rename).
 
-Failure to publish must not result in a success message. The current CLI reports a nonzero result and identifies verified published output when a later directory-sync or partial-cleanup error occurs. Manifest reconciliation after publication remains to be specified before resume is added.
+Failure to publish must not result in a success message. The current CLI reports a nonzero result and identifies verified published output when a later directory-sync or cleanup error occurs. A subsequent matching request can reconcile a `ready` checkpoint against the complete partial or final file's checksum, then finish publication/cleanup locally.
 
 ## Interruption and failures
 

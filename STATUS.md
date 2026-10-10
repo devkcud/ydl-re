@@ -1,37 +1,43 @@
 # Project status
 
-Updated: October 9, 2026.
+Updated: October 10, 2026.
 
 ## Current state
 
-Milestone A is complete. Milestone B now has verified persistence and HTTP resume. The CLI, inspection, and crash-process tests are implemented and passing in the working tree; their final documentation and commit are next.
+Milestones A and B are implemented and pass local Linux checks. The built CLI supports sequential HTTP(S) downloads, automatic compatible resume, explicit `--resume`, read-only `inspect`, progress, cancellation, overwrite protection, and network inactivity timeouts.
+
+Parallel ranges, retries, bandwidth caps, JSON events, configuration loading, and release tooling remain unimplemented. Go 1.27 and the standard library are still the only runtime development requirements; the Makefile provides the full check gate.
 
 ## Handoff
 
-- `internal/transfer/resume.go` validates source/effective fingerprints, exact range bounds, echoed strong ETags, encoding, and length before changing saved data. A 416 is re-probed and refused. Ready checkpoints recover locally without network access.
-
-- `internal/storage/manifest.go` defines strict schema version 1. `completed = n` denotes `[0, n)`; URL identities and saved prefixes use SHA-256. Raw URLs and query tokens are not persisted.
-- Review found and fixed JSON null values being decoded as zero/empty fields. Schema version 1 now requires every field to be present, unique, correctly typed, and non-null.
-- `checkpoint.go` syncs bytes before advancing progress, checkpoints during transfer and shutdown, verifies saved hashes, and only truncates uncertain tails when the caller explicitly starts validated continuation.
-- `file.go` preserves existing no-overwrite rules and reconciles `ready` partial/link/rename states. Complete checkpoints can finish publication locally after checksum validation.
-- Persistent `.yoinkdl.lock` files provide a stable inode for nonblocking advisory locks. Kernel ownership ends when the process closes or dies; lock files are never unlinked automatically. New reserved artifact names are handled by filename derivation.
-- The original design is unchanged. Go platform build directives keep Unix locking separate from unsupported targets; code otherwise has no explanatory comments and follows the spacing rule.
+- `internal/storage/manifest.go` defines strict, non-null schema version 1. `completed = n` denotes the durable prefix `[0, n)` and `sha256` verifies that prefix. Original/effective URL identities are hashed; raw URLs/query tokens are not persisted.
+- `checkpoint.go` syncs bytes before publishing snapshots after four MiB or one second of arriving data and on normal interruption. Recovery verifies saved bytes; unconfirmed tails are truncated only after a compatible remote response.
+- Stable `.yoinkdl.lock` inodes hold nonblocking advisory locks. Process death releases ownership, so do not unlink lock files for stale-owner recovery. Orphan temporary manifests are ignored.
+- `internal/transfer/resume.go` validates echoed strong ETags, identity encoding, source/effective URL fingerprints, exact range bounds, and lengths before reuse. Changed/unsupported responses preserve existing artifacts. A 416 is re-probed and refused.
+- Verified `ready` checkpoints recover interrupted publication locally after complete checksum validation, including link/rename cases. This can finish an already received resource version without contacting the server.
+- `internal/cli` exposes resume and inspect. Inspection reads metadata only; percentage includes saved bytes, while speed excludes them. `cmd/yoinkdl/resume_test.go` exercises actual process death, lock release, inspection, and suffix recovery to the expected hash.
+- The original design is unchanged. The spacing rule, handoffs after every implementation, focused local commits, and no-push rule remain in force.
 
 ## Validation
 
-- `go test ./internal/storage` passed with checkpoint, corruption, invalid-schema, ownership, and interrupted-publication cases.
-- The null-field regression failed before the fix; `go test ./internal/storage` passes after explicit null rejection.
-- `make check` passed after integration: formatting, vet, all tests, race checks, and build. The suite includes automatic/explicit resume, unchanged-artifact refusal cases, active inspection, and a real forced-process-kill/relaunch with final hash verification.
-- Linux/amd64 is the tested runtime. Local test listeners require execution outside the sandbox. macOS native qualification, Windows storage, network filesystems, and real power-loss testing remain open.
+- `make check` passed after the final code fix: formatting, vet, all tests, race checks, and build.
+- Resume tests cover automatic/explicit/chunked/zero-prefix requests, corrupt or missing state, unchanged-artifact refusal, changed identities, invalid bounds, missing/weak validators, 416 re-probing, interrupted bodies, and offline ready recovery.
+- Storage tests cover durable prefix ordering, unconfirmed tails, conflicting writers, strict JSON/schema validation, and interrupted ready/link/rename publication. The explicit-null regression failed before the fix and passes afterward.
+- The process test kills a writer after a durable checkpoint, starts a new process with `--resume`, and verifies the complete fixture hash.
+- Built-executable smoke test passed: SIGINT returned `130`, inspection reported the checkpoint, resume fetched the suffix after 131072 saved bytes, and the complete file hash matched. Raw URL tokens were absent from metadata.
+- Documentation audit passed: 19 pages, 165 local links/anchors, 23 shell examples, valid JSON/TOML, the manifest sample checksum, and whitespace. The original design checksum is unchanged.
+- Environment: Go 1.27.2 on Linux/amd64. HTTP tests need localhost listeners outside the sandbox. macOS native checks, Windows storage, network filesystems, and real power-loss durability remain unqualified.
 
 ## Next steps
 
-1. Finish user-facing docs for automatic resume, `--resume`, `inspect`, persistent lock files, and current compatibility limits; commit the CLI slice separately.
-2. Smoke-test the built executable against a local resumable server, audit documentation, and record the final Milestone B handoff.
-3. Start Milestone C only after B is closed: plan disjoint ranges, preserve version identity, add bounded workers and safe retries/fallback with fault tests.
+1. Start Milestone C by defining range planning and persistence for disjoint completed intervals. Preserve version-1 checkpoint compatibility explicitly; do not reinterpret the sequential prefix format as a range array.
+2. Add capability probing and immutable representation identity for fresh parallel transfers, using the existing strict response validators and safe sequential fallback where applicable.
+3. Implement bounded workers with exclusive interval ownership, offset writes, exact coverage verification, and conservative cancellation/checkpointing. Keep current resume refusal and destination protection guarantees.
+4. Add bounded retry/backoff and define the connection/retry flag contracts. Test ignored ranges, changing versions, overlaps/gaps, failed interval replacement, cancellation, and concurrent completion.
+5. Complete the focused and full gates, update this handoff, and close C before bandwidth/JSON/release hardening in D.
 
 ## Open decisions and blockers
 
-No external blocker remains. Manifest/schema, lock recovery, URL privacy, checkpoint ordering, and refusal policies are documented in [the decision register](docs/decisions.md). License/distribution and later features remain open.
+No external blocker remains. Partial reuse requires a known length, identity encoding, a matching strong ETag, and exact URL fingerprints. Refreshed signed URLs, weak/unversioned/encoded partials, and old partials without manifests are refused rather than silently restarted.
 
-Update this handoff after every implementation step. Split focused local commits and never push.
+A full v0.1 release is not complete. License/distribution, native platform qualification, future range-state evolution, and remaining interfaces are tracked in [the decision register](docs/decisions.md). Split focused commits and never push.

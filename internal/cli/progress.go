@@ -32,6 +32,10 @@ func newProgress(out io.Writer) *progress {
 }
 
 func (p *progress) Update(s transfer.Snapshot) {
+	if !p.started {
+		p.start = time.Now()
+	}
+
 	p.latest = s
 	p.started = true
 
@@ -55,7 +59,10 @@ func (p *progress) Finish() {
 func (p *progress) render() {
 	p.last = time.Now()
 	s := p.latest
-	rate := float64(s.Bytes) / time.Since(p.start).Seconds()
+	rate := 0.0
+	if elapsed := time.Since(p.start).Seconds(); elapsed > 0 {
+		rate = float64(s.Bytes-s.Resumed) / elapsed
+	}
 	line := fmt.Sprintf("%s | %s/s | 1 worker", size(float64(s.Bytes)), size(rate))
 
 	if s.Total >= 0 {

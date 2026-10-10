@@ -6,9 +6,9 @@ The current CLI uses built-in defaults and flags. No configuration loader exists
 
 ## Current defaults
 
-Milestone A uses one stream, no retries, no resume, no overwrite, and no rate cap. The network inactivity timeout is `30s`. Available overrides are `--output`, `--overwrite`, `--quiet`, and `--timeout`; see [CLI](cli.md).
+The current engine uses one stream, automatic compatible resume, no retries, no overwrite, and no rate cap. The network inactivity timeout is `30s`. Available flags are `--output`, `--overwrite`, `--resume`, `--quiet`, and `--timeout`; see [CLI](cli.md). Explicit `--resume` requires saved state rather than creating a fresh transfer.
 
-No configuration directories or files are created or read. The only per-transfer artifact is the partial data file.
+No configuration directories or files are created or read. Transfer artifacts are the partial data file, versioned JSON manifest, and persistent lock file beside the output. Temporary manifest names can remain after a crash and are never trusted for recovery.
 
 ## Planned v0.1 defaults
 
@@ -67,6 +67,7 @@ Transfer sidecars are stored beside the destination, outside this configuration 
 ```text
 archive.zip.yoinkdl.part
 archive.zip.yoinkdl.json
+archive.zip.yoinkdl.lock
 ```
 
 That exception makes interrupted CLI transfers discoverable without a central service. Deleting the configuration folder must not be described as deleting every transfer artifact.

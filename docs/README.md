@@ -2,15 +2,15 @@
 
 *The download manager that yoinks.*
 
-YoinkDL is a local-first download manager written in Go. Its first working milestone provides reliable sequential HTTP(S) downloads; safe resumption and parallel ranges are planned next.
+YoinkDL is a local-first download manager written in Go. It provides reliable sequential HTTP(S) downloads with safe resumption; parallel ranges and retry scheduling are next.
 
 ## Project status
 
-As of October 9, 2026, Milestone A is implemented and tested locally on Linux. Use `make build` to build `bin/yoinkdl`, `make test` for tests, and `make check` for the full gate. There are no external Go dependencies.
+As of October 10, 2026, Milestones A and B are implemented and tested locally on Linux. Use `make build` to build `bin/yoinkdl`, `make test` for tests, and `make check` for the full gate. There are no external Go dependencies.
 
 Use the root [README](../README.md) for an introduction, [STATUS.md](../STATUS.md) for the current handoff and next steps, and [AGENTS.md](../AGENTS.md) for implementation instructions.
 
-The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands. Resume, `inspect`, ranges, retries, caps, JSON, and configuration loading remain planned. The manifest and later package layouts are still illustrative; no published installer or full v0.1 release is available.
+The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including resume and local inspection. Parallel ranges, retries, caps, JSON events, and configuration loading remain planned. Manifest version 1 is implemented; later package layouts remain proposals. No published installer or full v0.1 release is available.
 
 These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions.
 

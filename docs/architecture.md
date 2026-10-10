@@ -2,18 +2,18 @@
 
 [Documentation index](README.md)
 
-Milestone A implements the packages below. The diagrams and proposed layout describe the larger target architecture.
+Milestones A and B implement the packages below. The diagrams and proposed layout describe the larger target architecture.
 
 ## Current packages
 
 | Package | Implemented responsibility |
 |---|---|
 | `cmd/yoinkdl` | Entry point, build version, SIGINT/SIGTERM cancellation |
-| `internal/cli` | Standard-library argument parsing, stdout/stderr, terminal progress |
-| `internal/transfer` | Sequential HTTP requests, timeouts, byte checks, filename derivation, snapshots |
-| `internal/storage` | Exclusive partial creation, preservation, syncing, safe publication |
+| `internal/cli` | Standard-library argument parsing, local inspection, stdout/stderr, terminal progress |
+| `internal/transfer` | Sequential HTTP requests, strict resume validation, timeouts, byte checks, filename derivation, snapshots |
+| `internal/storage` | Stable OS locks, versioned manifests, prefix checksums/checkpoints, preservation, publication recovery |
 
-`transfer.Download` is the current application entry point. No separate app, scheduler, configuration, or progress package is needed for this slice. Tests live beside the code, including subprocess checks in `cmd/yoinkdl`.
+`transfer.Download` is the current application entry point. Storage verifies local bytes before transfer validates remote identity; only then may it truncate uncertain tails. `storage.Inspect` reads metadata without acquiring writer ownership or contacting the server. No separate app, scheduler, configuration, or progress package is needed for this slice. Tests live beside the code, including interruption and forced-process-crash checks in `cmd/yoinkdl`.
 
 ## Component flow
 

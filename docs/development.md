@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The repository now contains the Milestone A CLI, HTTP engine, storage layer, and tests. Read [AGENTS.md](../AGENTS.md) and the current handoff in [STATUS.md](../STATUS.md) before making changes.
+The repository contains the Milestone A/B CLI, HTTP resume engine, persistent storage layer, and tests. Read [AGENTS.md](../AGENTS.md) and the current handoff in [STATUS.md](../STATUS.md) before making changes.
 
 ## Current checkout
 
@@ -76,7 +76,7 @@ Update the handoff after every implementation step, even when work is incomplete
 
 ## Code and package boundaries
 
-`cmd/yoinkdl` owns process signals and the entry point. `internal/cli` owns parsing, stdout/stderr, and progress rendering. `internal/transfer` owns request validation, HTTP behavior, transfer completion, and snapshots. `internal/storage` owns exclusive partial creation and final publication.
+`cmd/yoinkdl` owns process signals and the entry point. `internal/cli` owns parsing, local inspection, stdout/stderr, and progress rendering. `internal/transfer` owns request/response identity, resume validation, transfer completion, and snapshots. `internal/storage` owns stable locks, manifest validation, prefix hashing, checkpoints, and publication recovery.
 
 Use short, clear names, explicit visibility where supported, constants for fixed values, and blank lines between logical blocks. Go uses capitalization for visibility and package-level functions instead of class-level static methods. Avoid comments unless complex logic cannot be made clear in code.
 
@@ -90,6 +90,6 @@ Check local links, anchors, code fences, structured examples, shell syntax, and 
 
 ## Release preparation
 
-Milestones B, C, and D remain. There is no license, CI workflow, installer, or published release configuration yet. Select those before distribution and validate every claimed platform natively.
+Milestones C and D remain. There is no license, CI workflow, installer, or published release configuration yet. Select those before distribution and validate every claimed platform natively.
 
-Tag v0.1.0 only when the [release acceptance criteria](roadmap.md#v010-acceptance) have actual evidence. Milestone A success does not qualify resume, parallel ranges, retry policies, or the full v0.1 feature set.
+Tag v0.1.0 only when the [release acceptance criteria](roadmap.md#v010-acceptance) have actual evidence. Milestone B success does not qualify parallel ranges, retry policies, other platforms, or the full v0.1 feature set.

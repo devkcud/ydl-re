@@ -2,21 +2,26 @@
 
 [Documentation index](README.md)
 
-Milestone A has executable tests and a passing local `make check` on Go 1.27.2, Linux/amd64. The full matrix below also covers later milestones and must not be read as fully implemented.
+Milestones A and B have executable tests and a passing local `make check` on Go 1.27.2, Linux/amd64. The full matrix below also covers later milestones and must not be read as fully implemented.
 
 ## Current evidence
 
 | Test file | Coverage |
 |---|---|
 | [Storage](../internal/storage/file_test.go) | Publication, overwrite, destination races, exclusive writers, retained partials, unsafe paths, sync failure |
+| [Checkpoints](../internal/storage/checkpoint_test.go) | Durable prefixes, uncommitted tails, corrupt/invalid metadata, local-byte hashes, stable locks, interrupted link/rename publication |
 | [Transfer](../internal/transfer/download_test.go) | Fixture hashes, known/unknown/encoded/empty bodies, bad statuses, truncation, cancellation, timeouts, redirects, publication failure |
 | [HTTP policy](../internal/transfer/http_test.go) | Safe derived names, cross-origin credential stripping, downgrade and credential rejection |
+| [Resume](../internal/transfer/resume_test.go) | Automatic/explicit/chunked/zero-prefix resume; mismatched identities, bounds, and validators; unchanged-artifact refusal; 416 re-probing; offline ready recovery |
 | [CLI](../internal/cli/cli_test.go) | Argument ordering, invalid options, help/version, progress, quiet output, overwrite, error codes |
 | [Process](../cmd/yoinkdl/main_test.go) | Entry point, successful download, real SIGINT with retained partial bytes and no final output |
+| [Crash recovery](../cmd/yoinkdl/resume_test.go) | Kill a process after a durable checkpoint, inspect its state, resume in another process, and verify the complete fixture hash |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
-Resume, range planning, retries, caps, manifest recovery, real disk exhaustion, post-publication fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete.
+The built executable also passed a workspace-filesystem smoke test: interrupt, inspect the saved checkpoint, resume from 128 KiB, verify the complete fixture hash, and confirm that URL tokens were absent from metadata.
+
+Parallel range planning, retries, caps, real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Publication-boundary recovery is exercised with controlled ready/link/rename states; that is not a real power-loss test.
 
 ## Test layers
 

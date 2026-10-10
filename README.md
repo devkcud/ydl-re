@@ -6,9 +6,9 @@ YoinkDL is a local-first HTTP(S) download manager written in Go. The first imple
 
 ## Status
 
-Milestone A is implemented and tested on Linux. `download`, `version`, progress, cancellation, overwrite protection, and network inactivity timeouts work. Nonempty partial files are preserved after failures or interruption.
+Milestones A and B are implemented and tested on Linux. `download`, `inspect`, `version`, safe resume, progress, cancellation, overwrite protection, and network inactivity timeouts work. Saved progress is synced and checksummed before reuse.
 
-Resume, `inspect`, parallel ranges, retries, bandwidth caps, JSON output, and configuration files are still planned. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
+Parallel ranges, retries, bandwidth caps, JSON output, and configuration files are still planned. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
 
 ## Build and test
 
@@ -46,11 +46,18 @@ The parent directory must already exist. By default, existing completed files an
 
 Use `--quiet` to suppress progress and `--timeout 2m` to change the network inactivity timeout. Progress and errors go to stderr; success prints the absolute output path to stdout. Run `./bin/yoinkdl download --help` for all implemented options.
 
-Ctrl+C stops the transfer and retains nonempty `.yoinkdl.part` data. Resume is not implemented yet: use a fresh output path for a new attempt, or deliberately remove abandoned partial data only after its writer has stopped.
+Ctrl+C stops the transfer and saves a checkpoint. Run the same URL and output again to resume automatically when the server and local state are compatible, or require existing state explicitly:
+
+```sh
+./bin/yoinkdl download 'https://example.org/archive.zip' -o ./archive.zip --resume
+./bin/yoinkdl inspect ./archive.zip
+```
+
+Partial reuse requires a known size, identity encoding, and a matching strong ETag. Changed URLs/versions, corrupt state, and legacy partials without manifests are refused without destructive restart. A small `.yoinkdl.lock` file remains after success; its presence alone does not mean a process is active.
 
 ## Platforms
 
-Linux is tested locally. Storage operations are also enabled on macOS, which still needs native qualification. Windows downloads are explicitly unsupported until safe publication is implemented there. The output filesystem must support hard links and directory sync.
+Linux is tested locally. Storage operations are also enabled on macOS, which still needs native qualification. Windows downloads are explicitly unsupported until safe publication is implemented there. The output filesystem must support advisory locking, hard links, and directory sync.
 
 ## Documentation
 

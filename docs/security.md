@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestone A tests cover artifact preservation, exclusive ownership, destination collisions, unsafe paths, redirects, and secret-safe errors. These requirements also guide the remaining v0.1 security review; they do not imply a completed security audit.
+Milestone A/B tests cover artifact preservation, exclusive ownership, destination collisions, unsafe paths, redirects, secret-safe metadata/errors, corrupted checkpoints, and rejected incompatible resumes. These requirements also guide the remaining v0.1 security review; they do not imply a completed security audit.
 
 ## Trust boundaries
 
@@ -35,9 +35,9 @@ Validate range responses, byte counts, representation identity, and encoding. A 
 
 URLs may contain user information, signed query parameters, or other access tokens. Avoid exposing those values in progress, errors, logs, JSON output, or shareable diagnostics.
 
-The sample manifest includes source/effective URLs to explain identity. It is not a decision to persist credential-bearing URLs verbatim. The storage design must decide what it needs for safe recovery, what to redact, and whether sensitive data needs a separate protected representation.
+Manifest version 1 stores SHA-256 fingerprints of parsed source/effective URLs with fragments removed. It does not store raw URLs, query tokens, or request headers. It retains the validator and local checkpoint fields needed for recovery under private file permissions. The original draft's URL-bearing schema was illustrative and is not accepted by the loader.
 
-Do not assume stripping every query parameter preserves resource identity. Redacted display and exact transfer matching serve different purposes and need a deliberate policy.
+Query parameters remain part of the hashed identity. A refreshed signed URL or changed redirect target therefore fails matching rather than silently reusing bytes. Fingerprints are identity checks, not encryption or authentication of manifest contents.
 
 Persistent logs, credential storage, custom authentication flags, and secret-management integrations are not specified for v0.1.
 

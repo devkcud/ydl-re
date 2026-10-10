@@ -10,6 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"yoinkdl/internal/storage"
+	"yoinkdl/internal/transfer"
 )
 
 func TestCommands(t *testing.T) {
@@ -22,6 +25,8 @@ func TestCommands(t *testing.T) {
 		{[]string{"--help"}, "Usage: yoinkdl"},
 		{[]string{"help", "download"}, "--timeout"},
 		{[]string{"download", "--help"}, "--output"},
+		{[]string{"help", "inspect"}, "checkpoint metadata"},
+		{[]string{"inspect", "--help"}, "checkpoint metadata"},
 		{[]string{"version"}, "yoinkdl test-version\n"},
 	}
 
@@ -80,7 +85,8 @@ func TestInvalidArguments(t *testing.T) {
 		{"version", "extra"},
 		{"download"},
 		{"download", "https://example.org", "extra"},
-		{"download", "https://example.org", "--resume"},
+		{"inspect"},
+		{"inspect", "first", "second"},
 		{"download", "https://example.org", "--connections", "4"},
 		{"download", "https://example.org", "--output"},
 		{"download", "https://example.org", "--output="},
@@ -178,5 +184,77 @@ func TestOverwrite(t *testing.T) {
 	data, err := os.ReadFile(path)
 	if err != nil || string(data) != "new" {
 		t.Fatalf("data = %q, error = %v", data, err)
+	}
+}
+
+func TestInspectReadsActiveCheckpointWithoutMutation(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "file")
+	f, err := storage.Create(path, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	err = f.Begin(storage.Manifest{
+		SourceID:    strings.Repeat("a", 64),
+		EffectiveID: strings.Repeat("b", 64),
+		Length:      10,
+		ETag:        `"version-1"`,
+		Encoding:    "identity",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := f.Write([]byte("abc")); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := f.Checkpoint(true); err != nil {
+		t.Fatal(err)
+	}
+
+	before, err := os.ReadFile(path + storage.ManifestSuffix)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var out, errOut bytes.Buffer
+	code := Run(context.Background(), []string{"inspect", path}, &out, &errOut, "test")
+
+	if code != 0 || errOut.Len() != 0 || !strings.Contains(out.String(), "Saved bytes: 3") || !strings.Contains(out.String(), "Total bytes: 10") {
+		t.Fatalf("inspect: code = %d, out = %q, err = %q", code, &out, &errOut)
+	}
+
+	after, err := os.ReadFile(path + storage.ManifestSuffix)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatal("inspection changed saved state")
+	}
+}
+
+func TestResumeAndInspectMissingState(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "file")
+	cases := [][]string{
+		{"download", "https://example.org/file", "--output", path, "--resume"},
+		{"inspect", path},
+	}
+
+	for _, args := range cases {
+		var out, errOut bytes.Buffer
+		code := Run(context.Background(), args, &out, &errOut, "test")
+
+		if code != 1 || out.Len() != 0 || errOut.Len() == 0 {
+			t.Fatalf("%v: code = %d, out = %q, err = %q", args, code, &out, &errOut)
+		}
+	}
+}
+
+func TestResumedBytesAreNotTransferSpeed(t *testing.T) {
+	var out bytes.Buffer
+	display := newProgress(&out)
+	display.Update(transfer.Snapshot{Bytes: 4096, Total: 8192, Resumed: 4096})
+
+	if !strings.Contains(out.String(), "50.0%") || !strings.Contains(out.String(), "0.0 B/s") {
+		t.Fatalf("saved bytes counted as new traffic: %q", &out)
 	}
 }

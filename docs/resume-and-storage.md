@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The Milestone B storage APIs implement versioned manifests, durable prefix checkpoints, local checksum validation, exclusive ownership, and recovery after interrupted publication. HTTP resume and CLI integration are the next slice; see [STATUS.md](../STATUS.md) for current availability.
+Milestone B implements versioned manifests, durable prefix checkpoints, local checksum validation, exclusive ownership, validated HTTP resume, inspection, and recovery after interrupted publication. See [STATUS.md](../STATUS.md) for the current handoff.
 
 ## Files and ownership
 
@@ -54,7 +54,7 @@ The schema represents one sequential prefix. This example records the three byte
 | `sha256` | SHA-256 of that prefix |
 | `state` | `partial` or `ready` |
 
-Every field must occur exactly once. Unknown or missing fields, duplicate keys, invalid values, trailing JSON, and manifests larger than 64 KiB are rejected. The format does not contain original URLs, query tokens, request headers, or credentials.
+Every field must occur exactly once and be non-null. Unknown or missing fields, duplicate keys, invalid values, trailing JSON, and manifests larger than 64 KiB are rejected. The format does not contain original URLs, query tokens, request headers, or credentials.
 
 URL fingerprints require the same URL spelling after parsing and fragment removal. Refreshed signed URLs and changed redirect targets are not silently treated as the same identity. A URL fingerprint is not a content checksum or an authentication mechanism.
 
