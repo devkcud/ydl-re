@@ -2,19 +2,31 @@
 
 [Documentation index](README.md)
 
-The sequential HTTP(S) engine is implemented. Range probing, parallel ranges, and resumption described below remain planned for later milestones.
+Sequential HTTP(S) downloads and safe sequential resume are implemented. Parallel ranges and automatic retries remain planned.
 
 ## Implemented sequential transfer
 
-The engine sends a full `GET`, accepts only `200`, uses a 64 KiB buffer, checks known body lengths, and requires clean completion for unknown lengths. It requests identity encoding and disables transparent decompression; if the server still sends encoded content, the exact served bytes are saved and counted without decoding.
+Fresh transfers send a full `GET`, accept only `200`, use a 64 KiB buffer, check known body lengths, and require clean completion for unknown lengths. The engine requests identity encoding and disables transparent decompression; if the server still sends encoded content, the exact served bytes are saved and counted without decoding.
 
 The default timeout is 30 seconds per connection, TLS handshake, response-header wait, or idle body read. It is not an overall download deadline: active transfers may run longer. Cancellation closes active requests and retains nonempty partial data without publishing it.
 
 Redirect chains allow at most ten requests. HTTPS-to-HTTP downgrades and URL credentials are rejected. Sensitive headers and referrers are stripped across origins, including subsequent redirects away from the original origin. Request errors avoid exposing URL tokens.
 
-There are no automatic retries, probes, ranges, or manifests yet. The tests use local servers and verify byte hashes, interruption, truncation, timeout behavior, and publication failures.
+Response headers establish the initial manifest identity. There is no separate HEAD dependency and no automatic retry. Local-server tests cover fresh transfers, resumed suffixes, crash recovery, and incompatible responses.
 
-## Probe and select a mode
+## Implemented resume validation
+
+Before sending a resume request, the engine validates the manifest, destination, saved-prefix checksum, and original URL fingerprint. Unknown-length, encoded, unversioned, or weak-tagged partials are refused. Strong ETags must be quoted, valid UTF-8, at most 4096 bytes, and contain no invalid opaque-tag characters.
+
+For a positive saved prefix `n`, send `Range: bytes=n-` and `If-Range` with the saved strong ETag. Require `206`, one exact `Content-Range` covering `n` through `length - 1`, the same total, the same echoed strong ETag, identity encoding, and the same effective-URL fingerprint. A declared payload length must equal the remaining bytes; chunked framing is allowed when actual bytes match those bounds.
+
+For a zero-byte checkpoint, send a full GET with `If-Match` and require matching `200` metadata. Only after successful validation may storage truncate uncheckpointed tail bytes and receive the response.
+
+A `200` received for a positive-offset resume is refused. A `416` triggers a fresh GET re-probe whose body is discarded, then fails without inferring completion. Neither case discards existing state or silently restarts from zero.
+
+An already verified `ready` checkpoint can finish publication locally after source-identity and full-file checksum validation. It does not need a network request and may complete an older, already received resource version while the server is unavailable.
+
+## Planned parallel mode selection
 
 `HEAD` can supply metadata, but some servers reject it or return misleading headers. Use a ranged `GET` when necessary to validate actual behavior. Record the effective URL after redirects, a reliable total length if known, and eligible validators.
 
@@ -30,13 +42,13 @@ There are no automatic retries, probes, ranges, or manifests yet. The tests use 
 
 ## Request and response example
 
-An illustrative request for the second 1,024-byte interval of a 4,096-byte object:
+Resume a 4,096-byte object after a verified 1,024-byte prefix:
 
 ```http
 GET /archive.zip HTTP/1.1
 Host: example.org
 Accept-Encoding: identity
-Range: bytes=1024-2047
+Range: bytes=1024-
 If-Range: "version-1"
 ```
 
@@ -44,14 +56,14 @@ An expected response header set:
 
 ```http
 HTTP/1.1 206 Partial Content
-Content-Range: bytes 1024-2047/4096
-Content-Length: 1024
+Content-Range: bytes 1024-4095/4096
+Content-Length: 3072
 ETag: "version-1"
 ```
 
-The body is omitted from the example. The worker still needs exactly 1,024 valid body bytes and successful transport completion.
+The body is omitted from the example. The engine still needs exactly 3,072 valid body bytes and successful transport completion.
 
-The internal interval `[1024, 2048)` is half-open; the HTTP range ends at `2047`. Keep that conversion in one place. The illustrative manifest in the original design uses inclusive endpoints; see [the manifest convention](resume-and-storage.md#interval-convention).
+The saved prefix is `[0, 1024)` and the missing interval is `[1024, 4096)`. HTTP reports an inclusive last byte of `4095`. See [the manifest convention](resume-and-storage.md#interval-convention).
 
 ## Validate every range
 
@@ -70,7 +82,7 @@ Never let an oversized response write into a neighboring worker's interval. A sh
 
 A `200` received for a range request is not the requested interval. It may mean the server ignored ranges or a conditional range no longer matches. Do not append it at the requested offset.
 
-Safe fallback requires canceling outstanding range work, reconciling the chosen representation and stored progress, and starting a separate sequential plan when the restart policy allows. It is not merely a worker changing its write offset.
+The current resume path refuses such a response and preserves state. Future parallel fallback must cancel outstanding work and reconcile representation identity before starting a separate sequential plan; it cannot merely change a worker's write offset.
 
 A `416` requires re-probing and checking identity, size, and local coverage. It must not be treated as proof that the local file is complete. Empty resources and offsets at the end of an object need explicit tests.
 
@@ -78,9 +90,9 @@ A `416` requires re-probing and checking identity, size, and local coverage. It 
 
 HTTP permits combining partial responses when they share a strong validator. A weak ETag cannot be sent in `If-Range`. A date is eligible for `If-Range` only without an ETag and when it qualifies as a strong validator; merely having `Last-Modified` is insufficient. [RFC 9110: combining parts](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.7.3), [If-Range](https://www.rfc-editor.org/rfc/rfc9110.html#section-13.1.5).
 
-The implementation must apply the resource-version invariant to both parallel transfers and later resume attempts. Equal URLs and lengths alone cannot prove that two responses contain the same version.
+The implementation applies the resource-version invariant to resumed transfers. The future parallel engine must preserve it too. Equal URLs and lengths alone cannot prove that responses contain the same version.
 
-Recommended conservative behavior is one fresh stream when a safe common validator cannot be established, and refusal to reuse saved bytes whose identity is uncertain. The exact validator-selection and restart policies remain [open](decisions.md#http-and-scheduling-decisions).
+Fresh streams may work without validators, but partial reuse requires a usable strong ETag in both stored metadata and the new response. Last-Modified is not used as a resume validator. Changed URLs or versions and unsupported range behavior are refused rather than silently restarted.
 
 ## Encoding and unknown lengths
 

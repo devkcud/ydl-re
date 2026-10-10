@@ -4,9 +4,11 @@ Updated: October 9, 2026.
 
 ## Current state
 
-Milestone A is complete. Milestone B's storage APIs now implement manifests, verified prefix checkpoints, stable OS locking, and interrupted-publication recovery. HTTP resume and the CLI commands are not connected yet; the executable still exposes the Milestone A interface.
+Milestone A is complete. Milestone B now has verified persistence and HTTP resume. The CLI, inspection, and crash-process tests are implemented and passing in the working tree; their final documentation and commit are next.
 
 ## Handoff
+
+- `internal/transfer/resume.go` validates source/effective fingerprints, exact range bounds, echoed strong ETags, encoding, and length before changing saved data. A 416 is re-probed and refused. Ready checkpoints recover locally without network access.
 
 - `internal/storage/manifest.go` defines strict schema version 1. `completed = n` denotes `[0, n)`; URL identities and saved prefixes use SHA-256. Raw URLs and query tokens are not persisted.
 - `checkpoint.go` syncs bytes before advancing progress, checkpoints during transfer and shutdown, verifies saved hashes, and only truncates uncertain tails when the caller explicitly starts validated continuation.
@@ -17,15 +19,14 @@ Milestone A is complete. Milestone B's storage APIs now implement manifests, ver
 ## Validation
 
 - `go test ./internal/storage` passed with checkpoint, corruption, invalid-schema, ownership, and interrupted-publication cases.
-- `make check` passed: formatting, vet, all tests, race checks, and build against the existing CLI.
+- `make check` passed after integration: formatting, vet, all tests, race checks, and build. The suite includes automatic/explicit resume, unchanged-artifact refusal cases, active inspection, and a real forced-process-kill/relaunch with final hash verification.
 - Linux/amd64 is the tested runtime. Local test listeners require execution outside the sandbox. macOS native qualification, Windows storage, network filesystems, and real power-loss testing remain open.
 
 ## Next steps
 
-1. Connect HTTP metadata to manifests and implement conservative GET-based resume validation: source/effective fingerprints, strong ETag, total size, encoding, and exact response bounds.
-2. Add automatic compatible resume, explicit `--resume`, and read-only `inspect`; reject mismatches without changing saved artifacts. Keep resumed progress/rate accounting accurate.
-3. Add end-to-end interruption/relaunch and forced-process-termination tests, refusal cases, and binary smoke checks. Run the full gate and refresh user docs.
-4. Complete Milestone B before parallel ranges/retries in C and release hardening in D.
+1. Finish user-facing docs for automatic resume, `--resume`, `inspect`, persistent lock files, and current compatibility limits; commit the CLI slice separately.
+2. Smoke-test the built executable against a local resumable server, audit documentation, and record the final Milestone B handoff.
+3. Start Milestone C only after B is closed: plan disjoint ranges, preserve version identity, add bounded workers and safe retries/fallback with fault tests.
 
 ## Open decisions and blockers
 
