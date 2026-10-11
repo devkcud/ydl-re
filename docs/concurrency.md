@@ -35,7 +35,11 @@ The first failure cancels peer requests and stops admitting tasks. The coordinat
 
 ## Retries
 
-The design suggests exponential backoff with bounded jitter and a maximum attempt budget. The proposed `--retries` default is `3` per range; whether the numeric contract counts retries after the first attempt must be settled before publishing the flag.
+The retry policy is implemented internally; transfer/CLI integration is the next slice. `--retries` will default to three additional attempts, with decimal values from zero through ten. Zero disables retries. Each chunk gets one shared budget for request failures and incomplete bodies, so header retries cannot multiply the chunk budget.
+
+Retry only HTTP `408`, `429`, `500`, `502`, `503`, and `504`, or selected transient connection failures: network timeouts, temporary DNS errors, resets, refused/aborted connections, broken pipes, and unexpected EOF. NXDOMAIN, TLS certificate/redirect policy failures, incompatible identity/bounds/encoding, malformed or oversized bodies, local storage errors, and cancellation are terminal. Short range bodies can retry by replacing the whole uncheckpointed chunk.
+
+Exponential backoff starts at 125–250 ms, with equal jitter between half and all of the current delay and an eight-second cap. A single valid `Retry-After` delta or HTTP date can extend the wait up to 30 seconds; longer values stop the operation instead of retrying earlier than requested. Malformed or duplicate hints use normal backoff. All waits honor cancellation.
 
 | Failure | Intended treatment |
 |---|---|
@@ -47,7 +51,7 @@ The design suggests exponential backoff with bounded jitter and a maximum attemp
 | Local permissions, disk-full, or state persistence failure | Report the local problem and preserve valid recovery data where possible |
 | Cancellation | Stop; do not schedule another attempt |
 
-The exact status allowlist, delays, jitter, retry budget for probes, and `Retry-After` ceiling remain open.
+Fresh probes and saved-range validation will have separate bounded budgets, including their small bodies. Full-stream request setup will retry eligible failures before accepting a response, while sequential body interruption will keep its existing checkpoint-and-resume behavior. A fresh fallback GET has its own setup budget. The diagnostic GET after a `416` remains a single request followed by refusal.
 
 An interval retry must replace failed writes consistently. A conservative implementation re-fetches the entire incomplete interval, counting it once after successful validation. Restarting a request must not introduce duplicate coverage or leave unverified bytes marked complete.
 

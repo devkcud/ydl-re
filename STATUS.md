@@ -6,10 +6,11 @@ Updated: October 11, 2026.
 
 Milestones A and B are implemented. Milestone C supports fresh and resumed parallel HTTP(S) downloads, exclusive offset writes, verified chunk checkpoints, and connection limits. Sequential resume, inspect, progress, cancellation, overwrite protection, and inactivity timeouts remain supported.
 
-Milestone C remains active: bounded retries are unfinished. Sequential and parallel resume have forced-process-termination evidence. Bandwidth caps, JSON events, configuration loading, and release tooling also remain. Go 1.27 and the standard library are still the only runtime development requirements.
+Milestone C remains active: retry policy primitives are implemented, but transfer/CLI integration is unfinished. Sequential and parallel resume have forced-process-termination evidence. Bandwidth caps, JSON events, configuration loading, and release tooling also remain. Go 1.27 and the standard library are still the only runtime development requirements.
 
 ## Handoff
 
+- `internal/transfer/retry.go` implements a bounded attempt budget, cancellable equal-jitter backoff, a strict transient status/network allowlist, sanitized errors, response cleanup, and `Retry-After` parsing. Default three additional attempts, max ten; backoff 125–250 ms initially, capped at eight seconds. Valid hints above 30 seconds stop rather than retry early. Call sites and the CLI are not wired yet.
 - `internal/ranges` plans at most 256 fixed half-open chunks, defaulting to at least four MiB each. It validates sorted whole-chunk coverage, subtracts completed work, and converts HTTP endpoints without overflow. Empty plans contain no tasks. Large files use larger chunks and can lose more uncheckpointed work on interruption.
 - `internal/storage/manifest.go` and `range_manifest.go` read distinct strict schemas. Version 1 keeps `completed = n` as prefix `[0, n)` with its digest. Version 2 stores `chunk_size` and `completed_ranges` with per-chunk digests; saved-byte totals are derived, never resume offsets. No implicit schema conversion occurs. URL identities remain hashed.
 - `range_writer.go` adds `ClaimRange` and bounded `RangeWriter` writes. Active/completed chunks cannot be claimed again; stale writers cannot write after release. `Commit` serializes sync/hash/checkpoint publication and releases the claim only after success. Call it only after validating clean HTTP completion; `Close` releases failed attempts without acknowledging them. File close/publication refuses active writers.
@@ -29,6 +30,7 @@ Milestone C remains active: bounded retries are unfinished. Sequential and paral
 
 ## Validation
 
+- `go test ./internal/transfer -run 'TestRetry|TestRequestRetr|TestTransient' -count=1` and `make check` passed for the retry primitives, including body classification/redaction. Policy documentation checks passed for 20 Markdown files, 176 local links/anchors, fences, and whitespace.
 - `go test ./internal/transfer -run 'TestRangeResume|TestPartialRangeState' -count=1` and `go test -race ./internal/transfer ./internal/cli` passed. New coverage includes automatic/explicit/disjoint/empty/full/one-worker resumes, unchanged-artifact refusal, local corruption, source changes, timeouts, cancellation, and replacing interrupted chunks in full.
 - The resume `make check` passed: formatting, vet, all tests, race checks, and build. The initial sandbox run could not open localhost listeners; approved outside-sandbox checks passed.
 - `go test -race ./cmd/yoinkdl -run '^TestProcessParallelCrashResume$' -count=1` passed. The final `make check` also passed after the fixture was tightened to wait for on-disk gap bytes before killing the process. Recovery verified the complete fixture hash and requested only the two missing chunks after changing worker count.
@@ -37,7 +39,7 @@ Milestone C remains active: bounded retries are unfinished. Sequential and paral
 
 ## Next steps
 
-1. Add bounded retry/backoff and settle the retry flag contract. Test failed chunk replacement, attempt limits, status classification, and cancellation during backoff.
+1. Wire the retry policy into probes, range-resume validation, full-response request setup, and whole-chunk attempts. Add `--retries` (default three additional attempts, 0..10), preserve non-retryable integrity/storage errors, and prevent nested budgets or duplicate progress.
 2. Complete focused/full gates for retries and close C before hardening in D.
 
 ## Open decisions and blockers

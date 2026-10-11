@@ -40,13 +40,14 @@ Resolve each decision before the milestone or interface depending on it is decla
 - Use four workers by default, with a maximum of 32 and a reduction to the number of missing chunks. `--connections`/`-c` accepts decimal digits for 1 through 32, including leading zeros; signs, zero, fractions, hexadecimal, and overflow are refused. One connection streams fresh files directly or resumes saved range tasks with one worker. Saved version-1 state always resumes sequentially.
 - A fully covered `partial` range checkpoint still needs remote validation before publication. Empty range checkpoints use a full conditional GET with `If-Match`, exact zero length, and clean EOF. A refused/canceled validation never mutates saved artifacts or falls back to a fresh stream; verified `ready` recovery remains offline.
 - Bound the queue to 256 intervals and allocate one 64 KiB payload buffer per worker. Storage grants exclusive incomplete-chunk writers, serializes commits, and blocks file closure/publication while claims exist. The coordinator serializes progress, cancels peers on failure, joins all workers, and verifies exact coverage before publication. Active range failures preserve state without automatic fallback or retry.
+- The implemented retry policy uses three additional attempts by default, with a ceiling of ten and zero disabling retries. A range shares one budget across request and body failures. Retry only `408`, `429`, `500`, `502`, `503`, `504`, and selected transient network failures; identity/protocol/storage failures are terminal.
+- Backoff uses equal jitter, starting at 125–250 ms and capped at eight seconds. Valid `Retry-After` values can extend a wait to 30 seconds; longer hints stop instead of retrying early. Malformed/duplicate hints use normal backoff. Waits honor cancellation. Transfer and CLI integration remain pending.
 
 ## Command and output decisions
 
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
-| C02 | Bounds and grammar for retries and rate options | Connection limits and timeout contracts are implemented | [CLI](cli.md) |
-| C03 | Whether `--retries 3` means three retries after the first attempt; budgets for probes and streams | Defines bounded attempts consistently across modes | [Concurrency](concurrency.md) |
+| C02 | Rate option grammar and bounds | Retry grammar is settled; retry CLI wiring is pending | [CLI](cli.md) |
 | C05 | JSON event/result schema, framing, stream routing, `--quiet` interaction, compatibility | Makes machine output safe to script against | [CLI](cli.md) |
 | C08 | Future event schema, retry counters, and subscriber backpressure | Extends the implemented CLI snapshots for other consumers | [Concurrency](concurrency.md) |
 | C09 | TOML loader, precedence, unknown keys, rate/unit grammar, overflow/zero handling | Turns the illustrative configuration into a contract | [Configuration](configuration.md) |
@@ -69,7 +70,6 @@ Atomic final publication is implemented and tested locally on Linux. Windows pub
 
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
-| H06 | Retry allowlist, backoff/jitter bounds, `Retry-After` ceiling | Avoids infinite waits and inappropriate repeated requests | [Concurrency](concurrency.md#retries) |
 | H07 | Limiter burst size, timing tolerance, and probe/retry accounting | Gives `--limit` a measurable testable meaning | [Concurrency](concurrency.md#aggregate-rate-cap) |
 
 The safe fallback is a sequential transfer when parallel ranges cannot be trusted. Applying that fallback to existing partial data still requires an explicit, non-destructive state transition.
