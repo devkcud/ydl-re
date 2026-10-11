@@ -2,11 +2,11 @@
 
 [Documentation index](README.md)
 
-The current engine uses one sequential stream with cancellation, progress, and validated suffix resume. This page describes the planned v0.1 scheduler; parallel range workers, retries, and the limiter are not implemented yet.
+The current engine uses one sequential stream with cancellation, progress, and validated suffix resume. The range planner is implemented; parallel range workers, retries, and the limiter are not implemented yet.
 
 ## Range planning
 
-Begin with fixed, disjoint intervals over a reliable known length. Multi-range downloading means multiple workers fetching intervals; it does not require a single HTTP request containing multiple ranges.
+`internal/ranges` plans fixed, disjoint intervals over a known nonnegative length. Multi-range downloading means multiple workers fetching intervals; it does not require a single HTTP request containing multiple ranges.
 
 For a 4,096-byte example, four half-open intervals could be:
 
@@ -17,9 +17,11 @@ For a 4,096-byte example, four half-open intervals could be:
 | 3 | `[2048, 3072)` | `bytes=2048-3071` | 1,024 |
 | 4 | `[3072, 4096)` | `bytes=3072-4095` | 1,024 |
 
-This is an arithmetic example, not a recommended minimum chunk size. Small objects should avoid the overhead of tiny ranges. The real chunk size, threshold, and worker ceiling are undecided.
+This is an arithmetic example. The production chunk size is the larger of four MiB and `ceil(length / 256)`, limiting a plan to 256 chunks. Small objects produce one task; zero-length objects produce none. The arithmetic helpers accept smaller positive chunk sizes for deterministic fixtures, while enforcing the same task limit.
 
-The plan must cover the expected object exactly once. On resume, subtract validated completed coverage before scheduling missing work. Handle zero-length objects without creating invalid empty range requests.
+Completed intervals must be sorted, disjoint, and match whole chunks in the original plan, including a shorter final chunk. Adjacent completed chunks remain separate. Duplicate, overlapping, partial, merged, reversed, or out-of-bounds intervals are refused. Resume subtracts these validated chunks without changing their boundaries. HTTP headers convert the exclusive end to `end - 1` only at the request boundary.
+
+The planner tests exact coverage, every completion subset of small fixtures, malformed coverage, and offsets through the maximum signed 64-bit length. The plan bounds metadata, not worker concurrency; the worker ceiling, queue, and buffer policy remain open. Very large files use larger chunks and may need to re-fetch more uncheckpointed data after interruption.
 
 ## Bounded workers
 

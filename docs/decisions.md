@@ -30,6 +30,10 @@ Resolve each decision before the milestone or interface depending on it is decla
 - Recover an interrupted publication locally only from a `ready` checkpoint whose complete bytes still match its checksum. Completed metadata is removed after safe publication; the lock file remains.
 - `inspect` reads local manifest metadata without network access, hashing data, acquiring writer ownership, or changing artifacts. Missing/corrupt metadata exits `1`; malformed command arguments exit `2`. It does not provide completed-download history.
 
+## Milestone C decisions made
+
+- Use half-open whole chunks with a fixed size of at least four MiB, enlarged to keep at most 256 chunks per representation. Persist that size with future range state so resumed plans keep the same boundaries. Completed chunks must be sorted and disjoint; adjacent chunks remain separate. Zero-length objects need no tasks.
+
 ## Command and output decisions
 
 | ID | Decision needed | Why it matters | Owner page |
@@ -58,7 +62,7 @@ Atomic final publication is implemented and tested locally on Linux. Windows pub
 
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
-| H05 | Minimum chunk size, worker ceiling, queue and buffer bounds | Keeps concurrency and memory bounded without tiny-range overhead | [Concurrency](concurrency.md) |
+| H05 | Worker ceiling, queue and buffer bounds | Chunk size and plan limits are implemented; runtime concurrency remains to be bounded | [Concurrency](concurrency.md) |
 | H06 | Retry allowlist, backoff/jitter bounds, `Retry-After` ceiling | Avoids infinite waits and inappropriate repeated requests | [Concurrency](concurrency.md#retries) |
 | H07 | Limiter burst size, timing tolerance, and probe/retry accounting | Gives `--limit` a measurable testable meaning | [Concurrency](concurrency.md#aggregate-rate-cap) |
 

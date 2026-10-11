@@ -6,10 +6,11 @@ Updated: October 10, 2026.
 
 Milestones A and B are implemented and pass local Linux checks. The built CLI supports sequential HTTP(S) downloads, automatic compatible resume, explicit `--resume`, read-only `inspect`, progress, cancellation, overwrite protection, and network inactivity timeouts.
 
-Parallel ranges, retries, bandwidth caps, JSON events, configuration loading, and release tooling remain unimplemented. Go 1.27 and the standard library are still the only runtime development requirements; the Makefile provides the full check gate.
+Milestone C is active. Its bounded range planner is implemented; disjoint persistence, parallel HTTP transfers, retries, bandwidth caps, JSON events, configuration loading, and release tooling remain unimplemented. Go 1.27 and the standard library are still the only runtime development requirements; the Makefile provides the full check gate.
 
 ## Handoff
 
+- `internal/ranges` plans at most 256 fixed half-open chunks, using at least four MiB per chunk. It validates sorted whole-chunk coverage, subtracts completed work, and converts HTTP endpoints without overflow. Zero-length objects need no requests. Range persistence must retain the chosen chunk size; version 1 remains unchanged.
 - `internal/storage/manifest.go` defines strict, non-null schema version 1. `completed = n` denotes the durable prefix `[0, n)` and `sha256` verifies that prefix. Original/effective URL identities are hashed; raw URLs/query tokens are not persisted.
 - `checkpoint.go` syncs bytes before publishing snapshots after four MiB or one second of arriving data and on normal interruption. Recovery verifies saved bytes; unconfirmed tails are truncated only after a compatible remote response.
 - Stable `.yoinkdl.lock` inodes hold nonblocking advisory locks. Process death releases ownership, so do not unlink lock files for stale-owner recovery. Orphan temporary manifests are ignored.
@@ -20,17 +21,18 @@ Parallel ranges, retries, bandwidth caps, JSON events, configuration loading, an
 
 ## Validation
 
-- `make check` passed after the final code fix: formatting, vet, all tests, race checks, and build.
+- `go test ./internal/ranges` passed: uneven/small/empty plans, all completion subsets of small fixtures, invalid coverage, task bounds, and maximum signed 64-bit offsets.
+- `make check` passed for the planner: formatting, vet, all tests, race checks, and build. The sandbox attempt could not write the Go cache; the approved outside-sandbox run passed.
 - Resume tests cover automatic/explicit/chunked/zero-prefix requests, corrupt or missing state, unchanged-artifact refusal, changed identities, invalid bounds, missing/weak validators, 416 re-probing, interrupted bodies, and offline ready recovery.
 - Storage tests cover durable prefix ordering, unconfirmed tails, conflicting writers, strict JSON/schema validation, and interrupted ready/link/rename publication. The explicit-null regression failed before the fix and passes afterward.
 - The process test kills a writer after a durable checkpoint, starts a new process with `--resume`, and verifies the complete fixture hash.
 - Built-executable smoke test passed: SIGINT returned `130`, inspection reported the checkpoint, resume fetched the suffix after 131072 saved bytes, and the complete file hash matched. Raw URL tokens were absent from metadata.
-- Documentation audit passed: 19 pages, 165 local links/anchors, 23 shell examples, valid JSON/TOML, the manifest sample checksum, and whitespace. The original design checksum is unchanged.
+- Documentation audit passed: 20 Markdown files, 166 local links/anchors, fences, and whitespace. The preceding Milestone B audit also validated shell/JSON/TOML examples and the manifest checksum; those examples and the original design are unchanged in this step.
 - Environment: Go 1.27.2 on Linux/amd64. HTTP tests need localhost listeners outside the sandbox. macOS native checks, Windows storage, network filesystems, and real power-loss durability remain unqualified.
 
 ## Next steps
 
-1. Start Milestone C by defining range planning and persistence for disjoint completed intervals. Preserve version-1 checkpoint compatibility explicitly; do not reinterpret the sequential prefix format as a range array.
+1. Add versioned persistence for disjoint completed chunks using the implemented planner. Preserve version-1 checkpoint compatibility explicitly; do not reinterpret the sequential prefix format as a range array.
 2. Add capability probing and immutable representation identity for fresh parallel transfers, using the existing strict response validators and safe sequential fallback where applicable.
 3. Implement bounded workers with exclusive interval ownership, offset writes, exact coverage verification, and conservative cancellation/checkpointing. Keep current resume refusal and destination protection guarantees.
 4. Add bounded retry/backoff and define the connection/retry flag contracts. Test ignored ranges, changing versions, overlaps/gaps, failed interval replacement, cancellation, and concurrent completion.

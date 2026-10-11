@@ -10,6 +10,7 @@ Milestones A and B have executable tests and a passing local `make check` on Go 
 |---|---|
 | [Storage](../internal/storage/file_test.go) | Publication, overwrite, destination races, exclusive writers, retained partials, unsafe paths, sync failure |
 | [Checkpoints](../internal/storage/checkpoint_test.go) | Durable prefixes, uncommitted tails, corrupt/invalid metadata, local-byte hashes, stable locks, interrupted link/rename publication |
+| [Range planner](../internal/ranges/ranges_test.go) | Bounded fixed chunks, missing-work subtraction, exact coverage over completion subsets, invalid intervals, HTTP endpoints, maximum offsets |
 | [Transfer](../internal/transfer/download_test.go) | Fixture hashes, known/unknown/encoded/empty bodies, bad statuses, truncation, cancellation, timeouts, redirects, publication failure |
 | [HTTP policy](../internal/transfer/http_test.go) | Safe derived names, cross-origin credential stripping, downgrade and credential rejection |
 | [Resume](../internal/transfer/resume_test.go) | Automatic/explicit/chunked/zero-prefix resume; mismatched identities, bounds, and validators; unchanged-artifact refusal; 416 re-probing; offline ready recovery |
@@ -21,7 +22,7 @@ Milestones A and B have executable tests and a passing local `make check` on Go 
 
 The built executable also passed a workspace-filesystem smoke test: interrupt, inspect the saved checkpoint, resume from 128 KiB, verify the complete fixture hash, and confirm that URL tokens were absent from metadata.
 
-Parallel range planning, retries, caps, real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Publication-boundary recovery is exercised with controlled ready/link/rename states; that is not a real power-loss test.
+Parallel HTTP transfers, disjoint checkpoint persistence, retries, caps, real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Publication-boundary recovery is exercised with controlled ready/link/rename states; that is not a real power-loss test.
 
 ## Test layers
 
