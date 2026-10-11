@@ -6,7 +6,7 @@ Updated: October 11, 2026.
 
 Milestones A and B are implemented. Milestone C supports fresh and resumed parallel HTTP(S) downloads, exclusive offset writes, verified chunk checkpoints, and connection limits. Sequential resume, inspect, progress, cancellation, overwrite protection, and inactivity timeouts remain supported.
 
-Milestone C remains active: retries and parallel crash-recovery evidence are unfinished. Bandwidth caps, JSON events, configuration loading, and release tooling also remain. Go 1.27 and the standard library are still the only runtime development requirements.
+Milestone C remains active: bounded retries are unfinished. Sequential and parallel resume have forced-process-termination evidence. Bandwidth caps, JSON events, configuration loading, and release tooling also remain. Go 1.27 and the standard library are still the only runtime development requirements.
 
 ## Handoff
 
@@ -24,20 +24,21 @@ Milestone C remains active: retries and parallel crash-recovery evidence are unf
 - `Download` invokes the fresh probe after output ownership, initializes version 2 for ranges, or consumes a returned full stream using version-1 storage. `range_resume.go` separately validates version-2 checkpoints before activating writers: conditional byte-zero GET, saved ETag/effective URL/total/encoding, exact bounds, and clean one-byte completion. Empty range state uses `If-Match` with a known empty 200 body. Probes never count toward coverage/progress.
 - Refused/timed-out/canceled resume validation preserves partial bytes and metadata. There is no saved-state fallback. Fully covered partial checkpoints still validate remotely; only ready checkpoints recover offline. Initial saved progress is reported before spawning workers so cancellation at that boundary starts no range work. Failed worker attempts remain whole missing chunks for the next invocation.
 - Both schemas support verified offline `ready` recovery. `inspect` reads metadata without hashing or writer ownership. Progress includes received bytes, which may lead whole-chunk checkpoints; worker counts reach zero before final verification. Cancellation propagates through range hashes and prevents publication.
+- `cmd/yoinkdl/range_resume_test.go` kills a real writer after two disjoint chunks and unfinished gap bytes are present. A new process resumes with two workers instead of four and fetches only whole missing chunks to the exact final hash. The full-sized partial and wrong unconfirmed bytes cannot authorize reuse; process death releases the persistent lock.
 - The original design is unchanged. The spacing rule, handoffs after every implementation, focused local commits, and no-push rule remain in force.
 
 ## Validation
 
 - `go test ./internal/transfer -run 'TestRangeResume|TestPartialRangeState' -count=1` and `go test -race ./internal/transfer ./internal/cli` passed. New coverage includes automatic/explicit/disjoint/empty/full/one-worker resumes, unchanged-artifact refusal, local corruption, source changes, timeouts, cancellation, and replacing interrupted chunks in full.
-- The resume `make check` passed: formatting, vet, all tests, race checks, and build. The initial sandbox run could not open localhost listeners; approved outside-sandbox checks passed. Parallel process-crash/resume evidence is the next validation slice.
-- Documentation audit passed: 20 Markdown files, 177 local links/anchors, 23 shell blocks, two JSON examples, one TOML example, fences, and whitespace. Both manifests passed checksum checks and built-CLI inspection; built help describes range resume. The original design is unchanged and its illustrative shell placeholders are excluded from runnable-example checks.
+- The resume `make check` passed: formatting, vet, all tests, race checks, and build. The initial sandbox run could not open localhost listeners; approved outside-sandbox checks passed.
+- `go test -race ./cmd/yoinkdl -run '^TestProcessParallelCrashResume$' -count=1` passed. The final `make check` also passed after the fixture was tightened to wait for on-disk gap bytes before killing the process. Recovery verified the complete fixture hash and requested only the two missing chunks after changing worker count.
+- Documentation audit passed: 20 Markdown files, 178 local links/anchors, 23 shell blocks, two JSON examples, one TOML example, fences, and whitespace. Both manifests passed checksum checks and built-CLI inspection; built help describes range resume. The original design is unchanged and its illustrative shell placeholders are excluded from runnable-example checks.
 - Environment: Go 1.27.2 on Linux/amd64. HTTP tests need localhost listeners outside the sandbox. macOS native checks, Windows storage, network filesystems, and real power-loss durability remain unqualified.
 
 ## Next steps
 
-1. Add forced-process-termination evidence for parallel resume: retain disjoint checkpoints and uncertain bytes, restart in a new process, and verify exact final content and completed-chunk reuse.
-2. Add bounded retry/backoff and settle the retry flag contract. Test failed chunk replacement, attempt limits, status classification, and cancellation during backoff.
-3. Complete focused/full gates for retries and close C before hardening in D.
+1. Add bounded retry/backoff and settle the retry flag contract. Test failed chunk replacement, attempt limits, status classification, and cancellation during backoff.
+2. Complete focused/full gates for retries and close C before hardening in D.
 
 ## Open decisions and blockers
 
