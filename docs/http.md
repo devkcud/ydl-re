@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Sequential HTTP(S) downloads and safe sequential resume are implemented. Parallel ranges and automatic retries remain planned.
+Sequential HTTP(S) downloads and safe sequential resume are implemented. The HTTP layer also has a tested fresh capability probe and immutable range identity. The CLI does not invoke the probe yet; parallel workers and automatic retries remain planned.
 
 ## Implemented sequential transfer
 
@@ -32,21 +32,25 @@ The HTTP layer has a value snapshot for an eligible ranged representation: origi
 
 Conditional range requests must use the selected source identity and stay within the total length. They send identity encoding and `If-Range` with the selected ETag. Response validation requires `206`, the same ETag and effective URL, identity encoding, exact assigned bounds/total, and a matching declared payload length when present. The range-bound validator is shared with version-1 resume; zero-prefix resume still follows its existing full-response path.
 
-These helpers do not prove body completion. Capability probing and the worker coordinator must validate actual bytes before accepting a probe or checkpoint. The current CLI remains sequential.
+These identity helpers validate response headers. The capability probe separately verifies its actual body; future workers must verify their whole assigned bodies before checkpointing. The current CLI remains sequential.
 
-## Planned parallel mode selection
+## Fresh capability probing
 
-`HEAD` can supply metadata, but some servers reject it or return misleading headers. Use a ranged `GET` when necessary to validate actual behavior. Record the effective URL after redirects, a reliable total length if known, and eligible validators.
+`internal/transfer/probe.go` sends `GET` with `Range: bytes=0-0`, identity encoding, and the existing redirect/transport policy. It does not use HEAD or trust `Accept-Ranges`. For a `206`, require one exact `Content-Range` for byte zero, a positive known total or an explicit unknown total, a one-byte payload length when declared, and exactly one byte followed by clean response completion. The application reads at most two bytes to detect an oversized body.
 
-| Evidence | Intended plan |
+| Evidence | Probe result |
 |---|---|
-| Valid range response, reliable total, identity encoding, compatible representation identity | Bounded ranged download |
-| Range request ignored with a full response | Sequential fallback after safely abandoning the range plan |
-| Unknown total length | One sequential stream |
-| Content encoding unsuitable for byte offsets | One sequential stream |
-| Inconsistent or malformed responses | Reject the unsafe result; retry or restart only under an explicit safe policy |
+| Valid one-byte `206`, known total, identity encoding, one strong ETag | Selected range identity; the probe body is closed and its byte discarded |
+| `200` without `Content-Range`, including encoded or unknown-length content | Return that untouched full-response stream for sequential transfer |
+| Valid `206` with an unknown total, unsuitable encoding, or unusable validator | Discard the probe, then issue one unconditional full GET |
+| `416` | Discard the response, then issue one full GET; never infer an empty or completed file |
+| Invalid bounds, wrong/short/oversized body, failed body completion, or another status | Fail without fallback or retry |
 
-`Accept-Ranges: bytes` is a hint, not proof. Server behavior must remain valid on every worker request, even after a successful probe.
+The second full GET must return `200` without `Content-Range`. Its metadata and bytes establish a new sequential transfer; no probe byte or identity is reused. It may therefore serve a newer representation without mixing versions. A second unsupported response fails. This is bounded mode selection, not an automatic retry policy; each request still follows the existing redirect limit.
+
+The result contains either the selected representation or an open full-response stream. The coordinator must consume or close that stream, check its body completion and length, and publish only through storage. Probe and returned-stream body reads honor cancellation and the per-read inactivity timeout. A successful probe never authorizes skipping later range validation.
+
+This helper is for fresh transfers before any downloaded bytes or checkpoints are accepted. It performs no storage writes and does not apply destructive fallback to saved state. Integrating it into fresh CLI downloads belongs to the worker step. Existing version-1 requests and resume refusal remain unchanged.
 
 ## Request and response example
 
@@ -90,7 +94,7 @@ Never let an oversized response write into a neighboring worker's interval. A sh
 
 A `200` received for a range request is not the requested interval. It may mean the server ignored ranges or a conditional range no longer matches. Do not append it at the requested offset.
 
-The current resume path refuses such a response and preserves state. Future parallel fallback must cancel outstanding work and reconcile representation identity before starting a separate sequential plan; it cannot merely change a worker's write offset.
+The current resume path refuses such a response and preserves state. The fresh capability probe can hand an untouched `200` to a sequential receiver before accepting any range bytes. Fallback after workers start still needs an explicit policy that cancels outstanding work and reconciles saved state; it cannot merely change a worker's write offset.
 
 A `416` requires re-probing and checking identity, size, and local coverage. It must not be treated as proof that the local file is complete. Empty resources and offsets at the end of an object need explicit tests.
 

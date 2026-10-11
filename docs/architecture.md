@@ -10,13 +10,15 @@ Milestones A and B and the first part of C implement the packages below. The dia
 |---|---|
 | `cmd/yoinkdl` | Entry point, build version, SIGINT/SIGTERM cancellation |
 | `internal/cli` | Standard-library argument parsing, local inspection, stdout/stderr, terminal progress |
-| `internal/transfer` | Sequential HTTP requests, strict resume validation, timeouts, byte checks, filename derivation, snapshots |
+| `internal/transfer` | Sequential HTTP requests, fresh capability probing, immutable range identity, strict response validation, timeouts, byte checks, snapshots |
 | `internal/ranges` | Bounded fixed-chunk planning, validated coverage, missing work, HTTP endpoint conversion |
 | `internal/storage` | Stable OS locks, prefix/chunk manifests and checksums, durable checkpoints, preservation, publication recovery |
 
 `transfer.Download` is the current application entry point. Storage verifies local bytes before transfer validates remote identity; only then may it truncate uncertain tails. `storage.Inspect` reads metadata without acquiring writer ownership or contacting the server. No separate app, scheduler, configuration, or progress package is needed for this slice. Tests live beside the code, including interruption and forced-process-crash checks in `cmd/yoinkdl`.
 
-The chunk storage API is ready for a future coordinator: `BeginRanges`, `ContinueRanges`, and `CheckpointRange` share ownership and publication with sequential transfers. Checkpoints must be serialized, and the caller must validate each completed response before acknowledging its chunk. The current CLI still downloads sequentially and refuses partial range resume. Worker ownership, bounded offset writes, parallel HTTP validation, and cancellation during range finalization are not implemented yet.
+The chunk storage API is ready for a future coordinator: `BeginRanges`, `ContinueRanges`, and `CheckpointRange` share ownership and publication with sequential transfers. Checkpoints must be serialized, and the caller must validate each completed response before acknowledging its chunk. The current CLI still downloads sequentially and refuses partial range resume. Worker ownership, bounded offset writes, concurrent HTTP transfer, and cancellation during range finalization are not implemented yet.
+
+The internal `probe` helper returns either a selected representation or an open full-response stream for sequential fallback. It creates no storage state. The future coordinator must call it only for fresh transfers after acquiring output ownership, close any returned stream, and use that stream's own metadata. `representation.request` and `representation.validate` bind subsequent range requests to the immutable identity; worker body validation remains required.
 
 ## Component flow
 

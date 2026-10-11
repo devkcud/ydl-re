@@ -39,7 +39,7 @@ Completion evidence: local-server tests resume terminated transfers to exact fix
 
 ## Milestone C — Multi-range engine
 
-**Status:** bounded range planning and version-2 chunk persistence are implemented. Capability probing, bounded HTTP workers, offset ownership, and retries remain. Version-1 resume is preserved; current downloads refuse partial version-2 state before network access.
+**Status:** bounded range planning, version-2 chunk persistence, fresh capability probing, and immutable range identity are implemented. Probe integration into downloads, bounded HTTP workers, offset ownership, and retries remain. Version-1 resume is preserved; current downloads refuse partial version-2 state before network access.
 
 Plan disjoint chunks, bound worker concurrency, and write only assigned offsets. Validate every response's range, length, encoding, and compatible representation identity.
 

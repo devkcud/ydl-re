@@ -8,7 +8,7 @@ YoinkDL is a local-first HTTP(S) download manager written in Go. The first imple
 
 Milestones A and B are implemented and tested on Linux. `download`, `inspect`, `version`, safe resume, progress, cancellation, overwrite protection, and network inactivity timeouts work. Saved progress is synced and checksummed before reuse.
 
-Milestone C has range planning and chunk checkpoint storage; parallel HTTP transfers, retries, bandwidth caps, JSON output, and configuration files are still planned. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
+Milestone C has range planning, chunk checkpoint storage, and a tested HTTP capability probe. CLI downloads still use one stream; parallel workers, retries, bandwidth caps, JSON output, and configuration files are planned. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
 
 ## Build and test
 

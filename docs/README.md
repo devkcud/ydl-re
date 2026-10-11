@@ -10,7 +10,7 @@ As of October 10, 2026, Milestones A and B are implemented and tested locally on
 
 Use the root [README](../README.md) for an introduction, [STATUS.md](../STATUS.md) for the current handoff and next steps, and [AGENTS.md](../AGENTS.md) for implementation instructions.
 
-The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including resume and local inspection. Milestone C has range planning and version-2 chunk persistence; parallel HTTP workers, retries, caps, JSON events, and configuration loading remain planned. Version-1 sequential checkpoints remain compatible. No published installer or full v0.1 release is available.
+The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including resume and local inspection. Milestone C has range planning, version-2 chunk persistence, and fresh capability probing; probe integration into downloads, parallel workers, retries, caps, JSON events, and configuration loading remain planned. Version-1 sequential checkpoints remain compatible. No published installer or full v0.1 release is available.
 
 These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions.
 
