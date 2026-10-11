@@ -20,7 +20,7 @@ func filename(u *url.URL) string {
 	}
 
 	name = strings.Map(func(r rune) rune {
-		if unicode.IsControl(r) || strings.ContainsRune(`/\<>:"|?*`, r) {
+		if !unicode.IsPrint(r) || strings.ContainsRune(`/\<>:"|?*`, r) {
 			return '_'
 		}
 

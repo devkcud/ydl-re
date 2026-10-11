@@ -49,9 +49,9 @@ Completion evidence: parallel, resumed, and retried outputs match exact fixtures
 
 ## Milestone D — v0.1 hardening
 
-**Status:** rate caps, JSON output, and text terminal/error handling are implemented and tested locally on Linux. Output failures cancel active transfers, report known retained/published files when possible, and preserve verified data. Text rendering escapes nonprinting characters and adapts progress to actual terminal width. Controlled-clock, HTTP, pseudo-terminal, and real-process tests cover rates, resume, interrupts, blocked/broken streams, quiet mode, and merged stdout/stderr. Security/platform/release qualification remains.
+**Status:** rate caps, JSON output, and text terminal/error handling are implemented and tested locally on Linux. The local [security review](security.md) is complete with fixes for diagnostic disclosure, contradictory full responses, mutable partial ownership, sequential disk verification, and derived filename presentation. Controlled-clock, HTTP, filesystem, pseudo-terminal, and real-process tests cover these contracts. Platform/release qualification remains.
 
-Complete security review and Linux/macOS/Windows build and native behavior checks where support is claimed.
+Complete Linux/macOS/Windows build and native behavior checks where support is claimed, preserving the reviewed security contracts and documented trust boundaries.
 
 Publish verified installation/use instructions, release binaries, and a changelog after choosing distribution and licensing. Update these docs from planned interfaces to observed behavior.
 

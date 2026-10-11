@@ -53,6 +53,10 @@ Resolve each decision before the milestone or interface depending on it is decla
 - JSON writes use bounded-memory synchronous backpressure. Linux/macOS pipe/socket handles are duplicated above the standard descriptors with close-on-exec, cancellable progress writes, five-second write deadlines, and recoverable broken-pipe errors. Failed/short output stops the stream and cancels transfer work; terminal reporting follows worker/storage cleanup. No progress subscriber authorizes publication. Future daemon/TUI subscriptions remain separate work.
 - Text rendering quotes/escapes nonprinting characters without changing filesystem paths or JSON values. Ordinary printable path output stays compatible. Use ANSI refresh only on a detected terminal with a nonempty, non-`dumb` TERM; cap progress below the current reported width. Final progress shows zero active workers.
 - Text and JSON diagnostics reuse the bounded writer. Failed/short progress writes cancel transfers; output failure after publication retains the verified file and reports its path when possible. Pipes, sockets, and detected terminals use owned cancellable descriptors with five-second per-write deadlines. Text stdout setup is checked before transfer work; quiet mode does not require unused stderr. Help/version/inspection output failures exit 1, invalid invocations retain 2 even with unavailable diagnostics, and interrupted output exits 130. Never send diagnostics to stdout as a fallback.
+- Omit invalid option values and raw HTTP parser failures from diagnostics. Disable transport connection reuse to prevent unsolicited HTTP/1 bytes from reaching the default logger, accepting extra connection setup. Explicit runtime tracing and caller-visible local paths remain outside URL redaction. Every full `200` response must omit `Content-Range`, including zero-prefix resume.
+- Current Unix storage requires an existing parent, anchors operations to that opened directory, refuses destination/sidecar symlinks and special files, and uses private creation permissions. Mutable partials must have one hard link and no group/other permission bits; refusal preserves incompatible artifacts. Verified `ready` recovery retains intentional publication links. The caller must trust the directory and avoid external artifact mutation; advisory locks do not exclude arbitrary external writers.
+- Sequential finalization re-reads the complete file and matches its size and checksum against the received stream before making a `ready` checkpoint. Failed verification disables later checkpointing during close. This adds a full local read and complements existing chunk/coverage verification.
+- URL-derived names replace nonprinting Unicode characters, separators, and reserved punctuation, preserve printable localized text, and fall back for unusable names or names over 200 bytes. Explicit output paths stay exact. Current Unix path behavior is settled; Windows naming and native filesystem qualification remain open. See [security](security.md).
 
 ## Command and output decisions
 
@@ -67,7 +71,7 @@ The default worker preference is four, the retry default is three additional att
 
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
-| S03 | Destination normalization, name sanitization, parent creation, symlinks, artifact collisions | Defines safe path ownership across platforms | [Security](security.md) |
+| S03 | Windows path normalization, reserved names, reparse points, and artifact collisions | Extends the settled Unix path policy to an unsupported storage platform | [Security](security.md) |
 | S06 | Windows publication and wider durability qualification | Extends the implemented Linux publication and manifest-reconciliation policy safely | [Lifecycle](transfer-lifecycle.md#7-finalize) |
 | S08 | Platform config discovery and XDG handling | The suggested Unix path does not define a portable loader | [Configuration](configuration.md) |
 

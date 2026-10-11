@@ -52,7 +52,7 @@ The cap shares one budget across workers, probes, redirects read by the HTTP cli
 
 ### Output paths and artifacts
 
-The default name comes from the original URL, ignoring query parameters and server-supplied filename suggestions. Unsafe separators/control characters are replaced, reserved device names are adjusted, and unusable or oversized names fall back to `download`.
+The default name comes from the original URL, ignoring query parameters and server-supplied filename suggestions. Unsafe separators and nonprinting Unicode characters, including invisible/bidirectional formatting, are replaced. Printable localized names remain supported, known device names are adjusted, and unusable names or names over 200 bytes fall back to `download`. An explicit output path remains exact and is escaped only for display.
 
 Explicit output paths are resolved to absolute paths. Parent directories are not created automatically. Destination directories, symlinks, special files, and invalid UTF-8 paths are rejected. The suffixes `.yoinkdl.part`, `.yoinkdl.json`, `.yoinkdl.lock`, and the `.yoinkdl.tmp-` segment are reserved for transfer artifacts.
 

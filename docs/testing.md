@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A, B, and C plus Milestone D rate, JSON, and text-output work pass the local full gate on Go 1.27.2, Linux/amd64. The matrix below also covers remaining hardening/release work and must not be read as fully implemented.
+Milestones A, B, and C plus Milestone D rate, JSON, text-output, and security regression work pass the local full gate on Go 1.27.2, Linux/amd64. The matrix below also covers remaining platform/release work and must not be read as fully implemented.
 
 ## Current evidence
 
@@ -42,6 +42,9 @@ Milestones A, B, and C plus Milestone D rate, JSON, and text-output work pass th
 | [Rate process](../cmd/yoinkdl/limit_test.go) | Actual CLI aggregate `8MiB/s` cap across three chunks of a 9 MiB fixture, success timing before process teardown, and exact output checksum |
 | [JSON process](../cmd/yoinkdl/json_test.go) and [pipe failures](../cmd/yoinkdl/json_pipe_test.go) | Real SIGINT result and checkpoint/resume, quiet result, broken stdout before/after publication, closed stderr, full-stdout cancellation with cleanup before draining |
 | [Text process](../cmd/yoinkdl/text_pipe_test.go) | Broken help/stdout/stderr, diagnostic exit status, JSON fallback with both streams broken, quiet with unusable stderr, merged streams, and SIGTERM during full stderr with checkpoint ownership released before draining |
+| [CLI security](../internal/cli/security_test.go) | Invalid scalar/boolean values carrying synthetic credentials never echo their contents or start transfer work |
+| [HTTP security](../internal/transfer/security_test.go) and [transport process](../cmd/yoinkdl/security_test.go) | Malformed trailer redaction, rejected full-response range headers, unchanged zero-prefix artifacts, and no unsolicited server bytes in transport logs |
+| [Storage security](../internal/storage/security_test.go) | Refused hard-linked/shared-permission mutable partials, late-created aliases, no writes to other names, and exact stored-byte verification before sequential publication |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
@@ -50,6 +53,8 @@ The built executable also passed a workspace-filesystem smoke test: interrupt, i
 The parallel crash test waits for two disjoint chunk checkpoints and unconfirmed bytes in both gaps, then forcibly kills the writer. A new process revalidates the saved identity, uses two workers instead of four, replaces only the missing chunks, and produces the exact fixture hash. The partial already has the full logical file length, so the test also rejects size-based completion shortcuts. Saved metadata contains no raw URL tokens.
 
 JSON process tests verify actual stdout descriptor behavior. Broken pipes return exit `1`, preserve state, and report known artifacts when stderr is available; exit status and preservation still hold when stderr is closed. A full-pipe test interrupts while progress output is blocked, proves partial cleanup completes before the reader drains, then receives the interrupted result. A SIGINT/resume test validates the checkpoint checksum and final fixture hash. Post-publication storage-cleanup failure is covered at the record-mapping boundary; broader storage fault injection remains separate qualification.
+
+The security review first reproduced option-value and HTTP-parser disclosure, raw unsolicited HTTP/1 transport logging, contradictory full-response acceptance, writes through hard-linked/shared-permission partials, publication of altered sequential disk bytes, and nonprinting URL-derived names. Focused regressions and the final full gate pass after the fixes. Existing interrupted link/rename recovery still works for both manifest versions. See [review evidence and boundaries](security.md#review-evidence).
 
 Real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Fresh/resumed parallel transfers, bounded retries, aggregate body-rate caps, concurrent offset writers, and checkpoint serialization have executable tests. Retry unit/integration fixtures substitute controlled waits where timing itself is not under test; CLI process checks exercise real backoff. Process termination is not a real power-loss test; publication-boundary recovery also uses controlled ready/link/rename states.
 
