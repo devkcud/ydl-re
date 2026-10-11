@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"yoinkdl/internal/ranges"
 	"yoinkdl/internal/storage"
 )
 
@@ -60,7 +61,6 @@ func validateResume(resp *http.Response, saved storage.Manifest) error {
 		return errors.New("remote version, encoding, or redirect target changed; existing state is preserved")
 	}
 
-	expected := saved.Length - saved.Completed
 	if saved.Completed == 0 {
 		if resp.ContentLength != saved.Length {
 			return errors.New("remote length changed; existing state is preserved")
@@ -69,21 +69,7 @@ func validateResume(resp *http.Response, saved storage.Manifest) error {
 		return nil
 	}
 
-	values := resp.Header.Values("Content-Range")
-	if len(values) != 1 {
-		return errors.New("resume response must have exactly one Content-Range")
-	}
-
-	start, end, total, err := parseRange(values[0])
-	if err != nil || start != saved.Completed || end != saved.Length-1 || total != saved.Length {
-		return errors.New("resume response has incompatible byte bounds")
-	}
-
-	if resp.ContentLength >= 0 && resp.ContentLength != expected {
-		return errors.New("resume response has an incompatible payload length")
-	}
-
-	return nil
+	return validateRangeBounds(resp, ranges.Span{Start: saved.Completed, End: saved.Length}, saved.Length)
 }
 
 func parseRange(value string) (int64, int64, int64, error) {

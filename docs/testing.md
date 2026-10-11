@@ -16,6 +16,7 @@ Milestones A and B have executable tests and a passing local `make check` on Go 
 | [Range-state compatibility](../internal/transfer/range_state_test.go) | Partial range refusal before network access, unchanged artifacts, offline ready recovery |
 | [Transfer](../internal/transfer/download_test.go) | Fixture hashes, known/unknown/encoded/empty bodies, bad statuses, truncation, cancellation, timeouts, redirects, publication failure |
 | [HTTP policy](../internal/transfer/http_test.go) | Safe derived names, cross-origin credential stripping, downgrade and credential rejection |
+| [Representation identity](../internal/transfer/representation_test.go) | Immutable metadata snapshots, conditional requests, source/version/redirect consistency, exact range bounds, unknown totals, maximum offsets |
 | [Resume](../internal/transfer/resume_test.go) | Automatic/explicit/chunked/zero-prefix resume; mismatched identities, bounds, and validators; unchanged-artifact refusal; 416 re-probing; offline ready recovery |
 | [CLI](../internal/cli/cli_test.go) | Argument ordering, invalid options, help/version, progress, quiet output, overwrite, error codes |
 | [Process](../cmd/yoinkdl/main_test.go) | Entry point, successful download, real SIGINT with retained partial bytes and no final output |

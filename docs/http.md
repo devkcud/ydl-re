@@ -26,6 +26,14 @@ A `200` received for a positive-offset resume is refused. A `416` triggers a fre
 
 An already verified `ready` checkpoint can finish publication locally after source-identity and full-file checksum validation. It does not need a network request and may complete an older, already received resource version while the server is unavailable.
 
+## Selected range identity
+
+The HTTP layer has a value snapshot for an eligible ranged representation: original/effective URL fingerprints, positive total length, and one strong ETag under identity encoding. It retains no mutable response headers or URL pointers. Creating metadata for storage returns a separate value.
+
+Conditional range requests must use the selected source identity and stay within the total length. They send identity encoding and `If-Range` with the selected ETag. Response validation requires `206`, the same ETag and effective URL, identity encoding, exact assigned bounds/total, and a matching declared payload length when present. The range-bound validator is shared with version-1 resume; zero-prefix resume still follows its existing full-response path.
+
+These helpers do not prove body completion. Capability probing and the worker coordinator must validate actual bytes before accepting a probe or checkpoint. The current CLI remains sequential.
+
 ## Planned parallel mode selection
 
 `HEAD` can supply metadata, but some servers reject it or return misleading headers. Use a ranged `GET` when necessary to validate actual behavior. Record the effective URL after redirects, a reliable total length if known, and eligible validators.
