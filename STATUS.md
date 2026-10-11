@@ -4,13 +4,14 @@ Updated: October 11, 2026.
 
 ## Current state
 
-Milestones A, B, and C are implemented and pass the local Linux gate. The CLI supports sequential/parallel transfers, safe resume, exclusive offset writes, verified checkpoints, bounded retries, inspection, cancellation, overwrite protection, and inactivity timeouts. Milestone D has started with the rate parser and shared budget; HTTP/CLI integration remains.
+Milestones A, B, and C are implemented and pass the local Linux gate. The CLI supports sequential/parallel transfers, safe resume, exclusive offset writes, verified checkpoints, bounded retries, inspection, cancellation, overwrite protection, and inactivity timeouts. Milestone D now includes aggregate body-rate caps through `--limit`.
 
-Bandwidth caps, JSON events, final terminal/security/platform qualification, configuration loading, and release tooling remain. Go 1.27 and the standard library are still the only runtime development requirements. A full v0.1 release is not complete.
+JSON events, final terminal/security/platform qualification, configuration loading, and release tooling remain. Go 1.27 and the standard library are still the only runtime development requirements. A full v0.1 release is not complete.
 
 ## Handoff
 
-- `internal/transfer/limit.go` owns strict positive integer byte-rate parsing and a shared cancellable budget. Decimal/binary units are case-sensitive, `/s` is required, fractions/zero/overflow are refused, and leading zeros are allowed. Library rate zero selects unlimited. Initial/idle credit is `min(65536, ceil(rate / 10))` bytes. Charge actual bounded reads, retain charges across failed/canceled attempts, and keep throttle waits outside network inactivity timers. This foundation is not yet wired into downloads.
+- `internal/transfer/limit.go` owns `--limit` parsing and one cancellable budget per download. Positive integer decimal/binary byte units require `/s`, are case-sensitive, and allow leading zeros; fractions/zero/overflow are refused. Omission is unlimited; `Request.Limit` uses bytes/second with zero for unlimited and rejects negatives before file/network work. Initial/idle credit is `min(65536, ceil(rate / 10))` bytes.
+- `body.go` wraps all HTTP response bodies, including probes, redirect drains, fallback streams, and retries. Bound each read by the burst, charge actual bytes before delivery, and retain charges after failed/canceled attempts. Saved bytes/progress rollback never supply credit. Network inactivity timers wrap only actual reads; throttle waits are cancellable and excluded. Each response has its own cancellation context; closing it cancels that request. Socket/HTTP read-ahead and protocol overhead are outside the application body cap. Ready recovery remains offline.
 - `internal/transfer/retry.go` owns retry classification and budgets. `--retries` accepts decimal 0..10 additional attempts (default three); zero disables repeats. `Request.Retries` uses nil for the default and an explicit zero pointer to disable retries. Configuration is validated before file/network work.
 - Retry only 408/429/500/502/503/504 and selected transient network failures. Identity, bounds, encoding, malformed/oversized bodies, local storage, and cancellation errors are terminal. Equal-jitter backoff starts at 125–250 ms and caps at eight seconds. Valid Retry-After values may extend a wait to 30 seconds; longer hints stop instead of retrying early. Invalid/duplicate hints use ordinary backoff.
 - Each probe, saved-range validation, or full-stream request setup has its own budget. A whole chunk shares one budget across request and body failures; there are no nested header budgets. Fresh fallback setup never repeats the preceding probe. Sequential body failures preserve checkpoints for later resume, and the diagnostic GET after 416 remains a single request followed by refusal.
@@ -25,14 +26,15 @@ Bandwidth caps, JSON events, final terminal/security/platform qualification, con
 ## Validation
 
 - `go test ./internal/transfer -run 'Test(ParseLimit|Limiter)' -count=1` passed. Controlled-clock tests cover aggregate budgets with 1/4/32 readers, idle burst bounds, cancellation without refunding received bytes, minimum/maximum rates, and strict unit parsing.
-- Rate-foundation `make check` passed: formatting, vet, all tests, race checks, and build, including sequential/parallel forced-process recovery and actual CLI retry budgets.
-- Documentation audit passed: 20 Markdown files, 180 local links/anchors, 23 shell blocks, two JSON examples, one TOML example, fences, and whitespace. The preceding Milestone C checks also verified manifest checksums, built-CLI inspection, and retry help. The original design is unchanged; its illustrative shell placeholders are excluded from runnable-example syntax checks.
-- Environment: Go 1.27.2 on Linux/amd64. Local HTTP fixtures require listeners outside the sandbox. Native macOS, Windows storage, network filesystems, and real power-loss durability remain unqualified.
+- `go test ./internal/transfer ./internal/cli` passed after centralizing body handling. `go test -race ./internal/transfer ./internal/cli ./cmd/yoinkdl -run 'Test(Body|Rate|DownloadRate|InvalidRate|ProcessAggregate)' -count=1` passed: fresh/saved probe and failed-chunk accounting, fallback continuity, cancellation/joining, timeout separation, real HTTP resume paths, CLI grammar, and a 9 MiB actual-process cap/checksum. Timing tolerances are one microsecond under controlled time and five milliseconds for HTTP sampling.
+- Final integrated `make check` passed: formatting, vet, all tests, race checks, and build, including forced-process recovery and the aggregate CLI cap. `go test ./internal/transfer -run 'Test(WorkerFailures|ProbeBodyOwnership)' -count=1` also passed after preserving the original fixture timeout at the new transport boundary.
+- Documentation audit passed: 20 Markdown files, 188 local links/anchors, 24 shell blocks, two JSON examples, one TOML example, fences, and whitespace. Built-CLI rate help and invalid-rate exit/artifact checks passed. The original design is unchanged; its illustrative placeholders are excluded from runnable-example syntax checks.
+- Environment: Go 1.27.2 on Linux/amd64. An initial focused sandbox command could not write the Go cache; the rerun and gates outside the sandbox passed. Local HTTP listeners also require that environment. Native macOS, Windows storage, network filesystems, and real power-loss durability remain unqualified.
 
 ## Next steps
 
-1. Wire the shared budget into all HTTP body reads and expose `--limit`; cover sequential/fallback/resumed/parallel transfers, probe/retry accounting, cancellation, and timeout separation. Useful-byte progress must never refund or supply the limiter budget. Run the full gate and refresh docs.
-2. Add JSON events and final terminal/error behavior, then complete security/platform/release qualification in roadmap order.
+1. Define and implement JSON event framing, schema/versioning, stdout/stderr routing, and `--quiet` interaction (C05/C08). Keep progress advisory, report terminal publication/preservation accurately, and cover output failures and cancellation before exposing `--json`.
+2. Complete final terminal/error behavior, then security/platform/release qualification in roadmap order.
 
 ## Open decisions and blockers
 

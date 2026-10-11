@@ -55,10 +55,10 @@ func TestProbeTimeoutAndCancellation(t *testing.T) {
 					}()
 				}
 
-				client := newClient(100 * time.Millisecond)
+				client := newClient(100*time.Millisecond, nil)
 				defer client.CloseIdleConnections()
 				source, _ := parseURL(srv.URL)
-				result, err := probe(ctx, client, source, 100*time.Millisecond, retryPolicy{})
+				result, err := probe(ctx, client, source, retryPolicy{})
 				if result.stream != nil {
 					_, err = io.ReadAll(result.stream.Body)
 					result.stream.Body.Close()
@@ -100,7 +100,7 @@ func TestProbeBodyOwnershipAndReadBound(t *testing.T) {
 
 			body := &probeReader{reader: strings.NewReader(data)}
 			var request *http.Request
-			client := &http.Client{Transport: probeTransport(func(req *http.Request) (*http.Response, error) {
+			client := rateClient(t, 0, time.Second, func(req *http.Request) (*http.Response, error) {
 				request = req
 				resp := &http.Response{
 					StatusCode: http.StatusPartialContent, ContentLength: -1, Request: req, Body: body,
@@ -118,9 +118,9 @@ func TestProbeBodyOwnershipAndReadBound(t *testing.T) {
 				}
 
 				return resp, nil
-			})}
+			})
 			source, _ := parseURL("http://example.org/file")
-			result, err := probe(context.Background(), client, source, time.Second, retryPolicy{})
+			result, err := probe(context.Background(), client, source, retryPolicy{})
 			valid := mode == "ranged" || mode == "fallback"
 			if (err == nil) != valid {
 				t.Fatalf("valid = %v, error = %v", valid, err)
@@ -151,14 +151,8 @@ func TestProbeRejectsInvalidStart(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	if _, err := probe(ctx, client, source, time.Second, retryPolicy{}); !errors.Is(err, context.Canceled) {
+	if _, err := probe(ctx, client, source, retryPolicy{}); !errors.Is(err, context.Canceled) {
 		t.Fatalf("early cancellation = %v", err)
-	}
-
-	for _, timeout := range []time.Duration{0, -time.Second} {
-		if _, err := probe(context.Background(), client, source, timeout, retryPolicy{}); err == nil {
-			t.Fatal("accepted a nonpositive timeout")
-		}
 	}
 
 	if calls != 0 {

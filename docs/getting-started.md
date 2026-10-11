@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The CLI supports parallel and sequential downloads with safe resume, bounded retries, and local checkpoint inspection.
+The CLI supports parallel and sequential downloads with safe resume, bounded retries, aggregate rate caps, and local checkpoint inspection.
 
 ## Build locally
 
@@ -46,6 +46,14 @@ mkdir -p downloads
 The CLI does not create missing parent directories. Quote URLs, especially when they contain query parameters.
 
 Downloads use up to four workers when safe ranges are supported. Choose a limit from 1 to 32 with `--connections` or `-c`. One connection uses a direct stream for a new file or resumes saved chunks with one worker.
+
+Cap the combined body rate of all workers:
+
+```sh
+./bin/yoinkdl download 'https://example.org/archive.zip' --limit 5MB/s
+```
+
+`5MB/s` means 5,000,000 bytes per second; `5MiB/s` means 5,242,880. Rates require positive integers and explicit units. Omit the option for unlimited transfers. Probe/retry bytes count; protocol overhead and socket read-ahead are outside the cap. Throttle waits honor Ctrl+C and do not trigger the network inactivity timeout.
 
 ## Read progress and results
 
@@ -104,7 +112,7 @@ This allows replacing an existing regular file after the transfer verifies succe
 
 ## Current limits
 
-`--limit` and `--json` are not available yet. Configuration files are not loaded. Automatic sequential body restart is not implemented; repeat the same request to resume compatible saved state.
+`--json` is not available yet. Configuration files are not loaded. Automatic sequential body restart is not implemented; repeat the same request to resume compatible saved state.
 
 The engine asks for identity encoding and saves the exact bytes the server returns. If the server still applies content encoding, those bytes are preserved without transparent decoding. Unknown-length completion can establish clean HTTP completion, not the publisher's intended size without additional metadata.
 

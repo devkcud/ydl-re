@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
-	"time"
 
 	"yoinkdl/internal/ranges"
 	"yoinkdl/internal/storage"
@@ -20,9 +19,9 @@ type workerEvent struct {
 }
 
 func receiveRanges(ctx context.Context, client *http.Client, source *url.URL, id representation, f *storage.File,
-	count int, timeout time.Duration, policy retryPolicy, progress func(Snapshot)) (int64, error) {
+	count int, policy retryPolicy, progress func(Snapshot)) (int64, error) {
 	m, saved := f.Metadata()
-	if !saved || m.Version != storage.RangeManifestVersion || count < 1 || count > MaxConnections || timeout <= 0 ||
+	if !saved || m.Version != storage.RangeManifestVersion || count < 1 || count > MaxConnections ||
 		policy.limit < 0 || policy.limit > MaxRetries {
 		return 0, errors.New("invalid range worker configuration")
 	}
@@ -72,7 +71,7 @@ func receiveRanges(ctx context.Context, client *http.Client, source *url.URL, id
 						events <- workerEvent{bytes: -received}
 						received = 0
 					}
-					return receiveRange(ctx, client, source, id, f, span, timeout, buf, func(n int) {
+					return receiveRange(ctx, client, source, id, f, span, buf, func(n int) {
 						received += int64(n)
 						events <- workerEvent{bytes: int64(n)}
 					}, func(err error) {
@@ -110,7 +109,7 @@ func receiveRanges(ctx context.Context, client *http.Client, source *url.URL, id
 }
 
 func receiveRange(ctx context.Context, client *http.Client, source *url.URL, id representation, f *storage.File,
-	span ranges.Span, timeout time.Duration, buf []byte, progress func(int), fail context.CancelCauseFunc) (err error) {
+	span ranges.Span, buf []byte, progress func(int), fail context.CancelCauseFunc) (err error) {
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 	req, err := id.request(ctx, source, span)
@@ -151,11 +150,10 @@ func receiveRange(ctx context.Context, client *http.Client, source *url.URL, id 
 			fail(err)
 		}
 	}()
-	body := &probeBody{ReadCloser: resp.Body, ctx: ctx, cancel: cancel, timeout: timeout}
 	var received int64
 
 	for {
-		n, readErr := body.Read(buf)
+		n, readErr := resp.Body.Read(buf)
 		if cause := context.Cause(ctx); cause != nil {
 			return bodyFailure(cause)
 		}

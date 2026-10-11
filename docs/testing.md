@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A, B, and C pass the local full gate on Go 1.27.2, Linux/amd64. The matrix below also covers hardening/release work and must not be read as fully implemented.
+Milestones A, B, and C plus the Milestone D rate cap pass the local full gate on Go 1.27.2, Linux/amd64. The matrix below also covers remaining hardening/release work and must not be read as fully implemented.
 
 ## Current evidence
 
@@ -25,12 +25,16 @@ Milestones A, B, and C pass the local full gate on Go 1.27.2, Linux/amd64. The m
 | [Range resume](../internal/transfer/range_resume_test.go) | Disjoint/empty/full coverage, conditional validation, whole missing chunks, changed identity/bounds, unchanged-artifact refusal, cancellation, interrupted-attempt replacement, one-worker resume |
 | [Retry policy](../internal/transfer/retry_test.go) | Attempt bounds, status/network classification, jitter bounds, Retry-After parsing/ceiling, cancellation, cloning, cleanup, and secret redaction |
 | [Retry integration](../internal/transfer/retry_integration_test.go) | Whole-chunk replacement, shared header/body budgets, progress rollback, terminal integrity/storage errors, new timeout contexts, bounded workers during backoff, fallback budgets, sequential resume setup |
+| [Rate budget](../internal/transfer/limit_test.go) | Strict rate grammar/bounds, shared 1/4/32-reader allowance, bounded idle credit, cancellation without refunds, minimum/maximum rates |
+| [Body pacing](../internal/transfer/body_test.go) | Bounded reads, throttle/timeout separation, later attempts after idle timeout, cancellation/cleanup, redirect-body accounting |
+| [Rate integration](../internal/transfer/limit_integration_test.go) | Fresh/saved probe and failed-chunk traffic, saved-byte exclusion, progress rollback, fallback budget continuity, canceled-worker joining, sequential/ranged resume and unknown-length streams |
 | [CLI](../internal/cli/cli_test.go) | Argument ordering, invalid options, help/version, progress, quiet output, overwrite, error codes |
 | [Process](../cmd/yoinkdl/main_test.go) | Entry point, successful download, real SIGINT with retained partial bytes and no final output |
 | [Crash recovery](../cmd/yoinkdl/resume_test.go) | Kill a process after a durable checkpoint, inspect its state, resume in another process, and verify the complete fixture hash |
 | [Parallel process](../cmd/yoinkdl/parallel_test.go) | Actual CLI process, connection flag, conditional range requests, and complete fixture checksum |
 | [Parallel crash recovery](../cmd/yoinkdl/range_resume_test.go) | Kill with disjoint completed chunks and wrong unconfirmed bytes, restart with a different worker limit, fetch only whole missing chunks, verify final hash and cleanup |
 | [Retry process](../cmd/yoinkdl/retry_test.go) | Actual CLI default of three additional attempts, explicit one-retry budgets, zero disabling retries, and exact output |
+| [Rate process](../cmd/yoinkdl/limit_test.go) | Actual CLI aggregate `8MiB/s` cap across three chunks of a 9 MiB fixture, success timing before process teardown, and exact output checksum |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
@@ -38,7 +42,7 @@ The built executable also passed a workspace-filesystem smoke test: interrupt, i
 
 The parallel crash test waits for two disjoint chunk checkpoints and unconfirmed bytes in both gaps, then forcibly kills the writer. A new process revalidates the saved identity, uses two workers instead of four, replaces only the missing chunks, and produces the exact fixture hash. The partial already has the full logical file length, so the test also rejects size-based completion shortcuts. Saved metadata contains no raw URL tokens.
 
-Caps, real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Fresh/resumed parallel transfers, bounded retries, concurrent offset writers, and checkpoint serialization have executable tests. Retry unit/integration fixtures substitute controlled waits where timing itself is not under test; CLI process checks exercise real backoff. Process termination is not a real power-loss test; publication-boundary recovery also uses controlled ready/link/rename states.
+Real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Fresh/resumed parallel transfers, bounded retries, aggregate body-rate caps, concurrent offset writers, and checkpoint serialization have executable tests. Retry unit/integration fixtures substitute controlled waits where timing itself is not under test; CLI process checks exercise real backoff. Process termination is not a real power-loss test; publication-boundary recovery also uses controlled ready/link/rename states.
 
 ## Test layers
 
@@ -104,7 +108,7 @@ Inject write, sync, close, rename/publication, and cleanup failures through narr
 
 Cancellation must interrupt active requests, limiter waits, and retry timers. Wait for worker completion and check that open response bodies, files, and goroutines are released.
 
-Use controlled time and randomness where practical for retry tests. Assert attempt bounds and scheduler ownership as well as eventual success. A limiter test needs the chosen burst/timing tolerance before it can assert an exact cap.
+Use controlled time and randomness where practical for retry tests. Assert attempt bounds and scheduler ownership as well as eventual success. Rate tests use standard-library `testing/synctest` with in-memory HTTP transports to verify shared timing, including failed attempts and body timeout/cancellation. Clock rounding tolerance is one microsecond. Local HTTP/CLI tests allow five milliseconds of sampling tolerance against the initial burst plus elapsed-time allowance; they do not promise a minimum speed. The CLI test measures the success line before process teardown so race-runtime exit delays cannot hide a multiplied worker cap.
 
 The race detector only finds races on executed paths. It does not replace crash, protocol, or leak testing. [Go race detector documentation](https://go.dev/doc/articles/race_detector).
 

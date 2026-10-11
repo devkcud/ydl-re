@@ -91,6 +91,6 @@ Check local links, anchors, code fences, structured examples, shell syntax, and 
 
 ## Release preparation
 
-Milestone D remains after the passing local A/B/C gates. There is no license, CI workflow, installer, or published release configuration yet. Select those before distribution and validate every claimed platform natively.
+Milestone D is in progress: aggregate rate caps are implemented, while JSON events and final release qualification remain. There is no license, CI workflow, installer, or published release configuration yet. Select those before distribution and validate every claimed platform natively.
 
 Tag v0.1.0 only when the [release acceptance criteria](roadmap.md#v010-acceptance) have actual evidence. Milestone B success does not qualify parallel ranges, retry policies, other platforms, or the full v0.1 feature set.

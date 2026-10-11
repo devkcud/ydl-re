@@ -14,14 +14,17 @@ var errRedirectLimit = errors.New("redirect limit exceeded")
 var errRedirectTarget = errors.New("redirect target must be HTTP(S) without URL credentials")
 var errDowngrade = errors.New("refusing an HTTPS to HTTP redirect")
 
-func newClient(timeout time.Duration) *http.Client {
+func newClient(timeout time.Duration, limit *limiter) *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.DisableCompression = true
 	transport.DialContext = (&net.Dialer{Timeout: timeout, KeepAlive: 30 * time.Second}).DialContext
 	transport.TLSHandshakeTimeout = timeout
 	transport.ResponseHeaderTimeout = timeout
 	transport.MaxResponseHeaderBytes = 1 << 20
-	return &http.Client{Transport: transport, CheckRedirect: checkRedirect}
+	return &http.Client{
+		Transport:     &bodyTransport{next: transport, timeout: timeout, limit: limit},
+		CheckRedirect: checkRedirect,
+	}
 }
 
 func checkRedirect(req *http.Request, via []*http.Request) error {

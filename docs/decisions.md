@@ -47,8 +47,8 @@ Resolve each decision before the milestone or interface depending on it is decla
 
 ## Milestone D decisions made
 
-- Rate syntax is a positive ASCII integer followed by `B/s`, `KB/s`, `MB/s`, `GB/s`, `KiB/s`, `MiB/s`, or `GiB/s`. Leading zeros are accepted; signs, fractions, whitespace, different casing, zero, and values exceeding signed 64-bit bytes per second are refused. Omission means unlimited. The parser is implemented; CLI integration remains next.
-- Use one body-byte budget per standalone transfer, including probes, redirects read by the HTTP client, and failed attempts. Initial/idle credit is `min(65536, ceil(bytes_per_second / 10))` bytes. Reservations and cancellation do not refund received bytes. Timers round up to nanoseconds; controlled-clock rounding tolerance is one microsecond and HTTP sampling tolerance is five milliseconds. Socket read-ahead and protocol overhead are outside this application-level cap. The budget is tested; HTTP integration remains next.
+- `--limit` accepts a positive ASCII integer followed by `B/s`, `KB/s`, `MB/s`, `GB/s`, `KiB/s`, `MiB/s`, or `GiB/s`. Leading zeros are accepted; signs, fractions, whitespace, different casing, zero, and values exceeding signed 64-bit bytes per second are refused. Omission means unlimited. `Request.Limit` uses bytes per second with zero for unlimited; negative library values are refused before file/network work.
+- Use one body-byte budget per standalone transfer, including probes, redirects read by the HTTP client, and failed attempts. Initial/idle credit is `min(65536, ceil(bytes_per_second / 10))` bytes. Reservations and cancellation do not refund received bytes; saved file bytes consume none. Timers round up to nanoseconds; controlled-clock rounding tolerance is one microsecond and HTTP sampling tolerance is five milliseconds. Socket read-ahead and protocol overhead are outside this application-level cap. Throttle waits are cancellable and excluded from network inactivity timeouts.
 
 ## Command and output decisions
 
@@ -74,7 +74,7 @@ Atomic final publication is implemented and tested locally on Linux. Windows pub
 
 ## HTTP and scheduling decisions
 
-The rate grammar and budget policy are settled above; HTTP integration must preserve the [aggregate accounting contract](concurrency.md#aggregate-rate-cap).
+The implemented rate grammar and HTTP budget follow the [aggregate accounting contract](concurrency.md#aggregate-rate-cap).
 
 The safe fallback is a sequential transfer when parallel ranges cannot be trusted. Applying that fallback to existing partial data still requires an explicit, non-destructive state transition.
 
@@ -84,11 +84,11 @@ The safe fallback is a sequential transfer when parallel ranges cannot be truste
 |---|---|---|---|
 | R01 | License, distribution channels, artifact naming, version metadata, changelog process | The project is intended to be open source but has no license or release tooling yet | [Development](development.md) |
 | R02 | Supported OS/architecture/filesystem matrix and native CI coverage | Build success alone does not prove locking, signals, or atomic publication | [Testing](testing.md) |
-| R03 | Final v0.1/v0.2 bandwidth boundary | The detailed draft puts `--limit` in v0.1 and also mentions bandwidth limits in v0.2 | [Roadmap](roadmap.md) |
+| R03 | Future daemon-wide bandwidth allocation | The v0.1 cap applies to one standalone transfer; separate processes do not share it | [Roadmap](roadmap.md) |
 | R04 | Local IPC, daemon permissions, persistence, and queue scheduling | Required before v0.2, not a blocker for standalone transfers | [Architecture](architecture.md#future-front-ends) |
 | R05 | Security contact and disclosure process | Allows real reports without publishing an invented contact | [Security](security.md) |
 
-For R03, these docs follow the concrete CLI and hardening milestone by treating an aggregate cap for one transfer as planned v0.1 behavior. Daemon-wide budget semantics remain uncommitted.
+For R03, the aggregate cap for one transfer is implemented for v0.1. Daemon-wide budget semantics remain uncommitted.
 
 ## Already established direction
 

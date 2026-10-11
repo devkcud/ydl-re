@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A, B, and C implement the commands below. Examples use the built executable from the repository root. See [getting started](getting-started.md) to build it.
+Milestones A, B, and C plus the Milestone D rate cap implement the commands below. Examples use the built executable from the repository root. See [getting started](getting-started.md) to build it.
 
 ## Commands
 
@@ -32,17 +32,22 @@ Options can precede or follow the URL. Supply exactly one absolute HTTP or HTTPS
 | `--output <path>`, `-o <path>` | Final output path; parent must exist | Safe filename from the original URL path, or `download`, in the current directory |
 | `--connections <n>`, `-c <n>` | Maximum active range workers, from 1 to 32; one streams new files directly or resumes saved ranges with one worker | `4`, reduced to the number of missing chunks |
 | `--retries <n>` | Additional attempts for transient request/probe failures and incomplete ranges, from 0 to 10 | `3`; zero disables retries |
+| `--limit <rate>` | Aggregate body rate across the transfer, such as `5MB/s` or `5MiB/s` | Unlimited |
 | `--overwrite` | Allow replacing an existing regular completed file | Off |
 | `--resume` | Require existing saved transfer metadata | Compatible existing state resumes automatically without the flag |
 | `--quiet` | Suppress progress; retain errors and final output | Off |
 | `--timeout <duration>` | Timeout for connection, TLS, response headers, or an idle body read | `30s` |
 | `--help`, `-h` | Display download help | Off |
 
-Timeout values use Go duration syntax, such as `30s`, `500ms`, or `2m`, and must be positive. The timeout is not a limit on total download duration. Slow transfers can continue while body reads keep making progress.
+Timeout values use Go duration syntax, such as `30s`, `500ms`, or `2m`, and must be positive. The timeout is not a limit on total download duration. Slow transfers can continue while body reads keep making progress. Deliberate rate/backoff waits are excluded from body inactivity timeouts.
 
 Connection counts use unsigned decimal digits, with leading zeros permitted. Zero, signs, fractions, hexadecimal, overflow, and values above 32 are rejected before network or file work. Fresh transfers with more than one connection probe range support and fall back to one stream when appropriate. Existing sequential checkpoints always resume sequentially.
 
 Retry counts also use decimal digits, with leading zeros allowed. Three retries means at most four attempts for one operation. A chunk shares its budget across request and body failures. Sequential request setup can retry, but an interrupted sequential body keeps its checkpoint for a later resume. Integrity changes and local storage errors are terminal. See [retry policy](concurrency.md#retries) for statuses, backoff, and `Retry-After` limits.
+
+Rates use a positive ASCII integer immediately followed by `B/s`, `KB/s`, `MB/s`, `GB/s`, `KiB/s`, `MiB/s`, or `GiB/s`. Units are case-sensitive; fractions, whitespace, signs, zero, and overflow are rejected before file/network work. Leading zeros are allowed. Omit `--limit` to disable the cap. See [unit values and bounds](configuration.md#units).
+
+The cap shares one budget across workers, probes, redirects read by the HTTP client, and retry bodies. Saved bytes do not consume it, and retry progress rollback never refunds traffic. Initial/idle credit is 100 ms rounded up to a whole byte and capped at 64 KiB. Headers, framing, TLS, and socket read-ahead are excluded. See [aggregate rate accounting](concurrency.md#aggregate-rate-cap).
 
 ### Output paths and artifacts
 
@@ -140,9 +145,9 @@ These interfaces remain proposed and are rejected by the current CLI:
 
 | Addition | Intended milestone/release |
 |---|---|
-| `--limit`, `--json` | D: v0.1 hardening |
+| `--json` | D: v0.1 hardening |
 | Configuration files | Optional format still to implement and specify |
 | Queue/daemon commands | v0.2 |
 | TUI, profiles, history, optional hooks | v0.3 |
 
-The rate cap remains unlimited. JSON event framing remains open; manifest versions 1 and 2 are documented in [storage](resume-and-storage.md). See [open decisions](decisions.md) before implementing later additions.
+JSON event framing remains open; manifest versions 1 and 2 are documented in [storage](resume-and-storage.md). See [open decisions](decisions.md) before implementing later additions.

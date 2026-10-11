@@ -24,6 +24,7 @@ type Request struct {
 	Timeout     time.Duration
 	Connections int
 	Retries     *int
+	Limit       int64
 }
 
 type Snapshot struct {
@@ -73,6 +74,10 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 	}
 
 	policy := retryPolicy{limit: retries}
+	limit, err := newLimiter(req.Limit)
+	if err != nil {
+		return result, err
+	}
 
 	if req.Output == "" {
 		req.Output = filename(u)
@@ -122,11 +127,11 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
-	client := newClient(req.Timeout)
+	client := newClient(req.Timeout, limit)
 	defer client.CloseIdleConnections()
 
 	if saved && m.Version == storage.RangeManifestVersion {
-		id, err := validateRangeResume(ctx, client, u, m, req.Timeout, policy)
+		id, err := validateRangeResume(ctx, client, u, m, policy)
 		if err != nil {
 			return result, err
 		}
@@ -140,7 +145,7 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 		}
 
 		result.Resumed = m.Completed
-		result.Bytes, err = receiveRanges(ctx, client, u, id, f, req.Connections, req.Timeout, policy, progress)
+		result.Bytes, err = receiveRanges(ctx, client, u, id, f, req.Connections, policy, progress)
 		if err != nil {
 			return result, err
 		}
@@ -167,7 +172,7 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 
 	var resp *http.Response
 	if !saved && req.Connections > 1 {
-		plan, probeErr := probe(ctx, client, u, req.Timeout, policy)
+		plan, probeErr := probe(ctx, client, u, policy)
 		if probeErr != nil {
 			return result, probeErr
 		}
@@ -181,7 +186,7 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 				return result, err
 			}
 
-			result.Bytes, err = receiveRanges(ctx, client, u, plan.identity, f, req.Connections, req.Timeout, policy, progress)
+			result.Bytes, err = receiveRanges(ctx, client, u, plan.identity, f, req.Connections, policy, progress)
 			if err != nil {
 				return result, err
 			}
@@ -237,21 +242,13 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 		progress(Snapshot{Bytes: result.Bytes, Total: m.Length, Resumed: result.Resumed, Workers: 1})
 	}
 
-	timer := time.AfterFunc(req.Timeout, func() {
-		cancel(fmt.Errorf("response body idle for %s: %w", req.Timeout, context.DeadlineExceeded))
-	})
-
-	timer.Stop()
-	defer timer.Stop()
 	buf := make([]byte, bufferSize)
 	for {
 		if cause := context.Cause(ctx); cause != nil {
 			return result, cause
 		}
 
-		timer.Reset(req.Timeout)
 		n, readErr := resp.Body.Read(buf)
-		timer.Stop()
 		if n > 0 {
 			if m.Length >= 0 && int64(n) > m.Length-result.Bytes {
 				return result, errors.New("response exceeded its declared length")

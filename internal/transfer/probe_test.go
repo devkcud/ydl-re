@@ -52,10 +52,10 @@ func TestProbeRangeCapability(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			client := newClient(time.Second)
+			client := newClient(time.Second, nil)
 			defer client.CloseIdleConnections()
 			source, _ := parseURL(srv.URL + "/source")
-			result, err := probe(context.Background(), client, source, time.Second, retryPolicy{})
+			result, err := probe(context.Background(), client, source, retryPolicy{})
 			if err != nil || result.stream != nil {
 				t.Fatalf("probe = %+v, error = %v", result, err)
 			}
@@ -116,10 +116,10 @@ func TestProbeReusesFullResponse(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			client := newClient(time.Second)
+			client := newClient(time.Second, nil)
 			defer client.CloseIdleConnections()
 			source, _ := parseURL(srv.URL)
-			result, err := probe(context.Background(), client, source, time.Second, retryPolicy{})
+			result, err := probe(context.Background(), client, source, retryPolicy{})
 			if err != nil || result.stream == nil || result.identity != (representation{}) {
 				t.Fatalf("probe = %+v, error = %v", result, err)
 			}
@@ -187,10 +187,10 @@ func TestProbeFallsBackWithoutReusingBytes(t *testing.T) {
 				fmt.Fprint(w, "x")
 			}))
 			defer srv.Close()
-			client := newClient(time.Second)
+			client := newClient(time.Second, nil)
 			defer client.CloseIdleConnections()
 			source, _ := parseURL(srv.URL)
-			result, err := probe(context.Background(), client, source, time.Second, retryPolicy{})
+			result, err := probe(context.Background(), client, source, retryPolicy{})
 			if err != nil || result.stream == nil || result.identity != (representation{}) {
 				t.Fatalf("fallback = %+v, error = %v", result, err)
 			}
@@ -261,10 +261,10 @@ func TestProbeRejectsInvalidResponses(t *testing.T) {
 				}
 			}))
 			defer srv.Close()
-			client := newClient(time.Second)
+			client := newClient(time.Second, nil)
 			defer client.CloseIdleConnections()
 			source, _ := parseURL(srv.URL + "?token=private-secret")
-			result, err := probe(context.Background(), client, source, time.Second, retryPolicy{})
+			result, err := probe(context.Background(), client, source, retryPolicy{})
 			if err == nil || result.stream != nil || result.identity != (representation{}) || calls.Load() != 1 || strings.Contains(err.Error(), "private-secret") {
 				t.Fatalf("invalid probe = %+v, error = %v, requests = %d", result, err, calls.Load())
 			}
@@ -286,10 +286,10 @@ func TestProbeFallbackIsBounded(t *testing.T) {
 				w.WriteHeader(code)
 			}))
 			defer srv.Close()
-			client := newClient(time.Second)
+			client := newClient(time.Second, nil)
 			defer client.CloseIdleConnections()
 			source, _ := parseURL(srv.URL)
-			if _, err := probe(context.Background(), client, source, time.Second, retryPolicy{}); err == nil || calls.Load() != 2 {
+			if _, err := probe(context.Background(), client, source, retryPolicy{}); err == nil || calls.Load() != 2 {
 				t.Fatalf("fallback error = %v, requests = %d", err, calls.Load())
 			}
 		})
@@ -333,10 +333,10 @@ func TestProbePinsSubsequentResponses(t *testing.T) {
 				fmt.Fprint(w, "def")
 			}))
 			defer srv.Close()
-			client := newClient(time.Second)
+			client := newClient(time.Second, nil)
 			defer client.CloseIdleConnections()
 			source, _ := parseURL(srv.URL)
-			result, err := probe(context.Background(), client, source, time.Second, retryPolicy{})
+			result, err := probe(context.Background(), client, source, retryPolicy{})
 			if err != nil || result.stream != nil {
 				t.Fatalf("probe = %+v, error = %v", result, err)
 			}

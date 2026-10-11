@@ -6,7 +6,7 @@ The current CLI uses built-in defaults and flags. No configuration loader exists
 
 ## Current defaults
 
-The engine uses up to four workers, three additional attempts for transient failures, automatic compatible resume, no overwrite, and no rate cap. `--connections`/`-c` accepts 1 through 32; `--retries` accepts 0 through 10, with zero disabling repeats. One connection streams new files directly and resumes saved range tasks with one worker. The network inactivity timeout is `30s`. See [CLI](cli.md) for all flags. Explicit `--resume` requires saved state.
+The engine defaults to up to four workers, three additional attempts for transient failures, automatic compatible resume, no overwrite, and no rate cap. `--connections`/`-c` accepts 1 through 32; `--retries` accepts 0 through 10, with zero disabling repeats. `--limit` sets an aggregate body rate using the units below. One connection streams new files directly and resumes saved range tasks with one worker. The network inactivity timeout is `30s` and excludes throttle/backoff waits. See [CLI](cli.md) for all flags. Explicit `--resume` requires saved state.
 
 No configuration directories or files are created or read. Transfer artifacts are the partial data file, versioned JSON manifest, and persistent lock file beside the output. Temporary manifest names can remain after a crash and are never trusted for recovery.
 
@@ -88,9 +88,9 @@ The rate parser distinguishes decimal and binary byte units explicitly:
 
 For rates, `/s` means per second. Thus `5MB/s` is 5,000,000 bytes per second and `5MiB/s` is 5,242,880 bytes per second. Rates apply across all workers of the transfer.
 
-`internal/transfer.ParseLimit` accepts ASCII decimal digits followed immediately by one of these units and `/s`. Values must be positive and convert to at most 9,223,372,036,854,775,807 bytes per second. Leading zeros are allowed. Signs, fractions, exponents, whitespace, missing units, different casing, and overflow are rejected. For example, write `1500KB/s` instead of `1.5MB/s`.
+`--limit` accepts ASCII decimal digits followed immediately by one of these units and `/s`. Values must be positive and convert to at most 9,223,372,036,854,775,807 bytes per second. Leading zeros are allowed. Signs, fractions, exponents, whitespace, missing units, different casing, and overflow are rejected. For example, write `1500KB/s` instead of `1.5MB/s`.
 
-Omitting a limit means unlimited; explicit zero is invalid CLI rate syntax. The parser and shared budget are implemented, but HTTP/CLI integration is the next step. Arbitrary size expressions remain outside v0.1.
+Omitting `--limit` means unlimited; explicit zero is invalid CLI rate syntax. The library's `Request.Limit` is a byte-per-second integer, with zero meaning unlimited and negative values rejected before file/network work. Arbitrary size expressions remain outside v0.1.
 
 ## Validation to define
 

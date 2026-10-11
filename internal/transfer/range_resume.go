@@ -5,27 +5,25 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"time"
 
 	"yoinkdl/internal/ranges"
 	"yoinkdl/internal/storage"
 )
 
 func validateRangeResume(ctx context.Context, client *http.Client, source *url.URL, saved storage.Manifest,
-	timeout time.Duration, policy retryPolicy) (representation, error) {
+	policy retryPolicy) (representation, error) {
 	var id representation
 	err := policy.run(ctx, func(int) error {
 		var err error
-		id, err = rangeResumeAttempt(ctx, client, source, saved, timeout)
+		id, err = rangeResumeAttempt(ctx, client, source, saved)
 		return err
 	})
 	return id, err
 }
 
-func rangeResumeAttempt(ctx context.Context, client *http.Client, source *url.URL, saved storage.Manifest,
-	timeout time.Duration) (representation, error) {
+func rangeResumeAttempt(ctx context.Context, client *http.Client, source *url.URL, saved storage.Manifest) (representation, error) {
 	if saved.Version != storage.RangeManifestVersion || saved.State != storage.StatePartial ||
-		!saved.Resumable() || saved.SourceID != fingerprint(source) || timeout <= 0 {
+		!saved.Resumable() || saved.SourceID != fingerprint(source) {
 		return representation{}, errors.New("saved range identity cannot resume")
 	}
 
@@ -82,8 +80,7 @@ func rangeResumeAttempt(ctx context.Context, client *http.Client, source *url.UR
 		return representation{}, err
 	}
 
-	body := &probeBody{ReadCloser: resp.Body, ctx: ctx, cancel: cancel, timeout: timeout}
-	if err := readProbeBody(body, size); err != nil {
+	if err := readProbeBody(resp.Body, size); err != nil {
 		return representation{}, err
 	}
 

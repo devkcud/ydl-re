@@ -77,11 +77,11 @@ func TestRetryReplacesWholeChunkWithoutDuplicateProgress(t *testing.T) {
 				}
 				return claim.Close()
 			}}
-			client := newClient(time.Second)
+			client := newClient(time.Second, nil)
 			defer client.CloseIdleConnections()
 			source, _ := parseURL(srv.URL)
 			var snapshots []Snapshot
-			n, err := receiveRanges(context.Background(), client, source, id, f, 1, time.Second, policy, func(s Snapshot) {
+			n, err := receiveRanges(context.Background(), client, source, id, f, 1, policy, func(s Snapshot) {
 				snapshots = append(snapshots, s)
 			})
 			if attempts.Load() != int32(limit+1) || pauses != limit {
@@ -169,10 +169,10 @@ func TestRetryStopsOnChangedOrInvalidRanges(t *testing.T) {
 				}
 				return nil
 			}}
-			client := newClient(time.Second)
+			client := newClient(time.Second, nil)
 			defer client.CloseIdleConnections()
 			source, _ := parseURL(srv.URL)
-			if _, err := receiveRanges(context.Background(), client, source, id, f, 1, time.Second, policy, nil); err == nil || attempts.Load() != 2 {
+			if _, err := receiveRanges(context.Background(), client, source, id, f, 1, policy, nil); err == nil || attempts.Load() != 2 {
 				t.Fatalf("terminal failure retried: attempts=%d, error=%v", attempts.Load(), err)
 			}
 			m, _ := f.Metadata()
@@ -196,7 +196,7 @@ func TestRetryCancellationKeepsWorkersBounded(t *testing.T) {
 	}))
 	defer srv.Close()
 	_, f, id := workerFile(t, srv.URL, 16, 4)
-	client := newClient(time.Second)
+	client := newClient(time.Second, nil)
 	defer client.CloseIdleConnections()
 	source, _ := parseURL(srv.URL)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -215,7 +215,7 @@ func TestRetryCancellationKeepsWorkersBounded(t *testing.T) {
 	}}
 	done := make(chan error, 1)
 	go func() {
-		_, err := receiveRanges(ctx, client, source, id, f, 2, time.Second, policy, nil)
+		_, err := receiveRanges(ctx, client, source, id, f, 2, policy, nil)
 		done <- err
 	}()
 	for range 2 {
@@ -261,7 +261,7 @@ func TestProbeRetriesShareRequestAndBodyBudget(t *testing.T) {
 				}
 			}))
 			defer srv.Close()
-			client := newClient(time.Second)
+			client := newClient(time.Second, nil)
 			defer client.CloseIdleConnections()
 			source, _ := parseURL(srv.URL)
 			policy := retryPolicy{limit: test.limit, pause: func(context.Context, time.Duration) error { return nil }}
@@ -270,13 +270,13 @@ func TestProbeRetriesShareRequestAndBodyBudget(t *testing.T) {
 				path, f, _ := workerFile(t, srv.URL, 8, 4)
 				before, _ := os.ReadFile(path + storage.ManifestSuffix)
 				m, _ := f.Metadata()
-				_, err = validateRangeResume(context.Background(), client, source, m, time.Second, policy)
+				_, err = validateRangeResume(context.Background(), client, source, m, policy)
 				after, _ := os.ReadFile(path + storage.ManifestSuffix)
 				if !reflect.DeepEqual(before, after) {
 					t.Fatal("failed validation changed saved metadata")
 				}
 			} else {
-				_, err = probe(context.Background(), client, source, time.Second, policy)
+				_, err = probe(context.Background(), client, source, policy)
 			}
 			if (err == nil) != (test.limit == 2) || attempts.Load() != int32(test.limit+1) {
 				t.Fatalf("probe budget multiplied: attempts=%d, error=%v", attempts.Load(), err)
@@ -305,7 +305,7 @@ func TestRetryIdleRangeTimeoutUsesNewContext(t *testing.T) {
 	}))
 	defer srv.Close()
 	path, f, id := workerFile(t, srv.URL, 4, 4)
-	client := newClient(time.Second)
+	client := newClient(50*time.Millisecond, nil)
 	defer client.CloseIdleConnections()
 	source, _ := parseURL(srv.URL)
 	policy := retryPolicy{limit: 1, pause: func(ctx context.Context, delay time.Duration) error {
@@ -316,7 +316,7 @@ func TestRetryIdleRangeTimeoutUsesNewContext(t *testing.T) {
 		}
 		return ctx.Err()
 	}}
-	n, err := receiveRanges(context.Background(), client, source, id, f, 1, 50*time.Millisecond, policy, nil)
+	n, err := receiveRanges(context.Background(), client, source, id, f, 1, policy, nil)
 	if err != nil || n != 4 || attempts.Load() != 2 {
 		t.Fatalf("timeout retry = %d, %v, attempts=%d", n, err, attempts.Load())
 	}
@@ -342,7 +342,7 @@ func TestRetryDiscardClosesActiveResponse(t *testing.T) {
 	defer srv.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	client := newClient(time.Second)
+	client := newClient(time.Second, nil)
 	defer client.CloseIdleConnections()
 	req, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
 	policy := retryPolicy{limit: 1, pause: func(context.Context, time.Duration) error {
@@ -377,11 +377,11 @@ func TestFallbackRetriesDoNotRepeatProbe(t *testing.T) {
 		fmt.Fprint(w, "fallback")
 	}))
 	defer srv.Close()
-	client := newClient(time.Second)
+	client := newClient(time.Second, nil)
 	defer client.CloseIdleConnections()
 	source, _ := parseURL(srv.URL)
 	policy := retryPolicy{limit: 1, pause: func(context.Context, time.Duration) error { return nil }}
-	result, err := probe(context.Background(), client, source, time.Second, policy)
+	result, err := probe(context.Background(), client, source, policy)
 	if err != nil || result.stream == nil {
 		t.Fatalf("fallback = %+v, %v", result, err)
 	}

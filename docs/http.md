@@ -145,4 +145,6 @@ Bound redirects and track the effective URL. Reassess resource identity when red
 
 Respect proxy and certificate verification defaults. The current network timeout defaults to 30 seconds for connection, TLS, response headers, and each idle body read; it does not cap total download duration.
 
+All response bodies pass through one transport wrapper. It times the underlying read, then applies the optional shared rate budget before returning bytes. Throttle waits and retry backoff do not count as network inactivity. Each response has its own cancellation context so a body timeout does not poison later attempts. See [rate accounting](concurrency.md#aggregate-rate-cap) for probe/retry traffic, bounded buffering, and protocol-overhead exclusions.
+
 See [security](security.md) for credential handling and [testing](testing.md) for the HTTP fault matrix.

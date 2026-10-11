@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A, B, and C are implemented and pass local Linux checks. Milestone D is next. There is no full v0.1 release or promised release date.
+Milestones A, B, and C are implemented and pass local Linux checks. Milestone D is in progress with its aggregate rate cap implemented. There is no full v0.1 release or promised release date.
 
 ## Delivery sequence
 
@@ -49,7 +49,9 @@ Completion evidence: parallel, resumed, and retried outputs match exact fixtures
 
 ## Milestone D — v0.1 hardening
 
-Add the aggregate per-transfer cap, JSON output, final terminal behavior, and explicit error/exit conventions. Complete security review and Linux/macOS/Windows build and native behavior checks where support is claimed.
+**Status:** aggregate per-transfer body pacing is implemented with `--limit`, strict decimal/binary units, one cancellable budget, bounded burst credit, and probe/retry accounting. Controlled-clock, local HTTP, and actual CLI process tests cover the cap. JSON output and remaining release qualification are next.
+
+Add JSON output, final terminal behavior, and explicit error/exit conventions. Complete security review and Linux/macOS/Windows build and native behavior checks where support is claimed.
 
 Publish verified installation/use instructions, release binaries, and a changelog after choosing distribution and licensing. Update these docs from planned interfaces to observed behavior.
 

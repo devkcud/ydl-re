@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A, B, and C implement the packages below. The diagrams and proposed layout describe the larger target architecture.
+Milestones A, B, and C plus the Milestone D rate cap implement the packages below. The diagrams and proposed layout describe the larger target architecture.
 
 ## Current packages
 
@@ -10,7 +10,7 @@ Milestones A, B, and C implement the packages below. The diagrams and proposed l
 |---|---|
 | `cmd/yoinkdl` | Entry point, build version, SIGINT/SIGTERM cancellation |
 | `internal/cli` | Standard-library argument parsing, local inspection, stdout/stderr, terminal progress |
-| `internal/transfer` | Sequential HTTP requests, fresh capability probing, immutable range identity, strict response validation, timeouts, byte checks, snapshots |
+| `internal/transfer` | Sequential/ranged HTTP, probing, immutable identity, response validation, retries, timeouts, aggregate rate budgets, byte checks, snapshots |
 | `internal/ranges` | Bounded fixed-chunk planning, validated coverage, missing work, HTTP endpoint conversion |
 | `internal/storage` | Stable OS locks, prefix/chunk manifests and checksums, durable checkpoints, preservation, publication recovery |
 
@@ -23,6 +23,8 @@ For fresh transfers requesting multiple connections, `Download` calls `probe` af
 The pool has at most 32 workers, 256 queued intervals, and one 64 KiB payload buffer per worker. Progress events use a channel bounded by worker count; only the coordinator invokes callbacks. Terminal failure cancels peers and the coordinator joins every worker before storage closes or publishes. Existing sequential resume stays on its original path.
 
 `retry.go` classifies failures at network boundaries so local storage errors cannot enter the retry loop. Probe/validation operations and whole chunks each own one budget; full-stream setup has a separate request budget. Failed responses and writer claims close before backoff. A chunk keeps its worker slot, buffer, identity, and interval across attempts; only terminal or exhausted failures cancel peers. Progress rolls back failed bytes before replacement.
+
+`limit.go` parses byte rates and owns one shared budget per `Download`. The HTTP transport wrapper in `body.go` gives every response its own cancellation context, bounds reads by the burst allowance, times only the underlying read, and charges actual body bytes before delivery. Probes, redirect drains, fallback streams, and retry bodies all use that budget. Progress rollback and saved bytes cannot supply rate credit. Closing a body cancels its request; the wrapper forwards idle-connection cleanup to the underlying transport.
 
 For version-2 resume, storage verifies local chunks before `range_resume.go` validates a conditional response against the saved identity. Only then does `ContinueRanges` activate the same bounded pool over whole missing chunks. The coordinator emits initial saved progress and checks cancellation before starting workers. Saved-byte totals contribute to percentage, while probes and reused bytes are excluded from speed.
 

@@ -27,6 +27,7 @@ func TestCommands(t *testing.T) {
 		{[]string{"--help"}, "Usage: yoinkdl"},
 		{[]string{"help", "download"}, "--timeout"},
 		{[]string{"download", "--help"}, "--output"},
+		{[]string{"download", "--help"}, "--limit"},
 		{[]string{"help", "inspect"}, "checkpoint metadata"},
 		{[]string{"inspect", "--help"}, "checkpoint metadata"},
 		{[]string{"version"}, "yoinkdl test-version\n"},
@@ -382,6 +383,42 @@ func TestRetryOptions(t *testing.T) {
 	for _, value := range []string{"", "-1", "11", "+3", "0x3", "1.5", "99999999999999999999"} {
 		if _, _, err := parseDownload([]string{"https://example.org/file", "--retries", value}); err == nil {
 			t.Errorf("accepted invalid retries %q", value)
+		}
+	}
+}
+
+func TestRateOptions(t *testing.T) {
+	for _, test := range []struct {
+		args []string
+		want int64
+	}{
+		{nil, 0},
+		{[]string{"--limit", "5MB/s"}, 5000000},
+		{[]string{"--limit=5MiB/s"}, 5242880},
+		{[]string{"--limit", "0001B/s"}, 1},
+	} {
+		for _, first := range []bool{false, true} {
+			args := append([]string{"https://example.org/file"}, test.args...)
+			if first {
+				args = append(append([]string{}, test.args...), "https://example.org/file")
+			}
+			req, _, err := parseDownload(args)
+			if err != nil || req.Limit != test.want {
+				t.Fatalf("%v: limit=%d, error=%v", args, req.Limit, err)
+			}
+		}
+	}
+	for _, value := range []string{"", "0B/s", "-1B/s", "1.5MB/s", "1MB", " 1MB/s", "1mb/s", "9223372036854775808B/s"} {
+		path := filepath.Join(t.TempDir(), "file")
+		var out, errOut bytes.Buffer
+		code := Run(context.Background(), []string{"download", "http://127.0.0.1:1/file", "-o", path, "--limit", value}, &out, &errOut, "test")
+		if code != 2 || out.Len() != 0 || !strings.Contains(errOut.String(), "limit") {
+			t.Fatalf("invalid rate: code=%d, out=%q, error=%q", code, &out, &errOut)
+		}
+		for _, suffix := range []string{"", storage.PartSuffix, storage.ManifestSuffix, storage.LockSuffix} {
+			if _, err := os.Stat(path + suffix); !os.IsNotExist(err) {
+				t.Fatalf("invalid rate touched %s: %v", suffix, err)
+			}
 		}
 	}
 }

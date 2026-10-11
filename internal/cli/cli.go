@@ -31,6 +31,7 @@ Options may appear before or after the URL.
   -o, --output <path>      Final file path (default: safe URL filename)
   -c, --connections <n>    Maximum workers, 1..32 (default: 4)
       --retries <n>        Additional attempts per request/range, 0..10 (default: 3)
+      --limit <rate>       Aggregate body rate, e.g. 5MB/s (default: unlimited)
       --overwrite          Replace an existing completed file
       --resume             Require a saved compatible transfer
       --quiet              Suppress progress; keep errors and final path
@@ -41,6 +42,7 @@ The output directory must already exist. Compatible saved transfers resume
 automatically; --resume requires saved state. Incompatible partials are preserved.
 One connection uses a direct stream for new files and one worker for saved ranges.
 Interrupted sequential bodies keep their checkpoints for a later resume.
+Rates use positive integers and B/s, KB/s, MB/s, GB/s, KiB/s, MiB/s, or GiB/s.
 `
 
 const inspectUsage = `Usage: yoinkdl inspect <output>
@@ -166,6 +168,17 @@ func parseDownload(args []string) (transfer.Request, bool, error) {
 	fs.BoolVar(&req.Resume, "resume", false, "require existing transfer state")
 	fs.BoolVar(&quiet, "quiet", false, "suppress progress")
 	fs.DurationVar(&req.Timeout, "timeout", transfer.DefaultTimeout, "network inactivity timeout")
+
+	fs.Func("limit", "aggregate body rate", func(value string) error {
+		n, err := transfer.ParseLimit(value)
+		if err != nil {
+			return err
+		}
+
+		req.Limit = n
+		return nil
+	})
+
 	req.Connections = transfer.DefaultConnections
 	connections := func(value string) error {
 		n, err := strconv.Atoi(value)

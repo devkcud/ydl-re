@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"yoinkdl/internal/ranges"
 )
@@ -18,15 +17,11 @@ type probeResult struct {
 	stream   *http.Response
 }
 
-func probe(ctx context.Context, client *http.Client, source *url.URL, timeout time.Duration, policy retryPolicy) (probeResult, error) {
-	if timeout <= 0 {
-		return probeResult{}, errors.New("probe timeout must be positive")
-	}
-
+func probe(ctx context.Context, client *http.Client, source *url.URL, policy retryPolicy) (probeResult, error) {
 	var result probeResult
 	err := policy.run(ctx, func(int) error {
 		var err error
-		result, err = probeAttempt(ctx, client, source, timeout)
+		result, err = probeAttempt(ctx, client, source)
 		return err
 	})
 	if err != nil || result.stream != nil || result.identity.length > 0 {
@@ -36,7 +31,7 @@ func probe(ctx context.Context, client *http.Client, source *url.URL, timeout ti
 	var resp *http.Response
 	err = policy.run(ctx, func(int) error {
 		var err error
-		resp, err = probeRequest(ctx, client, source, timeout, false)
+		resp, err = probeRequest(ctx, client, source, false)
 		return err
 	})
 	if err != nil {
@@ -46,8 +41,8 @@ func probe(ctx context.Context, client *http.Client, source *url.URL, timeout ti
 	return sequentialProbe(resp)
 }
 
-func probeAttempt(ctx context.Context, client *http.Client, source *url.URL, timeout time.Duration) (probeResult, error) {
-	resp, err := probeRequest(ctx, client, source, timeout, true)
+func probeAttempt(ctx context.Context, client *http.Client, source *url.URL) (probeResult, error) {
+	resp, err := probeRequest(ctx, client, source, true)
 	if err != nil {
 		return probeResult{}, err
 	}
@@ -144,15 +139,13 @@ func sequentialProbe(resp *http.Response) (probeResult, error) {
 	return probeResult{stream: resp}, nil
 }
 
-func probeRequest(ctx context.Context, client *http.Client, source *url.URL, timeout time.Duration, ranged bool) (*http.Response, error) {
+func probeRequest(ctx context.Context, client *http.Client, source *url.URL, ranged bool) (*http.Response, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithCancelCause(ctx)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, source.String(), nil)
 	if err != nil {
-		cancel(nil)
 		return nil, errors.New("cannot construct capability request")
 	}
 
@@ -162,47 +155,5 @@ func probeRequest(ctx context.Context, client *http.Client, source *url.URL, tim
 		req.Header.Set("Range", "bytes=0-0")
 	}
 
-	resp, err := requestOnce(ctx, client, req)
-	if err != nil {
-		cause := context.Cause(ctx)
-		cancel(nil)
-		if cause != nil {
-			return nil, cause
-		}
-
-		return nil, err
-	}
-
-	resp.Body = &probeBody{ReadCloser: resp.Body, ctx: ctx, cancel: cancel, timeout: timeout}
-	return resp, nil
-}
-
-type probeBody struct {
-	io.ReadCloser
-	ctx     context.Context
-	cancel  context.CancelCauseFunc
-	timeout time.Duration
-}
-
-func (b *probeBody) Read(data []byte) (int, error) {
-	if cause := context.Cause(b.ctx); cause != nil {
-		return 0, cause
-	}
-
-	timer := time.AfterFunc(b.timeout, func() {
-		b.cancel(fmt.Errorf("response body idle for %s: %w", b.timeout, context.DeadlineExceeded))
-	})
-	n, err := b.ReadCloser.Read(data)
-	timer.Stop()
-
-	if cause := context.Cause(b.ctx); cause != nil {
-		return n, cause
-	}
-
-	return n, err
-}
-
-func (b *probeBody) Close() error {
-	b.cancel(nil)
-	return b.ReadCloser.Close()
+	return requestOnce(ctx, client, req)
 }
