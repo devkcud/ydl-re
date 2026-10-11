@@ -2,7 +2,7 @@
 
 *The download manager that yoinks.*
 
-YoinkDL is a local-first download manager written in Go. It provides sequential and bounded parallel HTTP(S) transfers with safe resumption and bounded retries. Aggregate rate limits and JSON output are next.
+YoinkDL is a local-first download manager written in Go. It provides sequential and bounded parallel HTTP(S) transfers with safe resumption, bounded retries, and aggregate rate limits. JSON output integration is next.
 
 ## Project status
 

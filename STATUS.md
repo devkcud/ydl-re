@@ -4,12 +4,14 @@ Updated: October 11, 2026.
 
 ## Current state
 
-Milestones A, B, and C are implemented and pass the local Linux gate. The CLI supports sequential/parallel transfers, safe resume, exclusive offset writes, verified checkpoints, bounded retries, inspection, cancellation, overwrite protection, and inactivity timeouts. Milestone D now includes aggregate body-rate caps through `--limit`.
+Milestones A, B, and C are implemented and pass the local Linux gate. The CLI supports sequential/parallel transfers, safe resume, exclusive offset writes, verified checkpoints, bounded retries, inspection, cancellation, overwrite protection, and inactivity timeouts. Milestone D includes aggregate body-rate caps through `--limit`; the JSON encoder/output foundation is implemented, with flag integration next.
 
 JSON events, final terminal/security/platform qualification, configuration loading, and release tooling remain. Go 1.27 and the standard library are still the only runtime development requirements. A full v0.1 release is not complete.
 
 ## Handoff
 
+- `internal/cli/events.go` defines schema-version-1 newline-delimited progress/result records. Unknown totals/paths use null, quiet mode suppresses only progress, counters remain advisory, and results separate status/exit code from publication/preserved partials. Error text is diagnostic; raw URLs/headers/validators are absent. `--json` is not exposed yet; [the contract](docs/cli.md#json-output) is settled.
+- `output.go` detects short writes, bounds deadline-capable writes to five seconds, and cancels pending progress writes through deadlines. `output_unix.go` duplicates Linux/macOS pipe/socket handles, preserves caller ownership/flags, and avoids fatal stdout SIGPIPE before transfer cleanup. Synchronous backpressure has no event queue. Cancellation before any bytes can still emit a terminal record; partial records poison the stream. Generic non-deadline writers retain their own I/O blocking behavior.
 - `internal/transfer/limit.go` owns `--limit` parsing and one cancellable budget per download. Positive integer decimal/binary byte units require `/s`, are case-sensitive, and allow leading zeros; fractions/zero/overflow are refused. Omission is unlimited; `Request.Limit` uses bytes/second with zero for unlimited and rejects negatives before file/network work. Initial/idle credit is `min(65536, ceil(rate / 10))` bytes.
 - `body.go` wraps all HTTP response bodies, including probes, redirect drains, fallback streams, and retries. Bound each read by the burst, charge actual bytes before delivery, and retain charges after failed/canceled attempts. Saved bytes/progress rollback never supply credit. Network inactivity timers wrap only actual reads; throttle waits are cancellable and excluded. Each response has its own cancellation context; closing it cancels that request. Socket/HTTP read-ahead and protocol overhead are outside the application body cap. Ready recovery remains offline.
 - `internal/transfer/retry.go` owns retry classification and budgets. `--retries` accepts decimal 0..10 additional attempts (default three); zero disables repeats. `Request.Retries` uses nil for the default and an explicit zero pointer to disable retries. Configuration is validated before file/network work.
@@ -25,15 +27,14 @@ JSON events, final terminal/security/platform qualification, configuration loadi
 
 ## Validation
 
-- `go test ./internal/transfer -run 'Test(ParseLimit|Limiter)' -count=1` passed. Controlled-clock tests cover aggregate budgets with 1/4/32 readers, idle burst bounds, cancellation without refunding received bytes, minimum/maximum rates, and strict unit parsing.
-- `go test ./internal/transfer ./internal/cli` passed after centralizing body handling. `go test -race ./internal/transfer ./internal/cli ./cmd/yoinkdl -run 'Test(Body|Rate|DownloadRate|InvalidRate|ProcessAggregate)' -count=1` passed: fresh/saved probe and failed-chunk accounting, fallback continuity, cancellation/joining, timeout separation, real HTTP resume paths, CLI grammar, and a 9 MiB actual-process cap/checksum. Timing tolerances are one microsecond under controlled time and five milliseconds for HTTP sampling.
-- Final integrated `make check` passed: formatting, vet, all tests, race checks, and build, including forced-process recovery and the aggregate CLI cap. `go test ./internal/transfer -run 'Test(WorkerFailures|ProbeBodyOwnership)' -count=1` also passed after preserving the original fixture timeout at the new transport boundary.
-- Documentation audit passed: 20 Markdown files, 188 local links/anchors, 24 shell blocks, two JSON examples, one TOML example, fences, and whitespace. Built-CLI rate help and invalid-rate exit/artifact checks passed. The original design is unchanged; its illustrative placeholders are excluded from runnable-example syntax checks.
-- Environment: Go 1.27.2 on Linux/amd64. An initial focused sandbox command could not write the Go cache; the rerun and gates outside the sandbox passed. Local HTTP listeners also require that environment. Native macOS, Windows storage, network filesystems, and real power-loss durability remain unqualified.
+- `go test -race ./internal/cli -run 'Test(JSON|RecordWriter)' -count=1` passed: exact 64-bit counters, progress coalescing/rollback, null totals, quiet mode, terminal outcomes, escaping, short writes, deadlines, cancellation, and descriptor ownership/flag restoration.
+- JSON-foundation `make check` passed: formatting, vet, all tests, race checks, and build. The existing recovery/retry/rate suites still pass. Rate timing tolerances remain one microsecond under controlled time and five milliseconds for HTTP sampling.
+- Documentation audit passed: 20 Markdown files, 189 local links/anchors, 24 shell blocks, four JSON examples, one TOML example, fences, and whitespace. The original design is unchanged; illustrative placeholders are excluded from runnable-example syntax checks.
+- Environment: Go 1.27.2 on Linux/amd64. The full HTTP gate runs outside the sandbox to permit localhost listeners. Native macOS, Windows storage, network filesystems, and real power-loss durability remain unqualified.
 
 ## Next steps
 
-1. Define and implement JSON event framing, schema/versioning, stdout/stderr routing, and `--quiet` interaction (C05/C08). Keep progress advisory, report terminal publication/preservation accurately, and cover output failures and cancellation before exposing `--json`.
+1. Wire `download --json` to the event/output foundation. Cancel the transfer on output failure, join/close before terminal reporting, preserve text-mode behavior, and cover real CLI success/resume/failure/interruption and broken/full output pipes. Run the full gate and refresh docs.
 2. Complete final terminal/error behavior, then security/platform/release qualification in roadmap order.
 
 ## Open decisions and blockers

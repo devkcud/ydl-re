@@ -116,6 +116,44 @@ Success prints the absolute output path to stdout. Failure does not print a succ
 
 A percentage is advisory. Completion still requires transport and length checks followed by file publication.
 
+## JSON output
+
+The version-1 encoder and output writer are implemented and tested; exposing `download --json` is the next integration step. This section defines that interface. Other commands retain their current text output.
+
+JSON mode emits newline-delimited UTF-8 objects on stdout, with no array, terminal control codes, or extra success-path line. Progress records are advisory; one terminal `result` follows transfer cleanup. `--quiet` suppresses progress only. Argument errors still use stderr and exit `2`; help remains text. Transfer failures/interruption belong in the result, with no duplicate human error on stderr. Output-stream failures use stderr because stdout may be unusable.
+
+Each record includes `schema_version: 1`, an `event` discriminator, and integer `elapsed_ms` since the event stream started. Version 1 keeps existing field types and meanings stable; additive fields and nonterminal events may appear. Consumers should ignore unknown fields/events, reject unsupported schema versions, and require a `completed` result with `published: true` plus process exit `0` for success. Error messages are human-readable diagnostics, not stable error codes. JSON integers may reach signed 64-bit values; consumers must preserve integer precision.
+
+| Field | Progress | Terminal result |
+|---|---|---|
+| `event` | `progress` | `result` |
+| `bytes` | Useful reported bytes, including saved bytes; can decrease on retry | Final reported counter; failure counts are not verified coverage |
+| `total` | Expected body length, or `null` if unknown | Last observed expected length, or `null` |
+| `resumed` | Saved bytes adopted for this invocation | Final adopted saved-byte count |
+| `workers` | Active worker slots, including backoff | Absent; workers have joined |
+| `status` | Absent | `completed`, `failed`, or `interrupted` |
+| `exit_code` | Absent | Transfer outcome: `0`, `1`, or `130` |
+| `path` | Absent | Absolute output path acquired by this invocation, or `null` |
+| `partial` | Absent | Known retained partial path after cleanup, or `null` |
+| `published` | Absent | Whether this invocation published verified output, even if later cleanup failed |
+| `error` | Absent | Diagnostic string on failure/interruption; `null` on success |
+
+Unknown totals remain `null`, including after a clean unknown-length download. Zero means a known empty body. Counters are not checkpoints, resume offsets, or rate-budget accounting. An early failure can have no observed progress; it may report locally saved bytes before remote validation. Null paths mean this invocation has no confirmed path to report, not that pre-existing artifacts are absent. Likewise, `published: false` does not claim an existing destination is absent.
+
+Example records for a ten-byte transfer:
+
+```json
+{"schema_version":1,"event":"progress","elapsed_ms":0,"bytes":0,"total":10,"resumed":0,"workers":1}
+```
+
+```json
+{"schema_version":1,"event":"result","elapsed_ms":20,"status":"completed","exit_code":0,"path":"/tmp/file","partial":null,"bytes":10,"total":10,"resumed":0,"published":true,"error":null}
+```
+
+Progress is emitted at most every 200 ms while snapshots arrive. Synchronous writes apply backpressure without an event queue or detached writer goroutine. Linux/macOS pipe/socket output uses an owned duplicate descriptor: writes have a five-second deadline and progress writes honor cancellation. Terminal reporting gets a separate bounded write so interruption can still produce a result. Disk writes and caller-supplied writers without deadline support retain their underlying I/O behavior.
+
+A failed or short write stops further records and cancels transfer work. An interrupted write that delivered no bytes can still be followed by the terminal result; a partially written record makes the stream unusable. A broken stream can end with a truncated line or no result. Output failure exits `1`, or `130` when the caller interrupted, and stderr reports known publication/partial paths. Failure after publication preserves that verified file, even if the success record could not be delivered. Source URLs, redirect targets, headers, and validators are not event fields.
+
 ## Exit status
 
 | Code | Meaning |
