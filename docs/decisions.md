@@ -32,7 +32,9 @@ Resolve each decision before the milestone or interface depending on it is decla
 
 ## Milestone C decisions made
 
-- Use half-open whole chunks with a fixed size of at least four MiB, enlarged to keep at most 256 chunks per representation. Persist that size with future range state so resumed plans keep the same boundaries. Completed chunks must be sorted and disjoint; adjacent chunks remain separate. Zero-length objects need no tasks.
+- Use half-open whole chunks with a default size of at least four MiB, enlarged to keep at most 256 chunks per representation. Persist that size with range state so resumed plans keep the same boundaries. Completed chunks must be sorted and disjoint; adjacent chunks remain separate. Zero-length objects need no tasks.
+- Use schema version 2 for range state: persist `chunk_size` and sorted `completed_ranges` with individual SHA-256 digests. Sync and validate each whole chunk before saving it. Derive saved-byte totals from coverage; a ready snapshot additionally requires a full-file digest.
+- Keep version-1 prefix reads, writes, and sequential resume unchanged, with no implicit migration. Refuse version-2 partial downloads until the parallel HTTP path exists; allow inspection and verified ready recovery for both formats. Empty range state is retained, and unacknowledged gaps never count as completed work.
 
 ## Command and output decisions
 
@@ -54,7 +56,7 @@ The default worker preference is four, the proposed retry default is three per r
 | S06 | Windows publication and wider durability qualification | Extends the implemented Linux publication and manifest-reconciliation policy safely | [Lifecycle](transfer-lifecycle.md#7-finalize) |
 | S08 | Platform config discovery and XDG handling | The suggested Unix path does not define a portable loader | [Configuration](configuration.md) |
 
-Version 1 uses a half-open sequential prefix and rejects the original illustrative range-array format. Future disjoint ranges need explicit schema evolution rather than reinterpretation.
+Version 1 uses a half-open sequential prefix. Version 2 uses explicit whole-chunk intervals with independent digests and a fixed chunk size. Neither accepts the original illustrative inclusive range-array format. See the [storage contracts](resume-and-storage.md).
 
 Atomic final publication is implemented and tested locally on Linux. Windows publication, native macOS qualification, and deeper filesystem crash-durability evidence remain open.
 

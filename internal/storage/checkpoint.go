@@ -15,7 +15,8 @@ const CheckpointBytes = 4 * 1024 * 1024
 const checkpointInterval = time.Second
 
 func (f *File) Begin(m Manifest) error {
-	if f.manifest != nil || f.written != 0 || f.file == nil {
+	if f.manifest != nil || f.written != 0 || f.file == nil ||
+		(m.Version != 0 && m.Version != ManifestVersion) || m.ChunkSize != 0 || m.Ranges != nil {
 		return errors.New("cannot initialize an existing transfer")
 	}
 
@@ -40,7 +41,8 @@ func (f *File) Begin(m Manifest) error {
 }
 
 func (f *File) Continue() error {
-	if f.manifest == nil || f.manifest.State != StatePartial || !f.manifest.Resumable() || f.file == nil {
+	if f.manifest == nil || f.manifest.Version != ManifestVersion || f.manifest.State != StatePartial ||
+		!f.manifest.Resumable() || f.file == nil {
 		return errors.New("saved transfer cannot resume")
 	}
 
@@ -62,7 +64,8 @@ func (f *File) Continue() error {
 }
 
 func (f *File) Checkpoint(force bool) error {
-	if !f.active || f.manifest == nil || f.manifest.State == StateReady || f.written == f.manifest.Completed {
+	if !f.active || f.manifest == nil || f.manifest.Version != ManifestVersion ||
+		f.manifest.State == StateReady || f.written == f.manifest.Completed {
 		return nil
 	}
 
@@ -103,6 +106,10 @@ func (f *File) prepare() error {
 		return nil
 	}
 
+	if f.manifest.Version == RangeManifestVersion {
+		return f.prepareRanges()
+	}
+
 	if !f.active || (f.manifest.Length >= 0 && f.written != f.manifest.Length) {
 		return errors.New("cannot publish an incomplete transfer")
 	}
@@ -141,7 +148,12 @@ func (f *File) restore(ctx context.Context) error {
 	}
 
 	size := f.info.Size()
-	if size < m.Completed || (m.Length >= 0 && size > m.Length) || (m.State == StateReady && size != m.Length) {
+	end := m.Completed
+	if m.Version == RangeManifestVersion && len(m.Ranges) > 0 {
+		end = m.Ranges[len(m.Ranges)-1].End
+	}
+
+	if size < end || (m.Length >= 0 && size > m.Length) || (m.State == StateReady && size != m.Length) {
 		return errors.New("saved file size does not match the checkpoint")
 	}
 
@@ -156,15 +168,21 @@ func (f *File) restore(ctx context.Context) error {
 		}
 	}
 
-	f.digest = sha256.New()
-	reader := &checkedReader{ctx: ctx, reader: f.file}
+	if m.Version == RangeManifestVersion {
+		if err := f.verifyRanges(ctx, m); err != nil {
+			return err
+		}
+	} else {
+		f.digest = sha256.New()
+		reader := &checkedReader{ctx: ctx, reader: f.file}
 
-	if _, err := io.CopyN(f.digest, reader, m.Completed); err != nil {
-		return fmt.Errorf("read checkpoint prefix: %w", err)
-	}
+		if _, err := io.CopyN(f.digest, reader, m.Completed); err != nil {
+			return fmt.Errorf("read checkpoint prefix: %w", err)
+		}
 
-	if hex.EncodeToString(f.digest.Sum(nil)) != m.Checksum {
-		return errors.New("saved bytes do not match the checkpoint checksum")
+		if hex.EncodeToString(f.digest.Sum(nil)) != m.Checksum {
+			return errors.New("saved bytes do not match the checkpoint checksum")
+		}
 	}
 
 	if err := ctx.Err(); err != nil {

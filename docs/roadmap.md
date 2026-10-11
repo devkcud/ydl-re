@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A and B are implemented and pass local Linux checks. Milestones C and D remain pending; there is no full v0.1 release or promised release date.
+Milestones A and B are implemented and pass local Linux checks. Milestone C is in progress; D remains pending. There is no full v0.1 release or promised release date.
 
 ## Delivery sequence
 
@@ -38,6 +38,8 @@ Specify refusal or deliberate restart when state or server behavior is incompati
 Completion evidence: local-server tests resume terminated transfers to exact fixture hashes, reject changed identity/bounds without altering saved artifacts, and recover ready publication checkpoints. Kernel locks prevent competing writers and release after process death. Native macOS, Windows, network-filesystem, and power-loss qualification remain release work.
 
 ## Milestone C — Multi-range engine
+
+**Status:** bounded range planning and version-2 chunk persistence are implemented. Capability probing, bounded HTTP workers, offset ownership, and retries remain. Version-1 resume is preserved; current downloads refuse partial version-2 state before network access.
 
 Plan disjoint chunks, bound worker concurrency, and write only assigned offsets. Validate every response's range, length, encoding, and compatible representation identity.
 

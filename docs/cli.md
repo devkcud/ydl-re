@@ -49,6 +49,7 @@ Explicit output paths are resolved to absolute paths. Parent directories are not
 | No destination or artifacts | Start a new transfer |
 | Completed regular destination | Refuse unless `--overwrite` is supplied |
 | Compatible partial file and manifest | Validate saved bytes and remote identity before resuming |
+| Version-2 partial range state | Preserve and refuse before network access; parallel resume is not implemented |
 | Incompatible state or a partial without a manifest | Refuse; leave it untouched, including with `--overwrite` |
 | Another writer owns the transfer | Nonblocking OS lock fails; no second writer proceeds |
 | Verified `ready` checkpoint | Finish publication/cleanup locally after full-checksum validation |
@@ -117,6 +118,8 @@ A percentage is advisory. Completion still requires transport and length checks 
 
 The path names the intended final output. The command reads the versioned manifest and prints destination, checkpoint state, saved bytes, total bytes or `unknown`, encoding, and resume eligibility. It can read a published snapshot while another process owns the transfer.
 
+For version 2, saved bytes are the sum of validated disjoint chunks, not a contiguous prefix or resume offset. Inspection reports that partial range resume is not implemented; verified ready publication remains recoverable.
+
 Inspection does not contact the server, hash the partial file, acquire writer ownership, or change artifacts. Eligibility is conditional; download validates local bytes and the remote representation before reuse. Missing/corrupt state exits `1`; wrong argument count exits `2`.
 
 Successful transfers remove their manifests, so inspection is not a completed-download history command. Its human-readable layout is not a JSON/event API.
@@ -133,4 +136,4 @@ These interfaces remain proposed and are rejected by the current CLI:
 | Queue/daemon commands | v0.2 |
 | TUI, profiles, history, optional hooks | v0.3 |
 
-The planned ranged-worker preference is four, retries are three per range with exact counting still to settle, and the rate cap defaults to unlimited. JSON event framing remains open; manifest version 1 is documented in [storage](resume-and-storage.md). See [open decisions](decisions.md) before implementing later additions.
+The planned ranged-worker preference is four, retries are three per range with exact counting still to settle, and the rate cap defaults to unlimited. JSON event framing remains open; manifest versions 1 and 2 are documented in [storage](resume-and-storage.md). See [open decisions](decisions.md) before implementing later additions.

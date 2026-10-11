@@ -254,6 +254,8 @@ func inspect(args []string, out, errOut io.Writer) int {
 	resume := "unavailable for this representation"
 	if m.State == storage.StateReady {
 		resume = "local publication pending validation"
+	} else if m.Version == storage.RangeManifestVersion {
+		resume = "parallel resume is not implemented"
 	} else if m.Resumable() {
 		resume = "eligible after local and server validation"
 	}

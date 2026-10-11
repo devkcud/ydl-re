@@ -11,6 +11,9 @@ Milestones A and B have executable tests and a passing local `make check` on Go 
 | [Storage](../internal/storage/file_test.go) | Publication, overwrite, destination races, exclusive writers, retained partials, unsafe paths, sync failure |
 | [Checkpoints](../internal/storage/checkpoint_test.go) | Durable prefixes, uncommitted tails, corrupt/invalid metadata, local-byte hashes, stable locks, interrupted link/rename publication |
 | [Range planner](../internal/ranges/ranges_test.go) | Bounded fixed chunks, missing-work subtraction, exact coverage over completion subsets, invalid intervals, HTTP endpoints, maximum offsets |
+| [Range checkpoints](../internal/storage/range_checkpoint_test.go) | Out-of-order completion, gap preservation, checksum/sync/publication failure, corrupt chunks, exact coverage, ready/link/rename recovery |
+| [Range manifests](../internal/storage/range_manifest_test.go) | Distinct version-1/version-2 formats, strict nested JSON, chunk bounds, identity requirements, 256-chunk metadata capacity |
+| [Range-state compatibility](../internal/transfer/range_state_test.go) | Partial range refusal before network access, unchanged artifacts, offline ready recovery |
 | [Transfer](../internal/transfer/download_test.go) | Fixture hashes, known/unknown/encoded/empty bodies, bad statuses, truncation, cancellation, timeouts, redirects, publication failure |
 | [HTTP policy](../internal/transfer/http_test.go) | Safe derived names, cross-origin credential stripping, downgrade and credential rejection |
 | [Resume](../internal/transfer/resume_test.go) | Automatic/explicit/chunked/zero-prefix resume; mismatched identities, bounds, and validators; unchanged-artifact refusal; 416 re-probing; offline ready recovery |
@@ -22,7 +25,7 @@ Milestones A and B have executable tests and a passing local `make check` on Go 
 
 The built executable also passed a workspace-filesystem smoke test: interrupt, inspect the saved checkpoint, resume from 128 KiB, verify the complete fixture hash, and confirm that URL tokens were absent from metadata.
 
-Parallel HTTP transfers, disjoint checkpoint persistence, retries, caps, real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Publication-boundary recovery is exercised with controlled ready/link/rename states; that is not a real power-loss test.
+Parallel HTTP transfers, worker ownership, retries, caps, real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Range storage fixtures write deterministic offsets directly; they do not qualify a concurrent offset writer or HTTP scheduler. Publication-boundary recovery is exercised with controlled ready/link/rename states; that is not a real power-loss test.
 
 ## Test layers
 

@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestone B implements versioned manifests, durable prefix checkpoints, local checksum validation, exclusive ownership, validated HTTP resume, inspection, and recovery after interrupted publication. See [STATUS.md](../STATUS.md) for the current handoff.
+Milestone B implements durable prefix checkpoints, local checksum validation, exclusive ownership, validated HTTP resume, inspection, and recovery after interrupted publication. Milestone C now adds range planning and version-2 chunk persistence; parallel HTTP transfer is still pending. See [STATUS.md](../STATUS.md) for the current handoff.
 
 ## Files and ownership
 
@@ -43,7 +43,7 @@ The schema represents one sequential prefix. This example records the three byte
 
 | Field | Contract |
 |---|---|
-| `schema_version` | Exactly `1`; unknown versions are refused |
+| `schema_version` | Exactly `1` for this prefix format |
 | `destination` | Exact absolute output path |
 | `source_id` | SHA-256 of the normalized, fragment-free original URL |
 | `effective_id` | SHA-256 of the fragment-free effective URL after redirects |
@@ -54,7 +54,7 @@ The schema represents one sequential prefix. This example records the three byte
 | `sha256` | SHA-256 of that prefix |
 | `state` | `partial` or `ready` |
 
-Every field must occur exactly once and be non-null. Unknown or missing fields, duplicate keys, invalid values, trailing JSON, and manifests larger than 64 KiB are rejected. The format does not contain original URLs, query tokens, request headers, or credentials.
+Every field must occur exactly once, use the documented case, and be non-null. Unknown or missing fields, duplicate keys, invalid values, trailing JSON, and manifests larger than 64 KiB are rejected. The format does not contain original URLs, query tokens, request headers, or credentials.
 
 URL fingerprints require the same URL spelling after parsing and fragment removal. Refreshed signed URLs and changed redirect targets are not silently treated as the same identity. A URL fingerprint is not a content checksum or an authentication mechanism.
 
@@ -62,11 +62,50 @@ URL fingerprints require the same URL spelling after parsing and fragment remova
 
 `completed = n` means the half-open prefix `[0, n)`. There is no inclusive endpoint in this schema. A partial checkpoint for a positive known length must end before that length; only a verified `ready` checkpoint can claim the entire file.
 
-The original design's `completed_ranges` example was illustrative and used inclusive bounds. It is not schema version 1 and is not imported. Disjoint range persistence will require an explicit schema evolution during the parallel-transfer milestone.
+The original design's `completed_ranges` example was illustrative and used inclusive bounds. Neither implemented version imports that format. Version 1 keeps its prefix count and checksum unchanged; it is never automatically converted into range state.
+
+## Version 2 manifest
+
+Version 2 records disjoint whole chunks. This small arithmetic example records `abc` and `ghi` from `abcdefghij`:
+
+```json
+{
+  "schema_version": 2,
+  "destination": "/home/user/Downloads/file",
+  "source_id": "18c6f551ea3482332a3ecb8399217217eb214fd68dab3c888af753a504929c82",
+  "effective_id": "18c6f551ea3482332a3ecb8399217217eb214fd68dab3c888af753a504929c82",
+  "length": 10,
+  "etag": "\"version-1\"",
+  "encoding": "identity",
+  "chunk_size": 3,
+  "completed_ranges": [
+    {
+      "start": 0,
+      "end": 3,
+      "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    },
+    {
+      "start": 6,
+      "end": 9,
+      "sha256": "50ae61e841fac4e8f9e40baf2ad36ec868922ea48368c18f9535e47db56dd7fb"
+    }
+  ],
+  "sha256": "",
+  "state": "partial"
+}
+```
+
+The identity and destination fields retain their version-1 meanings. Version 2 requires a known nonnegative length, identity encoding, and a strong ETag. It replaces the `completed` field with `chunk_size` and `completed_ranges`; a mixed schema is invalid. Unknown versions are refused.
+
+`chunk_size` is a positive integer that defines at most 256 chunks. New plans choose at least four MiB, increasing the size for large files. Resume retains the saved size. Each array entry contains exactly `start`, exclusive `end`, and the SHA-256 digest of those bytes. Entries must match complete planned chunks, be sorted without duplicates or overlaps, and remain separate when adjacent. The last chunk can be shorter. An empty array is valid; null fields or array elements are not.
+
+Saved-byte totals are derived from validated coverage. The example has six saved bytes and missing chunks `[3, 6)` and `[9, 10)`; six is not a resume offset. A `partial` manifest has an empty top-level `sha256`, even if all chunks have completed. A `ready` manifest additionally requires exact coverage, exact file length, and a full-file SHA-256 digest. Empty ready files use an empty chunk array and the SHA-256 digest of empty content.
+
+`inspect` understands both versions. Current downloads create version 1, preserve and refuse version-2 partials before network access, and can recover verified version-2 ready publication locally. Network range resume is not implemented yet.
 
 ## Checkpoint ordering
 
-While receiving data, storage checkpoints after four additional MiB or one second of arriving data, whichever happens first. Normal shutdown forces a checkpoint where safe.
+Version-1 streams checkpoint after four additional MiB or one second of arriving data, whichever happens first. Normal shutdown forces a checkpoint where safe.
 
 1. Write received bytes and update the incremental prefix digest.
 2. Sync the data file before advancing saved progress.
@@ -78,9 +117,13 @@ The final bytes of a known-length response are not recorded as full coverage unt
 
 Unacknowledged data can extend beyond the checkpoint after a crash. Recovery verifies the saved prefix hash and bounds, and does not truncate that tail until the application confirms a compatible remote response. A rejected resume leaves data and metadata unchanged.
 
+For version 2, `CheckpointRange` accepts a whole chunk and its expected digest only after the caller has validated response identity, bounds, length, and successful body completion. Storage checks the plan, syncs the data file, hashes that interval against the supplied digest, then atomically publishes the new snapshot. Failed or incomplete chunks are not acknowledged on shutdown. Metadata changes must be serialized by the coordinator; offset writers and concurrent worker ownership remain the next implementation step.
+
+Recovery hashes every saved chunk, checks the highest saved endpoint against the actual file, and ignores unacknowledged gaps. Opening state or calling `ContinueRanges` never truncates the partial file. After remote validation, missing chunks must be re-fetched in full. Newly initialized range state is retained even with zero acknowledged bytes. Finalization rechecks coverage and each chunk, records a complete checksum, then uses the existing publication protocol.
+
 ## Resume requirements
 
-Saved bytes require a valid manifest, the same destination/source identity, an intact partial file, and a matching prefix checksum. An old Milestone A partial without a manifest is refused; its length is not proof of downloaded coverage.
+Saved bytes require a valid manifest, the same destination/source identity, an intact partial file, and matching prefix or chunk checksums. An old Milestone A partial without a manifest is refused; its length is not proof of downloaded coverage.
 
 Network resume additionally requires a known length, identity encoding, a usable strong ETag, and a valid compatible response from the server. Unknown-length, encoded, weak-tagged, or unversioned partial transfers are retained for inspection but cannot reuse bytes. Last-Modified alone is not a resume validator in this milestone.
 
@@ -94,7 +137,8 @@ Default publication uses a hard link that cannot replace an existing destination
 
 | Recovery state | Behavior |
 |---|---|
-| `partial` manifest and valid prefix | Candidate for validated network resume |
+| Version-1 `partial` manifest and valid prefix | Candidate for validated network resume |
+| Version-2 `partial` manifest and valid chunks | Inspectable; network resume is refused until parallel transfer support is implemented |
 | `ready` manifest and intact complete partial | Can finish publication without downloading again |
 | `ready` with final/partial names for the same inode | Reconcile completed hard-link publication and cleanup |
 | `ready` with no partial and a matching complete final file | Verify full checksum and finish cleanup after rename |

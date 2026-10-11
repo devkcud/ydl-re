@@ -11,26 +11,35 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
 
 const ManifestVersion = 1
+const RangeManifestVersion = 2
 const StatePartial = "partial"
 const StateReady = "ready"
 const maxManifestSize = 64 * 1024
 
 type Manifest struct {
-	Version     int    `json:"schema_version"`
-	Destination string `json:"destination"`
-	SourceID    string `json:"source_id"`
-	EffectiveID string `json:"effective_id"`
-	Length      int64  `json:"length"`
-	ETag        string `json:"etag"`
-	Encoding    string `json:"encoding"`
-	Completed   int64  `json:"completed"`
-	Checksum    string `json:"sha256"`
-	State       string `json:"state"`
+	Version     int     `json:"schema_version"`
+	Destination string  `json:"destination"`
+	SourceID    string  `json:"source_id"`
+	EffectiveID string  `json:"effective_id"`
+	Length      int64   `json:"length"`
+	ETag        string  `json:"etag"`
+	Encoding    string  `json:"encoding"`
+	Completed   int64   `json:"completed"`
+	Checksum    string  `json:"sha256"`
+	State       string  `json:"state"`
+	ChunkSize   int64   `json:"-"`
+	Ranges      []Chunk `json:"-"`
+}
+
+func (m Manifest) clone() Manifest {
+	m.Ranges = slices.Clone(m.Ranges)
+	return m
 }
 
 func (m Manifest) Resumable() bool {
@@ -67,11 +76,11 @@ func Inspect(path string) (Manifest, error) {
 }
 
 func (m Manifest) validate(path string) error {
-	if m.Version != ManifestVersion || m.Destination != path || !filepath.IsAbs(m.Destination) {
+	if (m.Version != ManifestVersion && m.Version != RangeManifestVersion) || m.Destination != path || !filepath.IsAbs(m.Destination) {
 		return errors.New("unsupported manifest version or mismatched destination")
 	}
 
-	if !validHash(m.SourceID) || !validHash(m.EffectiveID) || !validHash(m.Checksum) {
+	if !validHash(m.SourceID) || !validHash(m.EffectiveID) {
 		return errors.New("invalid manifest identity or checksum")
 	}
 
@@ -81,6 +90,14 @@ func (m Manifest) validate(path string) error {
 
 	if m.Encoding != "identity" && m.Encoding != "encoded" {
 		return errors.New("invalid stored encoding")
+	}
+
+	if m.Version == RangeManifestVersion {
+		return m.validateRanges()
+	}
+
+	if !validHash(m.Checksum) || m.ChunkSize != 0 || m.Ranges != nil {
+		return errors.New("invalid prefix checksum or incompatible range fields")
 	}
 
 	if m.Length < -1 || m.Completed < 0 || (m.Length >= 0 && m.Completed > m.Length) {
@@ -119,20 +136,9 @@ func readManifest(root *os.Root, name, path string) (Manifest, error) {
 		return Manifest{}, errors.New("unreadable or oversized transfer manifest")
 	}
 
-	if !utf8.Valid(data) || !manifestFields(data) {
-		return Manifest{}, errors.New("manifest fields must be complete and unique")
-	}
-
-	var m Manifest
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
-
-	if err := dec.Decode(&m); err != nil {
-		return Manifest{}, errors.New("invalid transfer manifest JSON")
-	}
-
-	if err := dec.Decode(new(any)); !errors.Is(err, io.EOF) {
-		return Manifest{}, errors.New("unexpected data after transfer manifest")
+	m, err := decodeManifest(data)
+	if err != nil {
+		return Manifest{}, err
 	}
 
 	if err := m.validate(path); err != nil {
@@ -180,7 +186,8 @@ func (f *File) saveManifest(m Manifest) error {
 		return fmt.Errorf("publish manifest checkpoint: %w", err)
 	}
 
-	f.manifest = &m
+	saved := m.clone()
+	f.manifest = &saved
 	return f.syncDirectory()
 }
 
@@ -193,29 +200,57 @@ func validHash(value string) bool {
 	return err == nil
 }
 
-func manifestFields(data []byte) bool {
+func objectFields(data []byte) (map[string]json.RawMessage, error) {
+	invalid := errors.New("JSON fields must be non-null, unique, and correctly named")
+	if !utf8.Valid(data) {
+		return nil, invalid
+	}
+
 	dec := json.NewDecoder(bytes.NewReader(data))
 	token, err := dec.Token()
 	if err != nil || token != json.Delim('{') {
-		return false
+		return nil, invalid
 	}
 
-	seen := make(map[string]bool)
+	fields := make(map[string]json.RawMessage)
 
 	for dec.More() {
 		token, err := dec.Token()
 		key, ok := token.(string)
-		if err != nil || !ok || seen[key] {
-			return false
+		if err != nil || !ok || fields[key] != nil {
+			return nil, invalid
 		}
 
-		seen[key] = true
 		var value json.RawMessage
 
 		if err := dec.Decode(&value); err != nil || bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
+			return nil, invalid
+		}
+
+		fields[key] = value
+	}
+
+	if token, err := dec.Token(); err != nil || token != json.Delim('}') {
+		return nil, invalid
+	}
+
+	if err := dec.Decode(new(any)); !errors.Is(err, io.EOF) {
+		return nil, invalid
+	}
+
+	return fields, nil
+}
+
+func hasFields(fields map[string]json.RawMessage, names ...string) bool {
+	if len(fields) != len(names) {
+		return false
+	}
+
+	for _, name := range names {
+		if fields[name] == nil {
 			return false
 		}
 	}
 
-	return len(seen) == 10
+	return true
 }

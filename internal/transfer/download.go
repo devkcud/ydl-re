@@ -91,6 +91,10 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 			return result, f.Finalize()
 		}
 
+		if m.Version == storage.RangeManifestVersion {
+			return result, errors.New("parallel resume is not implemented; existing range state is preserved")
+		}
+
 		if !m.Resumable() {
 			return result, errors.New("saved transfer needs a known length, identity encoding, and strong ETag to resume")
 		}

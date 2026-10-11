@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"yoinkdl/internal/ranges"
 	"yoinkdl/internal/storage"
 	"yoinkdl/internal/transfer"
 )
@@ -256,5 +258,54 @@ func TestResumedBytesAreNotTransferSpeed(t *testing.T) {
 
 	if !strings.Contains(out.String(), "50.0%") || !strings.Contains(out.String(), "0.0 B/s") {
 		t.Fatalf("saved bytes counted as new traffic: %q", &out)
+	}
+}
+
+func TestInspectRangeCoverage(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "file")
+	f, err := storage.Create(path, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	err = f.BeginRanges(storage.Manifest{
+		SourceID: strings.Repeat("a", 64), EffectiveID: strings.Repeat("b", 64),
+		Length: 10, ETag: `"v1"`, Encoding: "identity", ChunkSize: 3,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(path+storage.PartSuffix, []byte("abcBADghi"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, span := range []ranges.Span{{Start: 0, End: 3}, {Start: 6, End: 9}} {
+		sum := sha256.Sum256([]byte("abcBADghi"[span.Start:span.End]))
+		if err := f.CheckpointRange(context.Background(), storage.Chunk{Span: span, Checksum: fmt.Sprintf("%x", sum)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	before, err := os.ReadFile(path + storage.ManifestSuffix)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(path+storage.PartSuffix, []byte("corrupt"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var out, errOut bytes.Buffer
+	code := Run(context.Background(), []string{"inspect", path}, &out, &errOut, "test")
+	if code != 0 || errOut.Len() != 0 || !strings.Contains(out.String(), "Saved bytes: 6") ||
+		!strings.Contains(out.String(), "Total bytes: 10") || !strings.Contains(out.String(), "parallel resume is not implemented") {
+		t.Fatalf("range inspect: code = %d, out = %q, err = %q", code, &out, &errOut)
+	}
+
+	after, err := os.ReadFile(path + storage.ManifestSuffix)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatal("inspection changed range state")
 	}
 }

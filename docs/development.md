@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The repository contains the Milestone A/B CLI, HTTP resume engine, persistent storage layer, and tests. Read [AGENTS.md](../AGENTS.md) and the current handoff in [STATUS.md](../STATUS.md) before making changes.
+The repository contains the Milestone A/B CLI, HTTP resume engine, persistent storage layer, and the first Milestone C range planning/checkpoint work. Read [AGENTS.md](../AGENTS.md) and the current handoff in [STATUS.md](../STATUS.md) before making changes.
 
 ## Current checkout
 
@@ -16,6 +16,7 @@ yoink-reborn/
 ├── docs/
 ├── internal/
 │   ├── cli/
+│   ├── ranges/
 │   ├── storage/
 │   └── transfer/
 ├── go.mod
@@ -76,7 +77,7 @@ Update the handoff after every implementation step, even when work is incomplete
 
 ## Code and package boundaries
 
-`cmd/yoinkdl` owns process signals and the entry point. `internal/cli` owns parsing, local inspection, stdout/stderr, and progress rendering. `internal/transfer` owns request/response identity, resume validation, transfer completion, and snapshots. `internal/storage` owns stable locks, manifest validation, prefix hashing, checkpoints, and publication recovery.
+`cmd/yoinkdl` owns process signals and the entry point. `internal/cli` owns parsing, local inspection, stdout/stderr, and progress rendering. `internal/transfer` owns request/response identity, resume validation, transfer completion, and snapshots. `internal/ranges` owns chunk arithmetic and coverage. `internal/storage` owns stable locks, versioned manifest validation, prefix/chunk hashing, checkpoints, and publication recovery.
 
 Use short, clear names, explicit visibility where supported, constants for fixed values, and blank lines between logical blocks. Go uses capitalization for visibility and package-level functions instead of class-level static methods. Avoid comments unless complex logic cannot be made clear in code.
 

@@ -163,7 +163,7 @@ func (f *File) Metadata() (Manifest, bool) {
 		return Manifest{}, false
 	}
 
-	return *f.manifest, true
+	return f.manifest.clone(), true
 }
 
 func (f *File) Write(data []byte) (int, error) {
@@ -172,7 +172,7 @@ func (f *File) Write(data []byte) (int, error) {
 	}
 
 	if f.manifest != nil {
-		if !f.active || f.manifest.State == StateReady {
+		if !f.active || f.manifest.Version != ManifestVersion || f.manifest.State == StateReady {
 			return 0, errors.New("transfer is not ready to receive bytes")
 		}
 
@@ -283,7 +283,8 @@ func (f *File) Close() error {
 		f.file = nil
 	}
 
-	if f.fresh && f.partial && f.written == 0 && !f.published && (f.manifest == nil || f.manifest.State != StateReady) {
+	if f.fresh && f.partial && f.written == 0 && !f.published &&
+		(f.manifest == nil || (f.manifest.Version == ManifestVersion && f.manifest.State != StateReady)) {
 		if identityErr := f.checkIdentity(); identityErr != nil {
 			err = errors.Join(err, identityErr)
 		} else if removeErr := f.root.Remove(f.part); removeErr != nil {
