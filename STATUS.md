@@ -4,9 +4,9 @@ Updated: October 10, 2026.
 
 ## Current state
 
-Milestones A and B are implemented and pass local Linux checks. The built CLI supports sequential HTTP(S) downloads, automatic compatible resume, explicit `--resume`, read-only `inspect`, progress, cancellation, overwrite protection, and network inactivity timeouts.
+Milestones A and B are implemented. Milestone C now supports fresh parallel HTTP(S) downloads, exclusive offset writes, verified chunk checkpoints, and connection limits. Sequential resume, inspect, progress, cancellation, overwrite protection, and inactivity timeouts remain supported.
 
-Milestone C is active. Range planning, version-2 checkpoints, exclusive bounded offset writers, fresh capability probing, and immutable representation validation are implemented. The CLI remains sequential: probe integration, HTTP workers, retries, bandwidth caps, JSON events, configuration loading, and release tooling remain. Go 1.27 and the standard library are still the only runtime development requirements.
+Milestone C remains active: version-2 partial resume, retries, and parallel crash-recovery evidence are unfinished. Bandwidth caps, JSON events, configuration loading, and release tooling also remain. Go 1.27 and the standard library are still the only runtime development requirements.
 
 ## Handoff
 
@@ -17,30 +17,30 @@ Milestone C is active. Range planning, version-2 checkpoints, exclusive bounded 
 - Version-1 checkpoint timing and resume behavior remain unchanged: sync before saving after four MiB/one second and on normal interruption; truncate unconfirmed tails only after a compatible response. Range checkpoints acknowledge whole chunks only, and retain initialized state even with zero saved bytes.
 - Stable `.yoinkdl.lock` inodes hold nonblocking advisory locks. Process death releases ownership, so do not unlink lock files for stale-owner recovery. Orphan temporary manifests are ignored.
 - `internal/transfer/resume.go` validates echoed strong ETags, identity encoding, source/effective URL fingerprints, exact range bounds, and lengths before reuse. Changed/unsupported responses preserve existing artifacts. A 416 is re-probed and refused.
-- `internal/transfer/representation.go` captures eligible identity by value and builds conditional requests without retaining mutable response data. Its exact range-bound validator is shared with version-1 resume. Workers must still check full body completion before acknowledging a chunk.
+- `internal/transfer/workers.go` uses at most 32 workers, at most 256 queued chunks, one 64 KiB payload buffer per worker, and a progress channel bounded by worker count. Workers validate headers before claiming offsets and require exact body length/clean EOF before committing. Errors cancel peers before claim cleanup; the coordinator drains events and joins all workers before returning. Progress callbacks run only on the coordinator.
+- `--connections`/`-c` accepts decimal digits from 1 through 32 (default four; leading zeros allowed). One uses a direct sequential stream; higher limits probe fresh transfers and reduce worker count to available chunks. Version-1 checkpoints always resume sequentially. The library uses zero as its default setting.
+- `internal/transfer/representation.go` captures identity by value and binds every response to the selected version, effective URL, length, encoding, and assigned interval. Its exact range-bound validator is shared with version-1 resume. Worker 416 responses are re-probed and refused; active range state never falls back destructively.
 - `internal/transfer/probe.go` proves fresh range capability with `GET bytes=0-0`, strict headers, and exactly one byte with clean EOF. It returns a selected identity or an open full-response stream. The coordinator must consume/close that stream and use its own metadata. Ignored ranges reuse the untouched 200 body; ineligible valid 206/416 responses get one fresh full GET after discarding probe bytes. Invalid probes fail. No storage writes or saved-state fallback occur.
-- Probe and fallback bodies enforce per-read inactivity timeouts and cancellation. The probe is not wired into `Download` yet; keep its fresh-only fallback separate from existing version-1 resume and version-2 partial refusal.
-- Both schemas support verified offline `ready` recovery, including interrupted link/rename publication. `inspect` reads either schema without hashing or acquiring writer ownership. The current downloader creates version 1 and refuses version-2 partials before network access; it never sends an aggregate saved-byte count as a suffix offset.
+- `Download` now invokes the probe after fresh output ownership. It initializes version 2 for range workers or consumes the returned full stream using version-1 storage. Probe bytes never count toward coverage/progress. Partial version-2 resume is still refused; use `--connections 1` from the start when current resume support is required.
+- Both schemas support verified offline `ready` recovery. `inspect` reads metadata without hashing or writer ownership. Progress includes received bytes, which may lead whole-chunk checkpoints; worker counts reach zero before final verification. Cancellation propagates through range hashes and prevents publication.
 - The original design is unchanged. The spacing rule, handoffs after every implementation, focused local commits, and no-push rule remain in force.
 
 ## Validation
 
-- `go test -race ./internal/storage` and `make check` passed for exclusive range writers, concurrent checkpoint serialization, and context-aware finalization. Documentation checks passed for 20 Markdown files, 175 local links/anchors, fences, and whitespace; examples are unchanged.
-- `go test ./internal/transfer -run 'TestRepresentation|TestResume' -count=1` and `go test ./internal/transfer -run '^TestProbe' -count=1` passed outside the sandbox after localhost listeners were denied inside it. Tests cover immutable identity, strict headers/body completion, fresh fallback with changed versions, 416, exact request bounds, timeout/cancellation, and response cleanup.
-- `make check` passed for both the representation helpers and the final probe implementation: formatting, vet, all tests, race checks, and build. Sandbox restrictions on listeners/Go cache require the approved outside-sandbox environment.
-- Existing sequential HTTP and process-death tests pass, including actual killed-writer suffix recovery. New tests prove partial range refusal before network access and offline ready publication. Range fixtures use direct deterministic offset writes; concurrent workers and parallel HTTP remain unqualified.
-- Documentation audit passed: 20 Markdown files, 174 local links/anchors, 23 shell blocks, two JSON examples, one TOML example, fences, and whitespace. Both manifest examples passed checksum checks and built-CLI inspection. The original design remains unchanged; its illustrative shell placeholders are excluded from runnable-example syntax checks.
+- `go test -race ./internal/storage` and the storage `make check` passed for exclusive writers, serialized checkpoints, and context-aware finalization.
+- `go test -race ./internal/transfer ./internal/cli ./cmd/yoinkdl` passed for the worker/CLI integration. `go test ./internal/transfer -run 'TestParallel|TestWorker|TestInvalidWorker' -count=1` passed after adding cancellation-before-publication and invalid-configuration tests. Exact fixture hashes, concurrency bounds, malformed/chunked bodies, peer shutdown, checkpoint preservation, and actual CLI-process downloads are covered.
+- The final `make check` passed: formatting, vet, all tests, race checks, and build. Existing sequential process-crash resume and version-2 refusal/recovery tests pass; parallel partial resume/crash recovery remain unqualified.
+- Documentation audit passed: 20 Markdown files, 176 local links/anchors, 23 shell blocks, two JSON examples, one TOML example, fences, and whitespace. Both manifest examples passed checksum checks and built-CLI inspection; the built help lists connection limits. The original design is unchanged and its illustrative shell placeholders are excluded from runnable-example syntax checks.
 - Environment: Go 1.27.2 on Linux/amd64. HTTP tests need localhost listeners outside the sandbox. macOS native checks, Windows storage, network filesystems, and real power-loss durability remain unqualified.
 
 ## Next steps
 
-1. Implement bounded HTTP workers using `ClaimRange`, resolving worker/queue/buffer limits. Wire `probe` into fresh downloads after acquiring output ownership and consume or close its returned sequential stream. Keep version-1 resume unchanged.
-2. Serialize range checkpoints, re-fetch whole missing chunks, propagate cancellation through verification, and wire version-2 resume only after validating the stored identity remotely. Keep destination protection and refusal guarantees.
-3. Add bounded retry/backoff and define the connection/retry flag contracts. Test ignored ranges, changing versions, failed chunk replacement, cancellation, and concurrent completion.
-4. Complete focused/full gates and process-recovery evidence for parallel transfers, update this handoff, and close C before hardening in D.
+1. Implement version-2 partial resume: validate stored identity remotely before scheduling whole missing chunks; preserve saved state on mismatches, ignored ranges, and cancellation. Reuse the bounded pool without interpreting saved-byte totals as offsets.
+2. Add bounded retry/backoff and settle the retry flag contract. Test failed chunk replacement, attempt limits, status classification, and cancellation during backoff.
+3. Add parallel process-crash/resume evidence, complete focused/full gates, and close C before hardening in D.
 
 ## Open decisions and blockers
 
 No external blocker remains. Partial reuse requires a known length, identity encoding, a matching strong ETag, and exact URL fingerprints. Refreshed signed URLs, weak/unversioned/encoded partials, and old partials without manifests are refused rather than silently restarted.
 
-A full v0.1 release is not complete. Worker/queue/buffer limits, retry policy, license/distribution, native platform qualification, and remaining interfaces are tracked in [the decision register](docs/decisions.md). Split focused commits and never push.
+A full v0.1 release is not complete. Range resume, retry policy, license/distribution, native platform qualification, and remaining interfaces are tracked in [the decision register](docs/decisions.md). Split focused commits and never push.

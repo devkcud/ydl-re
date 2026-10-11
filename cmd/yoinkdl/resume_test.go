@@ -48,7 +48,7 @@ func TestProcessCrashResume(t *testing.T) {
 	defer srv.Close()
 
 	path := filepath.Join(t.TempDir(), "file")
-	cmd := command("download", srv.URL, "--output", path, "--quiet")
+	cmd := command("download", srv.URL, "--output", path, "--quiet", "--connections", "1")
 	var errOut bytes.Buffer
 	cmd.Stderr = &errOut
 

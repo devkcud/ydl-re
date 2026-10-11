@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A and B implement the commands below. Examples use the built executable from the repository root. See [getting started](getting-started.md) to build it.
+Milestones A/B and the current part of C implement the commands below. Examples use the built executable from the repository root. See [getting started](getting-started.md) to build it.
 
 ## Commands
 
@@ -30,6 +30,7 @@ Options can precede or follow the URL. Supply exactly one absolute HTTP or HTTPS
 | Option | Behavior | Default |
 |---|---|---|
 | `--output <path>`, `-o <path>` | Final output path; parent must exist | Safe filename from the original URL path, or `download`, in the current directory |
+| `--connections <n>`, `-c <n>` | Maximum active range workers, from 1 to 32; one uses a direct sequential stream | `4`, reduced to the number of chunks |
 | `--overwrite` | Allow replacing an existing regular completed file | Off |
 | `--resume` | Require existing saved transfer metadata | Compatible existing state resumes automatically without the flag |
 | `--quiet` | Suppress progress; retain errors and final output | Off |
@@ -37,6 +38,8 @@ Options can precede or follow the URL. Supply exactly one absolute HTTP or HTTPS
 | `--help`, `-h` | Display download help | Off |
 
 Timeout values use Go duration syntax, such as `30s`, `500ms`, or `2m`, and must be positive. The timeout is not a limit on total download duration. Slow transfers can continue while body reads keep making progress.
+
+Connection counts use unsigned decimal digits, with leading zeros permitted. Zero, signs, fractions, hexadecimal, overflow, and values above 32 are rejected before network or file work. Fresh transfers with more than one connection probe range support and fall back to one stream when appropriate. Existing sequential checkpoints always resume sequentially.
 
 ### Output paths and artifacts
 
@@ -55,11 +58,11 @@ Explicit output paths are resolved to absolute paths. Parent directories are not
 | Verified `ready` checkpoint | Finish publication/cleanup locally after full-checksum validation |
 | Destination appears during transfer | Default publication fails without replacing that file |
 
-Failed transfers retain nonempty partial files and their metadata. Empty newly failed transfers are cleaned up; zero-byte verified ready state remains recoverable. A persistent lock file stays after success and is not proof that a process is active.
+Failed transfers preserve useful partial state. Newly failed empty sequential transfers are cleaned up; initialized parallel state remains even with no completed chunks. Zero-byte verified ready state remains recoverable. A persistent lock file stays after success and is not proof that a process is active.
 
 ### Resume
 
-Repeat the same URL and output path to resume compatible state automatically:
+Use `--connections 1` when starting a transfer that needs the currently implemented sequential resume support. Repeat the same URL and output path to resume a compatible sequential checkpoint automatically:
 
 ```sh
 ./bin/yoinkdl download 'https://example.org/archive.zip' -o ./archive.zip
@@ -70,6 +73,8 @@ To require an existing checkpoint, add `--resume`. Without a manifest this fails
 Partial reuse requires a known length, identity encoding, a matching strong ETag, exact URL identities, valid byte bounds, and intact local checkpoint bytes. Refreshed signed URLs, changed redirects, missing validators, and ignored ranges are refused. `--overwrite` only authorizes completed-destination replacement and does not bypass these checks.
 
 Ready-state recovery may publish a fully received earlier resource version without contacting the server. See [resume and storage](resume-and-storage.md) for the precise recovery contract.
+
+Parallel partials are preserved and inspectable, but their network resume remains unimplemented. Setting `--connections 1` does not convert or discard an existing parallel checkpoint.
 
 ### Examples
 
@@ -93,7 +98,7 @@ Replace a completed file deliberately:
 
 ## Terminal output
 
-Progress and errors go to stderr. For a known size, progress shows transferred/total bytes, percentage, average rate, estimated remaining seconds, and one worker. Unknown-size transfers show bytes and rate without percentage or ETA.
+Progress and errors go to stderr. For a known size, progress shows transferred/total bytes, percentage, average rate, estimated remaining seconds, and the active worker count. Unknown-size transfers show bytes and rate without percentage or ETA. Workers reach zero before final verification/publication.
 
 Updates are throttled to about 200 ms while data arrives, with a final snapshot. Percentage includes validated saved bytes; speed counts only newly received bytes. Terminal output uses a refreshed line; redirected progress uses separate lines. There is no heartbeat while a body read is stalled; the inactivity timeout still applies.
 
@@ -130,10 +135,10 @@ These interfaces remain proposed and are rejected by the current CLI:
 
 | Addition | Intended milestone/release |
 |---|---|
-| `--connections`, `--retries` | C: bounded ranged transfers and retries |
+| `--retries` | C: bounded retries |
 | `--limit`, `--json` | D: v0.1 hardening |
 | Configuration files | Optional format still to implement and specify |
 | Queue/daemon commands | v0.2 |
 | TUI, profiles, history, optional hooks | v0.3 |
 
-The planned ranged-worker preference is four, retries are three per range with exact counting still to settle, and the rate cap defaults to unlimited. JSON event framing remains open; manifest versions 1 and 2 are documented in [storage](resume-and-storage.md). See [open decisions](decisions.md) before implementing later additions.
+The proposed retry preference is three per range with exact counting still to settle; the rate cap remains unlimited. JSON event framing remains open; manifest versions 1 and 2 are documented in [storage](resume-and-storage.md). See [open decisions](decisions.md) before implementing later additions.

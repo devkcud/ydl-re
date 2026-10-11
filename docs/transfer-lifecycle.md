@@ -4,7 +4,7 @@
 
 This page defines the lifecycle intended for v0.1. State names are conceptual; serialized state and event schemas are not frozen.
 
-Milestones A and B implement input/local-state validation, GET-based identity checks, sequential streaming or suffix resume, durable checkpoints, verification, and publication recovery. Parallel planning and retries remain planned. The manifest records `partial` or verified `ready` checkpoints; these are distinct from the conceptual runtime states below.
+Milestones A/B and the current part of C implement input/local-state validation, GET-based identity checks, sequential streaming or suffix resume, fresh parallel transfers, durable checkpoints, verification, and publication recovery. Parallel partial resume and retries remain planned. The manifest records `partial` or verified `ready` checkpoints; these are distinct from the conceptual runtime states below.
 
 ## States
 
@@ -60,7 +60,7 @@ Keep incompatible state intact. The current policy refuses mismatches without de
 
 ## 5. Transfer and checkpoint
 
-Workers fetch their assigned intervals and validate the responses before acknowledging completion. Writes must stay within owned intervals. Retryable failures return incomplete work to the scheduler without counting it twice.
+Workers fetch their assigned intervals and validate responses before acknowledging completion. Writes stay within exclusively owned intervals. Failures currently cancel the pool and preserve completed chunks; returning failed work to the scheduler belongs to the upcoming retry step.
 
 Persist only progress that recovery may safely reuse. A conservative checkpoint can omit recently received bytes; it must not claim bytes that might be missing or undurable. See [checkpoint ordering](resume-and-storage.md#checkpoint-ordering).
 

@@ -16,9 +16,11 @@ Milestones A and B and the first part of C implement the packages below. The dia
 
 `transfer.Download` is the current application entry point. Storage verifies local bytes before transfer validates remote identity; only then may it truncate uncertain tails. `storage.Inspect` reads metadata without acquiring writer ownership or contacting the server. No separate app, scheduler, configuration, or progress package is needed for this slice. Tests live beside the code, including interruption and forced-process-crash checks in `cmd/yoinkdl`.
 
-The chunk storage API provides exclusive `ClaimRange` writers with bounded offset writes and serialized `Commit`. Callers must validate each completed HTTP response before committing; closing a writer releases an incomplete attempt without acknowledging it. `FinalizeContext` checks coverage and hashes with cancellation. File closure and publication require all writers to release their claims. The current CLI still downloads sequentially and refuses partial range resume; concurrent HTTP scheduling remains to implement.
+The chunk storage API provides exclusive `ClaimRange` writers with bounded offset writes and serialized `Commit`. Workers validate each completed HTTP response before committing; closing a writer releases an incomplete attempt without acknowledging it. `FinalizeContext` checks coverage and hashes with cancellation. File closure and publication require all writers to release their claims.
 
-The internal `probe` helper returns either a selected representation or an open full-response stream for sequential fallback. It creates no storage state. The future coordinator must call it only for fresh transfers after acquiring output ownership, close any returned stream, and use that stream's own metadata. `representation.request` and `representation.validate` bind subsequent range requests to the immutable identity; worker body validation remains required.
+For fresh transfers requesting multiple connections, `Download` calls `probe` after acquiring output ownership. It starts version-2 storage and `receiveRanges` for a selected representation, or consumes/closes the returned full stream with its own metadata and sequential storage. `representation.request` and `representation.validate` bind each worker to that immutable identity.
+
+The pool has at most 32 workers, 256 queued intervals, and one 64 KiB payload buffer per worker. Progress events use a channel bounded by worker count; only the coordinator invokes callbacks. Failure cancels peers and the coordinator joins every worker before storage closes or publishes. Existing sequential resume stays on its original path; version-2 partial resume remains unimplemented.
 
 ## Component flow
 

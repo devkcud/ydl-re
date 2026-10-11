@@ -6,7 +6,7 @@ The current CLI uses built-in defaults and flags. No configuration loader exists
 
 ## Current defaults
 
-The current engine uses one stream, automatic compatible resume, no retries, no overwrite, and no rate cap. The network inactivity timeout is `30s`. Available flags are `--output`, `--overwrite`, `--resume`, `--quiet`, and `--timeout`; see [CLI](cli.md). Explicit `--resume` requires saved state rather than creating a fresh transfer.
+The engine uses up to four workers for fresh transfers with safe range support, automatic compatible sequential resume, no retries, no overwrite, and no rate cap. `--connections`/`-c` accepts 1 through 32; one selects a direct stream. The network inactivity timeout is `30s`. See [CLI](cli.md) for all flags. Explicit `--resume` requires saved state; parallel partial resume is not implemented yet.
 
 No configuration directories or files are created or read. Transfer artifacts are the partial data file, versioned JSON manifest, and persistent lock file beside the output. Temporary manifest names can remain after a crash and are never trusted for recovery.
 
@@ -92,7 +92,7 @@ The unit table explains intended semantics, not an implemented grammar. Accepted
 
 ## Validation to define
 
-Reject invalid values before starting network or file work. Worker counts need a positive range and a hard ceiling. Retry counts need an explicit relationship to total attempts. Timeout and speed values need bounded, unambiguous parsing.
+Invalid CLI values are rejected before network or file work. Worker counts already accept only decimal integers from 1 through 32; the future configuration loader must preserve that contract. Retry counts need an explicit relationship to total attempts. Speed values still need bounded, unambiguous parsing.
 
 Configuration errors should name the offending setting without exposing credentials or URL tokens. Unknown-key handling and the meaning of `resume = false` alongside existing sidecars remain open; it must never imply silent destruction of partial data.
 

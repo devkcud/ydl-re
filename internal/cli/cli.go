@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"yoinkdl/internal/storage"
@@ -28,6 +29,7 @@ const downloadUsage = `Usage: yoinkdl download <url> [options]
 Options may appear before or after the URL.
 
   -o, --output <path>      Final file path (default: safe URL filename)
+  -c, --connections <n>    Maximum workers, 1..32 (default: 4; 1 uses one stream)
       --overwrite          Replace an existing completed file
       --resume             Require a saved compatible transfer
       --quiet              Suppress progress; keep errors and final path
@@ -36,6 +38,8 @@ Options may appear before or after the URL.
 
 The output directory must already exist. Compatible saved transfers resume
 automatically; --resume requires saved state. Incompatible partials are preserved.
+Parallel partials are preserved, but their resume support is not implemented yet.
+Start with --connections 1 when you need the current sequential resume support.
 `
 
 const inspectUsage = `Usage: yoinkdl inspect <output>
@@ -161,6 +165,19 @@ func parseDownload(args []string) (transfer.Request, bool, error) {
 	fs.BoolVar(&req.Resume, "resume", false, "require existing transfer state")
 	fs.BoolVar(&quiet, "quiet", false, "suppress progress")
 	fs.DurationVar(&req.Timeout, "timeout", transfer.DefaultTimeout, "network inactivity timeout")
+	req.Connections = transfer.DefaultConnections
+	connections := func(value string) error {
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 1 || n > transfer.MaxConnections ||
+			strings.IndexFunc(value, func(r rune) bool { return r < '0' || r > '9' }) >= 0 {
+			return fmt.Errorf("connections must be a decimal integer between 1 and %d", transfer.MaxConnections)
+		}
+
+		req.Connections = n
+		return nil
+	}
+	fs.Func("connections", "maximum workers", connections)
+	fs.Func("c", "maximum workers", connections)
 
 	var options, urls []string
 

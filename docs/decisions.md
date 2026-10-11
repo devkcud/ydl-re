@@ -34,15 +34,17 @@ Resolve each decision before the milestone or interface depending on it is decla
 
 - Use half-open whole chunks with a default size of at least four MiB, enlarged to keep at most 256 chunks per representation. Persist that size with range state so resumed plans keep the same boundaries. Completed chunks must be sorted and disjoint; adjacent chunks remain separate. Zero-length objects need no tasks.
 - Use schema version 2 for range state: persist `chunk_size` and sorted `completed_ranges` with individual SHA-256 digests. Sync and validate each whole chunk before saving it. Derive saved-byte totals from coverage; a ready snapshot additionally requires a full-file digest.
-- Keep version-1 prefix reads, writes, and sequential resume unchanged, with no implicit migration. Refuse version-2 partial downloads until the parallel HTTP path exists; allow inspection and verified ready recovery for both formats. Empty range state is retained, and unacknowledged gaps never count as completed work.
+- Keep version-1 prefix reads, writes, and sequential resume unchanged, with no implicit migration. Refuse version-2 partial downloads until range resume is implemented; allow inspection and verified ready recovery for both formats. Empty range state is retained, and unacknowledged gaps never count as completed work.
 - Prove fresh range capability with a one-byte ranged GET and clean body completion. Select original/effective URL fingerprints, length, and strong ETag by value; later responses must match that identity and their exact assigned bounds.
 - Before accepting any saved/downloaded bytes, reuse an ignored-range `200` as an untouched sequential stream, or make one full GET after a valid but ineligible `206` or a `416`. Discard probe bytes and adopt the full response's own metadata. Malformed probes fail; this adds no retry loop and does not change saved-state refusal. See [fresh probing](http.md#fresh-capability-probing).
+- Use four workers by default, with a maximum of 32 and a reduction to the number of chunks. `--connections`/`-c` accepts decimal digits for 1 through 32, including leading zeros; signs, zero, fractions, hexadecimal, and overflow are refused. One connection selects a direct stream. Saved version-1 state always resumes sequentially.
+- Bound the queue to 256 intervals and allocate one 64 KiB payload buffer per worker. Storage grants exclusive incomplete-chunk writers, serializes commits, and blocks file closure/publication while claims exist. The coordinator serializes progress, cancels peers on failure, joins all workers, and verifies exact coverage before publication. Active range failures preserve state without automatic fallback or retry.
 
 ## Command and output decisions
 
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
-| C02 | Bounds and grammar for future connections, retries, and rate options | Keeps new options unambiguous; current timeout syntax/defaults are implemented | [CLI](cli.md) |
+| C02 | Bounds and grammar for retries and rate options | Connection limits and timeout contracts are implemented | [CLI](cli.md) |
 | C03 | Whether `--retries 3` means three retries after the first attempt; budgets for probes and streams | Defines bounded attempts consistently across modes | [Concurrency](concurrency.md) |
 | C05 | JSON event/result schema, framing, stream routing, `--quiet` interaction, compatibility | Makes machine output safe to script against | [CLI](cli.md) |
 | C08 | Future event schema, retry counters, and subscriber backpressure | Extends the implemented CLI snapshots for other consumers | [Concurrency](concurrency.md) |
@@ -66,7 +68,6 @@ Atomic final publication is implemented and tested locally on Linux. Windows pub
 
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
-| H05 | Worker ceiling, queue and buffer bounds | Chunk size and plan limits are implemented; runtime concurrency remains to be bounded | [Concurrency](concurrency.md) |
 | H06 | Retry allowlist, backoff/jitter bounds, `Retry-After` ceiling | Avoids infinite waits and inappropriate repeated requests | [Concurrency](concurrency.md#retries) |
 | H07 | Limiter burst size, timing tolerance, and probe/retry accounting | Gives `--limit` a measurable testable meaning | [Concurrency](concurrency.md#aggregate-rate-cap) |
 

@@ -2,11 +2,11 @@
 
 [Documentation index](README.md)
 
-Sequential HTTP(S) downloads and safe sequential resume are implemented. The HTTP layer also has a tested fresh capability probe and immutable range identity. The CLI does not invoke the probe yet; parallel workers and automatic retries remain planned.
+Fresh parallel downloads, sequential streaming, and safe sequential resume are implemented. The CLI probes range capability when more than one connection is requested. Parallel partial resume and automatic retries remain planned.
 
 ## Implemented sequential transfer
 
-Fresh transfers send a full `GET`, accept only `200`, use a 64 KiB buffer, check known body lengths, and require clean completion for unknown lengths. The engine requests identity encoding and disables transparent decompression; if the server still sends encoded content, the exact served bytes are saved and counted without decoding.
+Fresh transfers with `--connections 1` send a full `GET`, accept only `200`, use a 64 KiB buffer, check known body lengths, and require clean completion for unknown lengths. Probe fallback uses the same receiver. The engine requests identity encoding and disables transparent decompression; if the server still sends encoded content, the exact served bytes are saved and counted without decoding.
 
 The default timeout is 30 seconds per connection, TLS handshake, response-header wait, or idle body read. It is not an overall download deadline: active transfers may run longer. Cancellation closes active requests and retains nonempty partial data without publishing it.
 
@@ -32,7 +32,7 @@ The HTTP layer has a value snapshot for an eligible ranged representation: origi
 
 Conditional range requests must use the selected source identity and stay within the total length. They send identity encoding and `If-Range` with the selected ETag. Response validation requires `206`, the same ETag and effective URL, identity encoding, exact assigned bounds/total, and a matching declared payload length when present. The range-bound validator is shared with version-1 resume; zero-prefix resume still follows its existing full-response path.
 
-These identity helpers validate response headers. The capability probe separately verifies its actual body; future workers must verify their whole assigned bodies before checkpointing. The current CLI remains sequential.
+These identity helpers validate response headers. The capability probe separately verifies its actual body; workers verify their whole assigned bodies and clean completion before checkpointing.
 
 ## Fresh capability probing
 
@@ -50,7 +50,7 @@ The second full GET must return `200` without `Content-Range`. Its metadata and 
 
 The result contains either the selected representation or an open full-response stream. The coordinator must consume or close that stream, check its body completion and length, and publish only through storage. Probe and returned-stream body reads honor cancellation and the per-read inactivity timeout. A successful probe never authorizes skipping later range validation.
 
-This helper is for fresh transfers before any downloaded bytes or checkpoints are accepted. It performs no storage writes and does not apply destructive fallback to saved state. Integrating it into fresh CLI downloads belongs to the worker step. Existing version-1 requests and resume refusal remain unchanged.
+The downloader invokes this helper only for fresh transfers, after acquiring output ownership and before accepting downloaded bytes or initializing metadata. A selected range identity initializes version-2 state and the bounded pool; a returned stream uses version-1 sequential storage. Existing version-1 requests and saved-state refusal remain unchanged.
 
 ## Request and response example
 
@@ -94,7 +94,7 @@ Never let an oversized response write into a neighboring worker's interval. A sh
 
 A `200` received for a range request is not the requested interval. It may mean the server ignored ranges or a conditional range no longer matches. Do not append it at the requested offset.
 
-The current resume path refuses such a response and preserves state. The fresh capability probe can hand an untouched `200` to a sequential receiver before accepting any range bytes. Fallback after workers start still needs an explicit policy that cancels outstanding work and reconciles saved state; it cannot merely change a worker's write offset.
+Resume and active range workers refuse such a response and preserve state. The fresh capability probe can hand an untouched `200` to a sequential receiver before accepting any range bytes. Once workers start, failures cancel the pool without automatic fallback or destructive restart.
 
 A `416` requires re-probing and checking identity, size, and local coverage. It must not be treated as proof that the local file is complete. Empty resources and offsets at the end of an object need explicit tests.
 
@@ -102,7 +102,7 @@ A `416` requires re-probing and checking identity, size, and local coverage. It 
 
 HTTP permits combining partial responses when they share a strong validator. A weak ETag cannot be sent in `If-Range`. A date is eligible for `If-Range` only without an ETag and when it qualifies as a strong validator; merely having `Last-Modified` is insufficient. [RFC 9110: combining parts](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.7.3), [If-Range](https://www.rfc-editor.org/rfc/rfc9110.html#section-13.1.5).
 
-The implementation applies the resource-version invariant to resumed transfers. The future parallel engine must preserve it too. Equal URLs and lengths alone cannot prove that responses contain the same version.
+The implementation applies the resource-version invariant to sequential resume and every parallel response. Equal URLs and lengths alone cannot prove that responses contain the same version.
 
 Fresh streams may work without validators, but partial reuse requires a usable strong ETag in both stored metadata and the new response. Last-Modified is not used as a resume validator. Changed URLs or versions and unsupported range behavior are refused rather than silently restarted.
 
@@ -116,13 +116,13 @@ Without a reliable total, report bytes and speed. Successful EOF must mean the H
 
 ## Status and failure handling
 
-| Response or failure | Planned action |
+| Response or failure | Policy |
 |---|---|
 | `200` for a fresh full transfer | Stream and verify completion |
 | Valid `206` for an assigned interval | Receive and verify that interval |
-| `200` for an interval | Stop unsafe range handling; consider safe sequential fallback |
+| `200` for an interval | Refuse active ranges; the fresh probe can select an untouched full stream |
 | `416` | Re-probe; never infer completion from status alone |
-| `408`, `429`, selected `5xx`, transient network failures | Apply bounded retry policy |
+| `408`, `429`, selected `5xx`, transient network failures | Fail currently; bounded retry policy is the next scheduling feature |
 | Permanent `404` or other non-retryable failure | Fail clearly |
 | Bad range, mismatched validator, wrong length | Reject unsafe bytes and preserve only valid progress |
 

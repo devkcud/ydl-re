@@ -89,7 +89,10 @@ func TestInvalidArguments(t *testing.T) {
 		{"download", "https://example.org", "extra"},
 		{"inspect"},
 		{"inspect", "first", "second"},
-		{"download", "https://example.org", "--connections", "4"},
+		{"download", "https://example.org", "--connections", "0"},
+		{"download", "https://example.org", "--connections", "33"},
+		{"download", "https://example.org", "--connections", "+4"},
+		{"download", "https://example.org", "--connections", "0x4"},
 		{"download", "https://example.org", "--output"},
 		{"download", "https://example.org", "--output="},
 		{"download", "https://example.org", "--timeout", "0s"},
@@ -307,5 +310,56 @@ func TestInspectRangeCoverage(t *testing.T) {
 	after, err := os.ReadFile(path + storage.ManifestSuffix)
 	if err != nil || !bytes.Equal(before, after) {
 		t.Fatal("inspection changed range state")
+	}
+}
+
+func TestConnectionOptions(t *testing.T) {
+	for _, test := range []struct {
+		args []string
+		want int
+	}{
+		{nil, transfer.DefaultConnections},
+		{[]string{"-c", "1"}, 1},
+		{[]string{"--connections=32"}, 32},
+		{[]string{"--connections", "04"}, 4},
+	} {
+		req, _, err := parseDownload(append([]string{"https://example.org/file"}, test.args...))
+		if err != nil || req.Connections != test.want {
+			t.Fatalf("%v: connections = %d, error = %v", test.args, req.Connections, err)
+		}
+	}
+
+	for _, value := range []string{"", "0", "-1", "33", "+4", "0x4", "1.5", "99999999999999999999"} {
+		if _, _, err := parseDownload([]string{"https://example.org/file", "-c", value}); err == nil {
+			t.Errorf("accepted invalid connection limit %q", value)
+		}
+	}
+}
+
+func TestOneConnectionUsesDirectStream(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Range") != "" {
+			t.Error("one-connection mode sent a capability probe")
+		}
+		fmt.Fprint(w, "stream")
+	}))
+	defer srv.Close()
+	path := filepath.Join(t.TempDir(), "file")
+	var out, errOut bytes.Buffer
+	code := Run(context.Background(), []string{"download", srv.URL, "-c", "1", "-o", path, "--quiet"}, &out, &errOut, "test")
+	if code != 0 || out.String() != path+"\n" || errOut.Len() != 0 {
+		t.Fatalf("direct stream: code = %d, out = %q, error = %q", code, &out, &errOut)
+	}
+}
+
+func TestProgressWorkerCount(t *testing.T) {
+	for _, count := range []int{0, 1, 4} {
+		var out bytes.Buffer
+		p := newProgress(&out)
+		p.Update(transfer.Snapshot{Bytes: 3, Total: 10, Workers: count})
+		p.Finish()
+		if !strings.Contains(out.String(), fmt.Sprintf("%d worker", count)) {
+			t.Errorf("missing active worker count %d: %q", count, &out)
+		}
 	}
 }

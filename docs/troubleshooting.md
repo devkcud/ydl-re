@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The current CLI supports sequential downloads, safe resume, checkpoint inspection, and interrupted-publication recovery. Retries and parallel ranges remain planned.
+The CLI supports fresh parallel downloads, safe sequential resume, checkpoint inspection, and interrupted-publication recovery. Parallel partial resume and retries remain planned.
 
 ## The command or build is unavailable
 
@@ -14,9 +14,9 @@ If tests fail with a socket permission error, allow localhost listeners in the t
 
 | Situation | Expected explanation | Useful next step |
 |---|---|---|
-| Only one worker is active | The current engine transfers one sequential stream or resumed suffix | Parallel range workers are a later milestone |
+| Only one worker is active | The file needs one chunk, the probe selected a stream, a sequential checkpoint is resuming, or the limit is one | More workers require enough chunks and validated range support |
 | Percentage or ETA is absent | The server did not provide a reliable total | Use transferred bytes and speed; wait for verified completion |
-| Speed is low | The server, network, proxy, or disk can limit a single stream | Check those resources; there is no implemented rate cap or worker-count option yet |
+| Speed is low | The server, network, proxy, or disk can limit transfer speed | Check those resources and the active worker count; more connections are not always faster |
 | `404` | The resource is unavailable at that URL | Verify the direct file URL; blind retries should not continue |
 | `429` or transient `503` | The server is limiting or temporarily unable to serve requests | Retry later; automatic retries are not implemented |
 | Short body or wrong length | The response cannot establish a complete file | Retry the same URL/path to resume when identity permits, or choose a fresh path if state is incompatible |
@@ -26,7 +26,7 @@ An HTTP success status does not necessarily mean the server sent the file the us
 
 ## A transfer will not resume
 
-Run `yoinkdl inspect <output>` to see saved metadata. Resume is automatic for compatible state; `--resume` requires an existing manifest. Use the same original URL and output path and retain both the partial and manifest.
+Run `yoinkdl inspect <output>` to see saved metadata. Resume is automatic for compatible sequential state; `--resume` requires an existing manifest. Use the same original URL and output path and retain both the partial and manifest. Parallel partial resume is the next implementation step; start a new transfer with `--connections 1` when current resume support is required.
 
 Reasons for refusal include:
 
@@ -54,7 +54,7 @@ If another writer is active, stop or wait for that process through its normal li
 
 ## A partial remains after a crash
 
-A crash may leave bytes beyond the last checkpoint. The CLI verifies the checkpoint's prefix checksum, validates the server response, and then discards only the unconfirmed tail before continuing. This can make resumed progress lower than the last display. Hashing a large saved prefix can take time before network progress begins.
+A crash may leave bytes beyond the last sequential checkpoint or in incomplete parallel chunks. Sequential recovery verifies the prefix checksum and remote response before discarding only the unconfirmed tail. Parallel state is retained and verified locally, but partial network resume is not yet supported. Displayed progress can lead saved progress, and local checksum verification can take time.
 
 A Milestone A partial without a manifest cannot be trusted or imported automatically. Choose another output path or deliberately abandon it when no process is active.
 

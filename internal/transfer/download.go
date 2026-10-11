@@ -12,20 +12,24 @@ import (
 )
 
 const DefaultTimeout = 30 * time.Second
+const DefaultConnections = 4
+const MaxConnections = 32
 const bufferSize = 64 * 1024
 
 type Request struct {
-	URL       string
-	Output    string
-	Overwrite bool
-	Resume    bool
-	Timeout   time.Duration
+	URL         string
+	Output      string
+	Overwrite   bool
+	Resume      bool
+	Timeout     time.Duration
+	Connections int
 }
 
 type Snapshot struct {
 	Bytes   int64
 	Total   int64
 	Resumed int64
+	Workers int
 }
 
 type Result struct {
@@ -48,6 +52,14 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 
 	if req.Timeout == 0 {
 		req.Timeout = DefaultTimeout
+	}
+
+	if req.Connections < 0 || req.Connections > MaxConnections {
+		return result, fmt.Errorf("connections must be between 1 and %d", MaxConnections)
+	}
+
+	if req.Connections == 0 {
+		req.Connections = DefaultConnections
 	}
 
 	if req.Output == "" {
@@ -88,7 +100,7 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 				return result, err
 			}
 
-			return result, f.Finalize()
+			return result, f.FinalizeContext(ctx)
 		}
 
 		if m.Version == storage.RangeManifestVersion {
@@ -121,7 +133,34 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 
 	client := newClient(req.Timeout)
 	defer client.CloseIdleConnections()
-	resp, err := client.Do(request)
+	var resp *http.Response
+	if !saved && req.Connections > 1 {
+		plan, probeErr := probe(ctx, client, u, req.Timeout)
+		if probeErr != nil {
+			return result, probeErr
+		}
+
+		if plan.stream == nil {
+			if err := ctx.Err(); err != nil {
+				return result, err
+			}
+
+			if err := f.BeginRanges(plan.identity.metadata()); err != nil {
+				return result, err
+			}
+
+			result.Bytes, err = receiveRanges(ctx, client, u, plan.identity, f, req.Connections, req.Timeout, progress)
+			if err != nil {
+				return result, err
+			}
+
+			return result, f.FinalizeContext(ctx)
+		}
+
+		resp = plan.stream
+	} else {
+		resp, err = client.Do(request)
+	}
 	if err != nil {
 		if cause := context.Cause(ctx); cause != nil {
 			return result, cause
@@ -163,7 +202,7 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 	}
 
 	if progress != nil {
-		progress(Snapshot{Bytes: result.Bytes, Total: m.Length, Resumed: result.Resumed})
+		progress(Snapshot{Bytes: result.Bytes, Total: m.Length, Resumed: result.Resumed, Workers: 1})
 	}
 
 	timer := time.AfterFunc(req.Timeout, func() {
@@ -197,7 +236,7 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 			}
 
 			if progress != nil {
-				progress(Snapshot{Bytes: result.Bytes, Total: m.Length, Resumed: result.Resumed})
+				progress(Snapshot{Bytes: result.Bytes, Total: m.Length, Resumed: result.Resumed, Workers: 1})
 			}
 		}
 
@@ -218,7 +257,11 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 		return result, fmt.Errorf("incomplete response: received %d of %d bytes", result.Bytes, m.Length)
 	}
 
-	if err := f.Finalize(); err != nil {
+	if progress != nil {
+		progress(Snapshot{Bytes: result.Bytes, Total: m.Length, Resumed: result.Resumed})
+	}
+
+	if err := f.FinalizeContext(ctx); err != nil {
 		return result, err
 	}
 

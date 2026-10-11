@@ -355,7 +355,7 @@ func interruptDownload(t *testing.T, url string) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := Download(ctx, Request{URL: url, Output: path}, func(s Snapshot) {
+	_, err := Download(ctx, Request{URL: url, Output: path, Connections: 1}, func(s Snapshot) {
 		if s.Bytes > 0 {
 			cancel()
 		}

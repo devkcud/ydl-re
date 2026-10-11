@@ -63,7 +63,11 @@ func (p *progress) render() {
 	if elapsed := time.Since(p.start).Seconds(); elapsed > 0 {
 		rate = float64(s.Bytes-s.Resumed) / elapsed
 	}
-	line := fmt.Sprintf("%s | %s/s | 1 worker", size(float64(s.Bytes)), size(rate))
+	workers := fmt.Sprintf("%d workers", s.Workers)
+	if s.Workers == 1 {
+		workers = "1 worker"
+	}
+	line := fmt.Sprintf("%s | %s/s | %s", size(float64(s.Bytes)), size(rate), workers)
 
 	if s.Total >= 0 {
 		percent := 100.0
@@ -78,8 +82,8 @@ func (p *progress) render() {
 			eta = fmt.Sprintf("%.0fs", seconds)
 		}
 
-		line = fmt.Sprintf("%s / %s (%.1f%%) | %s/s | ETA %s | 1 worker",
-			size(float64(s.Bytes)), size(float64(s.Total)), percent, size(rate), eta)
+		line = fmt.Sprintf("%s / %s (%.1f%%) | %s/s | ETA %s | %s",
+			size(float64(s.Bytes)), size(float64(s.Total)), percent, size(rate), eta, workers)
 	}
 
 	if p.inline {

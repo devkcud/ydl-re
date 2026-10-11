@@ -20,16 +20,18 @@ Milestones A and B and the current Milestone C foundation have executable tests 
 | [Representation identity](../internal/transfer/representation_test.go) | Immutable metadata snapshots, conditional requests, source/version/redirect consistency, exact range bounds, unknown totals, maximum offsets |
 | [Capability probe](../internal/transfer/probe_test.go) | Validated one-byte GETs, ignored ranges, safe full-stream fallback, ineligible validators/encoding/length, 416 re-probing, malformed bodies, subsequent version changes |
 | [Probe lifecycle](../internal/transfer/probe_lifecycle_test.go) | Header/body/completion timeouts, cancellation, request cleanup, bounded reads, fallback body ownership |
+| [HTTP workers](../internal/transfer/workers_test.go) | Exact parallel fixture hashes, configured/default concurrency, chunked bodies, serialized progress, failure preservation, peer cancellation, invalid settings, cancellation before publication |
 | [Resume](../internal/transfer/resume_test.go) | Automatic/explicit/chunked/zero-prefix resume; mismatched identities, bounds, and validators; unchanged-artifact refusal; 416 re-probing; offline ready recovery |
 | [CLI](../internal/cli/cli_test.go) | Argument ordering, invalid options, help/version, progress, quiet output, overwrite, error codes |
 | [Process](../cmd/yoinkdl/main_test.go) | Entry point, successful download, real SIGINT with retained partial bytes and no final output |
 | [Crash recovery](../cmd/yoinkdl/resume_test.go) | Kill a process after a durable checkpoint, inspect its state, resume in another process, and verify the complete fixture hash |
+| [Parallel process](../cmd/yoinkdl/parallel_test.go) | Actual CLI process, connection flag, conditional range requests, and complete fixture checksum |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
 The built executable also passed a workspace-filesystem smoke test: interrupt, inspect the saved checkpoint, resume from 128 KiB, verify the complete fixture hash, and confirm that URL tokens were absent from metadata.
 
-Parallel HTTP transfers, retries, caps, real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Probe tests exercise the internal HTTP API; the CLI still downloads sequentially. Storage tests exercise concurrent exclusive writers and checkpoint serialization; HTTP scheduling remains unqualified. Publication-boundary recovery is exercised with controlled ready/link/rename states; that is not a real power-loss test.
+Parallel partial resume, parallel process-crash recovery, retries, caps, real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Fresh parallel transfers, bounded scheduling, concurrent offset writers, and checkpoint serialization have executable tests. Publication-boundary recovery uses controlled ready/link/rename states; it is not a real power-loss test.
 
 ## Test layers
 

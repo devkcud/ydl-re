@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The repository contains the Milestone A/B CLI, HTTP resume engine, persistent storage layer, and the first Milestone C range planning/checkpoint work. Read [AGENTS.md](../AGENTS.md) and the current handoff in [STATUS.md](../STATUS.md) before making changes.
+The repository contains the Milestone A/B CLI, sequential resume, persistent storage, and Milestone C fresh parallel transfers. Read [AGENTS.md](../AGENTS.md) and the current handoff in [STATUS.md](../STATUS.md) before making changes.
 
 ## Current checkout
 

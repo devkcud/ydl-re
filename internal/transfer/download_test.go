@@ -45,7 +45,7 @@ func TestDownload(t *testing.T) {
 			}
 
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Header.Get("Accept-Encoding") != "identity" || r.Header.Get("Range") != "" {
+				if r.Header.Get("Accept-Encoding") != "identity" || r.Header.Get("Range") != "bytes=0-0" {
 					t.Error("unexpected representation or range request")
 				}
 

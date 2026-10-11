@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The current engine uses one sequential stream with cancellation, progress, and validated suffix resume. The range planner is implemented; parallel range workers, retries, and the limiter are not implemented yet.
+Fresh transfers use bounded range workers after a validated capability probe, with safe sequential fallback before range state begins. Sequential suffix resume remains supported; parallel resume, retries, and the limiter are not implemented yet.
 
 ## Range planning
 
@@ -21,15 +21,17 @@ This is an arithmetic example. The production chunk size is the larger of four M
 
 Completed intervals must be sorted, disjoint, and match whole chunks in the original plan, including a shorter final chunk. Adjacent completed chunks remain separate. Duplicate, overlapping, partial, merged, reversed, or out-of-bounds intervals are refused. Resume subtracts these validated chunks without changing their boundaries. HTTP headers convert the exclusive end to `end - 1` only at the request boundary.
 
-The planner tests exact coverage, every completion subset of small fixtures, malformed coverage, and offsets through the maximum signed 64-bit length. The plan bounds metadata, not worker concurrency; the worker ceiling, queue, and buffer policy remain open. Very large files use larger chunks and may need to re-fetch more uncheckpointed data after interruption.
+The planner tests exact coverage, every completion subset of small fixtures, malformed coverage, and offsets through the maximum signed 64-bit length. Very large files use larger chunks and may need to re-fetch more uncheckpointed data after interruption.
 
 ## Bounded workers
 
-The proposed default is four workers, bounded by the request and object size. A worker owns one interval at a time and writes only within it, using offset writes such as `WriteAt` when appropriate.
+The default is four workers, with `--connections`/`-c` accepting 1 through 32. Active workers are reduced to the number of planned chunks. One connection selects a direct sequential transfer without a capability probe. Existing version-1 checkpoints always use their sequential resume path.
 
-Bound active requests, buffers, queued work, and retry activity. A retry must go through the same scheduler limits. More connections may reduce performance or trigger server limits; maximum throughput is secondary to correctness.
+`internal/transfer/workers.go` starts only the bounded worker pool and a completion waiter. The task queue contains at most 256 intervals; no goroutine is created per chunk. Each worker owns one 64 KiB payload buffer, so their total is at most two MiB, excluding HTTP transport and hashing overhead. A worker keeps its slot through response validation and checkpointing.
 
-Data writes can target disjoint regions concurrently. Updates to coverage, counters, failure state, and checkpoints still need synchronization. Do not let a failed interval re-enter the queue while another worker still owns it.
+Each response must match the selected representation and assigned interval before acquiring a storage writer. Writes cannot leave that interval. Only exact body completion with clean EOF can commit the chunk. Storage serializes sync, checksum verification, and checkpoint publication; failed attempts release ownership without acknowledging bytes.
+
+The first failure cancels peer requests and stops admitting tasks. The coordinator drains progress and waits for all workers and writer claims to finish before returning. A worker `416` is re-probed and refused. No automatic fallback or retry occurs once range state exists. Progress callbacks are serialized through a channel bounded by the worker count, applying backpressure without unbounded events.
 
 ## Retries
 
@@ -77,7 +79,7 @@ Track useful completed or reliably received bytes without double-counting retrie
 
 Show speed and ETA only as advisory estimates. Suppress total percentage and ETA when total length is unknown. Report the active worker count rather than implying the configured maximum is always in use.
 
-The current CLI renders snapshots at most every 200 ms while data arrives, plus a final snapshot. Percentage includes validated saved bytes; average speed counts only bytes received during the current attempt, starting after local validation. Retry accounting, a durable event schema, and slow-subscriber behavior still need a contract for later consumers. Coverage and final verification remain the authority for completion.
+The CLI renders snapshots at most every 200 ms while data arrives, plus a final snapshot. Percentage includes validated saved bytes; average speed counts only bytes received during the current attempt, excluding the capability probe. Worker counts reflect active chunk processing and reach zero before final verification. Retry accounting and a durable event schema remain future contracts. Coverage and final verification remain the authority for completion.
 
 ## Deferred tuning
 

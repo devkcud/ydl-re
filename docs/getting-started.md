@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A and B provide a working sequential download CLI with safe resume and local inspection. Parallel transfers are still planned.
+The CLI supports fresh parallel downloads, sequential transfers with safe resume, and local checkpoint inspection. Parallel partial resume and retries remain planned.
 
 ## Build locally
 
@@ -45,9 +45,11 @@ mkdir -p downloads
 
 The CLI does not create missing parent directories. Quote URLs, especially when they contain query parameters.
 
+Downloads use up to four workers when safe ranges are supported. Choose a limit from 1 to 32 with `--connections` or `-c`. Starting with `--connections 1` uses a direct sequential stream and the currently implemented resume path.
+
 ## Read progress and results
 
-Known-size downloads show bytes, percentage, average speed, ETA, and one worker. Unknown-size downloads show bytes and speed. Progress goes to stderr; success prints the absolute final path to stdout.
+Known-size downloads show bytes, percentage, average speed, ETA, and active workers. Unknown-size downloads show bytes and speed. Progress goes to stderr; success prints the absolute final path to stdout.
 
 Use quiet mode for less terminal output:
 
@@ -65,7 +67,7 @@ Active downloads may take longer than that timeout overall.
 
 ## Interrupt a transfer
 
-Press Ctrl+C. The process cancels the request, saves safe progress, closes received data, and reports the retained partial file. Interruption exits with status `130` and does not publish an incomplete output.
+Press Ctrl+C. The process cancels requests, waits for workers to stop, preserves safe checkpoints, and reports the retained partial file. Interruption exits with status `130` and does not publish an incomplete output. Parallel transfers checkpoint only complete validated chunks.
 
 A typical retained artifact is:
 
@@ -75,7 +77,7 @@ archive.zip.yoinkdl.json
 archive.zip.yoinkdl.lock
 ```
 
-Repeat the same URL and output to resume compatible state automatically, or require a saved transfer explicitly:
+For compatible sequential checkpoints, repeat the same URL and output to resume automatically, or require saved state explicitly:
 
 ```sh
 ./bin/yoinkdl download 'https://example.org/archive.zip' -o ./archive.zip --resume
@@ -83,6 +85,8 @@ Repeat the same URL and output to resume compatible state automatically, or requ
 ```
 
 Resume requires a known total, identity encoding, a matching strong ETag, and valid local state. Inspection only shows saved metadata; the download performs the checks before reuse. Servers without safe validators/ranges and legacy partials without a manifest cannot resume.
+
+Parallel partial checkpoints remain preserved and inspectable, but their network resume is not implemented yet. Use `--connections 1` from the start when the transfer needs resume support in this development build. That flag does not convert existing parallel state.
 
 After a crash, the last validated checkpoint may be behind displayed progress. Recovery hashes the saved prefix before network reuse, which can take time for a large file, and re-fetches uncertain bytes. A lock file can remain after process death or success; the OS releases ownership automatically, so do not delete a lock merely because its file remains.
 
@@ -98,7 +102,7 @@ This allows replacing an existing regular file after the transfer verifies succe
 
 ## Current limits
 
-The engine uses one stream and no automatic retries. `--connections`, `--retries`, `--limit`, and `--json` are not available yet. Configuration files are not loaded.
+Parallel partial resume and automatic retries remain unimplemented. `--retries`, `--limit`, and `--json` are not available yet. Configuration files are not loaded.
 
 The engine asks for identity encoding and saves the exact bytes the server returns. If the server still applies content encoding, those bytes are preserved without transparent decoding. Unknown-length completion can establish clean HTTP completion, not the publisher's intended size without additional metadata.
 
