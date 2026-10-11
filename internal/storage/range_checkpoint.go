@@ -14,6 +14,9 @@ import (
 )
 
 func (f *File) BeginRanges(m Manifest) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	if f.manifest != nil || f.written != 0 || f.file == nil || (m.Version != 0 && m.Version != RangeManifestVersion) {
 		return errors.New("cannot initialize range state for an existing transfer")
 	}
@@ -51,6 +54,17 @@ func (f *File) BeginRanges(m Manifest) error {
 }
 
 func (f *File) CheckpointRange(ctx context.Context, chunk Chunk) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	if f.writers[chunk.Start] != nil {
+		return errors.New("chunk still belongs to an active range writer")
+	}
+
+	return f.checkpointRange(ctx, chunk)
+}
+
+func (f *File) checkpointRange(ctx context.Context, chunk Chunk) error {
 	if !f.active || f.file == nil || f.manifest == nil ||
 		f.manifest.Version != RangeManifestVersion || f.manifest.State != StatePartial {
 		return errors.New("range transfer is not active")
@@ -94,6 +108,9 @@ func (f *File) CheckpointRange(ctx context.Context, chunk Chunk) error {
 }
 
 func (f *File) ContinueRanges() error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	if f.manifest == nil || f.manifest.Version != RangeManifestVersion || f.manifest.State != StatePartial || f.file == nil {
 		return errors.New("saved transfer cannot resume as ranges")
 	}
@@ -106,7 +123,7 @@ func (f *File) ContinueRanges() error {
 	return nil
 }
 
-func (f *File) prepareRanges() error {
+func (f *File) prepareRanges(ctx context.Context) error {
 	m := f.manifest.clone()
 	if !f.active || m.Completed != m.Length {
 		return errors.New("cannot publish incomplete range coverage")
@@ -125,11 +142,11 @@ func (f *File) prepareRanges() error {
 		return errors.New("range file size does not match the representation")
 	}
 
-	if err := f.verifyRanges(context.Background(), m); err != nil {
+	if err := f.verifyRanges(ctx, m); err != nil {
 		return err
 	}
 
-	m.Checksum, err = f.hashSpan(context.Background(), ranges.Span{End: m.Length})
+	m.Checksum, err = f.hashSpan(ctx, ranges.Span{End: m.Length})
 	if err != nil {
 		return err
 	}

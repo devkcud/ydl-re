@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 )
@@ -19,6 +20,8 @@ const LockSuffix = ".yoinkdl.lock"
 const TempPrefix = ".yoinkdl.tmp-"
 
 type File struct {
+	mu        sync.Mutex
+	writers   map[int64]*RangeWriter
 	root      *os.Root
 	file      *os.File
 	lock      *os.File
@@ -159,6 +162,9 @@ func (f *File) Published() bool {
 }
 
 func (f *File) Metadata() (Manifest, bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	if f.manifest == nil {
 		return Manifest{}, false
 	}
@@ -167,6 +173,9 @@ func (f *File) Metadata() (Manifest, bool) {
 }
 
 func (f *File) Write(data []byte) (int, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	if f.file == nil {
 		return 0, os.ErrClosed
 	}
@@ -189,18 +198,29 @@ func (f *File) Write(data []byte) (int, error) {
 	}
 
 	if err == nil {
-		err = f.Checkpoint(false)
+		err = f.checkpoint(false)
 	}
 
 	return n, err
 }
 
 func (f *File) Finalize() error {
+	return f.FinalizeContext(context.Background())
+}
+
+func (f *File) FinalizeContext(ctx context.Context) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	if f.file == nil {
 		return os.ErrClosed
 	}
 
-	if err := f.prepare(); err != nil {
+	if err := f.prepareContext(ctx); err != nil {
+		return err
+	}
+
+	if err := ctx.Err(); err != nil {
 		return err
 	}
 
@@ -266,6 +286,13 @@ func (f *File) Finalize() error {
 }
 
 func (f *File) Close() error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	if len(f.writers) > 0 {
+		return errors.New("cannot close a transfer with active range writers")
+	}
+
 	if f.root == nil {
 		return nil
 	}
@@ -273,7 +300,7 @@ func (f *File) Close() error {
 	var err error
 
 	if f.file != nil {
-		err = f.Checkpoint(true)
+		err = f.checkpoint(true)
 
 		if f.written > 0 {
 			err = errors.Join(err, f.file.Sync())

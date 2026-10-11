@@ -6,13 +6,14 @@ Updated: October 10, 2026.
 
 Milestones A and B are implemented and pass local Linux checks. The built CLI supports sequential HTTP(S) downloads, automatic compatible resume, explicit `--resume`, read-only `inspect`, progress, cancellation, overwrite protection, and network inactivity timeouts.
 
-Milestone C is active. Bounded range planning, version-2 chunk persistence, fresh capability probing, and immutable representation validation are implemented. The CLI remains sequential: probe integration, parallel workers, retries, bandwidth caps, JSON events, configuration loading, and release tooling remain. Go 1.27 and the standard library are still the only runtime development requirements.
+Milestone C is active. Range planning, version-2 checkpoints, exclusive bounded offset writers, fresh capability probing, and immutable representation validation are implemented. The CLI remains sequential: probe integration, HTTP workers, retries, bandwidth caps, JSON events, configuration loading, and release tooling remain. Go 1.27 and the standard library are still the only runtime development requirements.
 
 ## Handoff
 
 - `internal/ranges` plans at most 256 fixed half-open chunks, defaulting to at least four MiB each. It validates sorted whole-chunk coverage, subtracts completed work, and converts HTTP endpoints without overflow. Empty plans contain no tasks. Large files use larger chunks and can lose more uncheckpointed work on interruption.
 - `internal/storage/manifest.go` and `range_manifest.go` read distinct strict schemas. Version 1 keeps `completed = n` as prefix `[0, n)` with its digest. Version 2 stores `chunk_size` and `completed_ranges` with per-chunk digests; saved-byte totals are derived, never resume offsets. No implicit schema conversion occurs. URL identities remain hashed.
-- `range_checkpoint.go` provides `BeginRanges`, `ContinueRanges`, and `CheckpointRange`. The caller must validate complete HTTP responses and serialize checkpoint/lifecycle calls. Storage syncs and hashes each chunk before publishing metadata, preserves unacknowledged gaps, and verifies exact coverage plus a full-file hash before ready publication. Worker offset APIs and cancellation during final range verification remain to implement.
+- `range_writer.go` adds `ClaimRange` and bounded `RangeWriter` writes. Active/completed chunks cannot be claimed again; stale writers cannot write after release. `Commit` serializes sync/hash/checkpoint publication and releases the claim only after success. Call it only after validating clean HTTP completion; `Close` releases failed attempts without acknowledging them. File close/publication refuses active writers.
+- `range_checkpoint.go` retains explicit v2 initialization/recovery and verified checkpoints. `FinalizeContext` checks cancellation during range hashes and before publication; OS sync remains non-interruptible. Existing version-1 APIs and ready recovery stay compatible.
 - Version-1 checkpoint timing and resume behavior remain unchanged: sync before saving after four MiB/one second and on normal interruption; truncate unconfirmed tails only after a compatible response. Range checkpoints acknowledge whole chunks only, and retain initialized state even with zero saved bytes.
 - Stable `.yoinkdl.lock` inodes hold nonblocking advisory locks. Process death releases ownership, so do not unlink lock files for stale-owner recovery. Orphan temporary manifests are ignored.
 - `internal/transfer/resume.go` validates echoed strong ETags, identity encoding, source/effective URL fingerprints, exact range bounds, and lengths before reuse. Changed/unsupported responses preserve existing artifacts. A 416 is re-probed and refused.
@@ -24,6 +25,7 @@ Milestone C is active. Bounded range planning, version-2 chunk persistence, fres
 
 ## Validation
 
+- `go test -race ./internal/storage` and `make check` passed for exclusive range writers, concurrent checkpoint serialization, and context-aware finalization. Documentation checks passed for 20 Markdown files, 175 local links/anchors, fences, and whitespace; examples are unchanged.
 - `go test ./internal/transfer -run 'TestRepresentation|TestResume' -count=1` and `go test ./internal/transfer -run '^TestProbe' -count=1` passed outside the sandbox after localhost listeners were denied inside it. Tests cover immutable identity, strict headers/body completion, fresh fallback with changed versions, 416, exact request bounds, timeout/cancellation, and response cleanup.
 - `make check` passed for both the representation helpers and the final probe implementation: formatting, vet, all tests, race checks, and build. Sandbox restrictions on listeners/Go cache require the approved outside-sandbox environment.
 - Existing sequential HTTP and process-death tests pass, including actual killed-writer suffix recovery. New tests prove partial range refusal before network access and offline ready publication. Range fixtures use direct deterministic offset writes; concurrent workers and parallel HTTP remain unqualified.
@@ -32,7 +34,7 @@ Milestone C is active. Bounded range planning, version-2 chunk persistence, fres
 
 ## Next steps
 
-1. Implement bounded workers with exclusive chunk ownership and offset writes, resolving worker/queue/buffer limits. Wire `probe` into fresh downloads after acquiring output ownership and consume or close its returned sequential stream. Keep version-1 resume unchanged.
+1. Implement bounded HTTP workers using `ClaimRange`, resolving worker/queue/buffer limits. Wire `probe` into fresh downloads after acquiring output ownership and consume or close its returned sequential stream. Keep version-1 resume unchanged.
 2. Serialize range checkpoints, re-fetch whole missing chunks, propagate cancellation through verification, and wire version-2 resume only after validating the stored identity remotely. Keep destination protection and refusal guarantees.
 3. Add bounded retry/backoff and define the connection/retry flag contracts. Test ignored ranges, changing versions, failed chunk replacement, cancellation, and concurrent completion.
 4. Complete focused/full gates and process-recovery evidence for parallel transfers, update this handoff, and close C before hardening in D.

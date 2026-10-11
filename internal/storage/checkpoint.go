@@ -15,6 +15,9 @@ const CheckpointBytes = 4 * 1024 * 1024
 const checkpointInterval = time.Second
 
 func (f *File) Begin(m Manifest) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	if f.manifest != nil || f.written != 0 || f.file == nil ||
 		(m.Version != 0 && m.Version != ManifestVersion) || m.ChunkSize != 0 || m.Ranges != nil {
 		return errors.New("cannot initialize an existing transfer")
@@ -41,6 +44,9 @@ func (f *File) Begin(m Manifest) error {
 }
 
 func (f *File) Continue() error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	if f.manifest == nil || f.manifest.Version != ManifestVersion || f.manifest.State != StatePartial ||
 		!f.manifest.Resumable() || f.file == nil {
 		return errors.New("saved transfer cannot resume")
@@ -64,6 +70,12 @@ func (f *File) Continue() error {
 }
 
 func (f *File) Checkpoint(force bool) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.checkpoint(force)
+}
+
+func (f *File) checkpoint(force bool) error {
 	if !f.active || f.manifest == nil || f.manifest.Version != ManifestVersion ||
 		f.manifest.State == StateReady || f.written == f.manifest.Completed {
 		return nil
@@ -98,6 +110,18 @@ func (f *File) Checkpoint(force bool) error {
 }
 
 func (f *File) prepare() error {
+	return f.prepareContext(context.Background())
+}
+
+func (f *File) prepareContext(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	if len(f.writers) > 0 {
+		return errors.New("cannot publish a transfer with active range writers")
+	}
+
 	if err := f.file.Sync(); err != nil {
 		return fmt.Errorf("sync partial file: %w", err)
 	}
@@ -107,7 +131,7 @@ func (f *File) prepare() error {
 	}
 
 	if f.manifest.Version == RangeManifestVersion {
-		return f.prepareRanges()
+		return f.prepareRanges(ctx)
 	}
 
 	if !f.active || (f.manifest.Length >= 0 && f.written != f.manifest.Length) {
