@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A and B and the current Milestone C foundation have executable tests on Go 1.27.2, Linux/amd64. The full matrix below also covers later work and must not be read as fully implemented.
+Milestones A, B, and C pass the local full gate on Go 1.27.2, Linux/amd64. The matrix below also covers hardening/release work and must not be read as fully implemented.
 
 ## Current evidence
 
@@ -23,11 +23,14 @@ Milestones A and B and the current Milestone C foundation have executable tests 
 | [HTTP workers](../internal/transfer/workers_test.go) | Exact parallel fixture hashes, configured/default concurrency, chunked bodies, serialized progress, failure preservation, peer cancellation, invalid settings, cancellation before publication |
 | [Resume](../internal/transfer/resume_test.go) | Automatic/explicit/chunked/zero-prefix resume; mismatched identities, bounds, and validators; unchanged-artifact refusal; 416 re-probing; offline ready recovery |
 | [Range resume](../internal/transfer/range_resume_test.go) | Disjoint/empty/full coverage, conditional validation, whole missing chunks, changed identity/bounds, unchanged-artifact refusal, cancellation, interrupted-attempt replacement, one-worker resume |
+| [Retry policy](../internal/transfer/retry_test.go) | Attempt bounds, status/network classification, jitter bounds, Retry-After parsing/ceiling, cancellation, cloning, cleanup, and secret redaction |
+| [Retry integration](../internal/transfer/retry_integration_test.go) | Whole-chunk replacement, shared header/body budgets, progress rollback, terminal integrity/storage errors, new timeout contexts, bounded workers during backoff, fallback budgets, sequential resume setup |
 | [CLI](../internal/cli/cli_test.go) | Argument ordering, invalid options, help/version, progress, quiet output, overwrite, error codes |
 | [Process](../cmd/yoinkdl/main_test.go) | Entry point, successful download, real SIGINT with retained partial bytes and no final output |
 | [Crash recovery](../cmd/yoinkdl/resume_test.go) | Kill a process after a durable checkpoint, inspect its state, resume in another process, and verify the complete fixture hash |
 | [Parallel process](../cmd/yoinkdl/parallel_test.go) | Actual CLI process, connection flag, conditional range requests, and complete fixture checksum |
 | [Parallel crash recovery](../cmd/yoinkdl/range_resume_test.go) | Kill with disjoint completed chunks and wrong unconfirmed bytes, restart with a different worker limit, fetch only whole missing chunks, verify final hash and cleanup |
+| [Retry process](../cmd/yoinkdl/retry_test.go) | Actual CLI default of three additional attempts, explicit one-retry budgets, zero disabling retries, and exact output |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
@@ -35,7 +38,7 @@ The built executable also passed a workspace-filesystem smoke test: interrupt, i
 
 The parallel crash test waits for two disjoint chunk checkpoints and unconfirmed bytes in both gaps, then forcibly kills the writer. A new process revalidates the saved identity, uses two workers instead of four, replaces only the missing chunks, and produces the exact fixture hash. The partial already has the full logical file length, so the test also rejects size-based completion shortcuts. Saved metadata contains no raw URL tokens.
 
-Retries, caps, real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Fresh/resumed parallel transfers, bounded scheduling, concurrent offset writers, and checkpoint serialization have executable tests. Process termination is not a real power-loss test; publication-boundary recovery also uses controlled ready/link/rename states.
+Caps, real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Fresh/resumed parallel transfers, bounded retries, concurrent offset writers, and checkpoint serialization have executable tests. Retry unit/integration fixtures substitute controlled waits where timing itself is not under test; CLI process checks exercise real backoff. Process termination is not a real power-loss test; publication-boundary recovery also uses controlled ready/link/rename states.
 
 ## Test layers
 

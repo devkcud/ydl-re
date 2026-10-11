@@ -23,6 +23,7 @@ type Request struct {
 	Resume      bool
 	Timeout     time.Duration
 	Connections int
+	Retries     *int
 }
 
 type Snapshot struct {
@@ -61,6 +62,17 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 	if req.Connections == 0 {
 		req.Connections = DefaultConnections
 	}
+
+	retries := DefaultRetries
+	if req.Retries != nil {
+		retries = *req.Retries
+	}
+
+	if retries < 0 || retries > MaxRetries {
+		return result, fmt.Errorf("retries must be between 0 and %d", MaxRetries)
+	}
+
+	policy := retryPolicy{limit: retries}
 
 	if req.Output == "" {
 		req.Output = filename(u)
@@ -114,7 +126,7 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 	defer client.CloseIdleConnections()
 
 	if saved && m.Version == storage.RangeManifestVersion {
-		id, err := validateRangeResume(ctx, client, u, m, req.Timeout)
+		id, err := validateRangeResume(ctx, client, u, m, req.Timeout, policy)
 		if err != nil {
 			return result, err
 		}
@@ -128,7 +140,7 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 		}
 
 		result.Resumed = m.Completed
-		result.Bytes, err = receiveRanges(ctx, client, u, id, f, req.Connections, req.Timeout, progress)
+		result.Bytes, err = receiveRanges(ctx, client, u, id, f, req.Connections, req.Timeout, policy, progress)
 		if err != nil {
 			return result, err
 		}
@@ -155,7 +167,7 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 
 	var resp *http.Response
 	if !saved && req.Connections > 1 {
-		plan, probeErr := probe(ctx, client, u, req.Timeout)
+		plan, probeErr := probe(ctx, client, u, req.Timeout, policy)
 		if probeErr != nil {
 			return result, probeErr
 		}
@@ -169,7 +181,7 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 				return result, err
 			}
 
-			result.Bytes, err = receiveRanges(ctx, client, u, plan.identity, f, req.Connections, req.Timeout, progress)
+			result.Bytes, err = receiveRanges(ctx, client, u, plan.identity, f, req.Connections, req.Timeout, policy, progress)
 			if err != nil {
 				return result, err
 			}
@@ -179,14 +191,14 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 
 		resp = plan.stream
 	} else {
-		resp, err = client.Do(request)
+		resp, err = policy.request(ctx, client, request)
 	}
 	if err != nil {
 		if cause := context.Cause(ctx); cause != nil {
 			return result, cause
 		}
 
-		return result, requestError(err)
+		return result, err
 	}
 
 	defer resp.Body.Close()

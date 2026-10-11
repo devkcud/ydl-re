@@ -30,6 +30,7 @@ Options may appear before or after the URL.
 
   -o, --output <path>      Final file path (default: safe URL filename)
   -c, --connections <n>    Maximum workers, 1..32 (default: 4)
+      --retries <n>        Additional attempts per request/range, 0..10 (default: 3)
       --overwrite          Replace an existing completed file
       --resume             Require a saved compatible transfer
       --quiet              Suppress progress; keep errors and final path
@@ -39,6 +40,7 @@ Options may appear before or after the URL.
 The output directory must already exist. Compatible saved transfers resume
 automatically; --resume requires saved state. Incompatible partials are preserved.
 One connection uses a direct stream for new files and one worker for saved ranges.
+Interrupted sequential bodies keep their checkpoints for a later resume.
 `
 
 const inspectUsage = `Usage: yoinkdl inspect <output>
@@ -177,6 +179,18 @@ func parseDownload(args []string) (transfer.Request, bool, error) {
 	}
 	fs.Func("connections", "maximum workers", connections)
 	fs.Func("c", "maximum workers", connections)
+	retries := transfer.DefaultRetries
+	req.Retries = &retries
+	fs.Func("retries", "additional attempts", func(value string) error {
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 || n > transfer.MaxRetries ||
+			strings.IndexFunc(value, func(r rune) bool { return r < '0' || r > '9' }) >= 0 {
+			return fmt.Errorf("retries must be a decimal integer between 0 and %d", transfer.MaxRetries)
+		}
+
+		*req.Retries = n
+		return nil
+	})
 
 	var options, urls []string
 

@@ -2,15 +2,15 @@
 
 *The download manager that yoinks.*
 
-YoinkDL is a local-first download manager written in Go. It provides sequential and bounded parallel HTTP(S) transfers with safe resumption. Bounded retries are next.
+YoinkDL is a local-first download manager written in Go. It provides sequential and bounded parallel HTTP(S) transfers with safe resumption and bounded retries. Aggregate rate limits and JSON output are next.
 
 ## Project status
 
-As of October 11, 2026, Milestones A/B and the transfer/resume portions of C are implemented and tested locally on Linux. Use `make build` to build `bin/yoinkdl`, `make test` for tests, and `make check` for the full gate. There are no external Go dependencies.
+As of October 11, 2026, the transfer, resume, and retry engine is implemented and tested locally on Linux. Use `make build` to build `bin/yoinkdl`, `make test` for tests, and `make check` for the full gate. There are no external Go dependencies.
 
 Use the root [README](../README.md) for an introduction, [STATUS.md](../STATUS.md) for the current handoff and next steps, and [AGENTS.md](../AGENTS.md) for implementation instructions.
 
-The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection limits, resume, and local inspection. Milestone C connects strict representation validation, exclusive offset writers, and bounded workers for fresh and resumed transfers. Retries, caps, JSON events, and configuration loading remain planned. No published installer or full v0.1 release is available.
+The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, resume, and local inspection. Milestone C connects strict representation validation, exclusive offset writers, and bounded workers for fresh and resumed transfers. Caps, JSON events, and configuration loading remain planned. No published installer or full v0.1 release is available.
 
 These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions.
 

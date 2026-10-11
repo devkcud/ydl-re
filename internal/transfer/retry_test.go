@@ -146,6 +146,7 @@ func TestTransientFailures(t *testing.T) {
 	}
 	for _, err := range []error{context.Canceled, errRedirectLimit, errRedirectTarget, errDowngrade,
 		&tls.CertificateVerificationError{Err: errors.New("untrusted")}, &net.DNSError{IsNotFound: true},
+		&tls.CertificateVerificationError{Err: io.ErrUnexpectedEOF},
 		syscall.ENOSPC, errors.New("malformed protocol")} {
 		if transient(err) {
 			t.Errorf("unexpected retry: %v", err)

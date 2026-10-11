@@ -363,3 +363,25 @@ func TestProgressWorkerCount(t *testing.T) {
 		}
 	}
 }
+
+func TestRetryOptions(t *testing.T) {
+	for _, test := range []struct {
+		args []string
+		want int
+	}{
+		{nil, transfer.DefaultRetries},
+		{[]string{"--retries", "0"}, 0},
+		{[]string{"--retries=10"}, 10},
+		{[]string{"--retries", "03"}, 3},
+	} {
+		req, _, err := parseDownload(append([]string{"https://example.org/file"}, test.args...))
+		if err != nil || req.Retries == nil || *req.Retries != test.want {
+			t.Fatalf("%v: retries=%v, error=%v", test.args, req.Retries, err)
+		}
+	}
+	for _, value := range []string{"", "-1", "11", "+3", "0x3", "1.5", "99999999999999999999"} {
+		if _, _, err := parseDownload([]string{"https://example.org/file", "--retries", value}); err == nil {
+			t.Errorf("accepted invalid retries %q", value)
+		}
+	}
+}

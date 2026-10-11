@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A and B are implemented and pass local Linux checks. Milestone C is in progress; D remains pending. There is no full v0.1 release or promised release date.
+Milestones A, B, and C are implemented and pass local Linux checks. Milestone D is next. There is no full v0.1 release or promised release date.
 
 ## Delivery sequence
 
@@ -39,13 +39,13 @@ Completion evidence: local-server tests resume terminated transfers to exact fix
 
 ## Milestone C — Multi-range engine
 
-**Status:** fresh and resumed parallel downloads integrate strict representation validation, bounded workers, exclusive offset writes, verified chunk checkpoints, cancellation, and full-file publication. `--connections` accepts 1 through 32 with a default of four. Sequential and parallel resume have forced-process-termination evidence. Bounded retries remain before C can close.
+**Status:** implemented and tested on Linux/amd64. Fresh/resumed transfers have strict identity validation, bounded workers and retries, exclusive offset writes, conservative checkpoints, cancellation, and verified publication. `--connections` accepts 1..32 (default four); `--retries` accepts 0..10 additional attempts (default three). Sequential and parallel resume have forced-process-termination evidence.
 
 Plan disjoint chunks, bound worker concurrency, and write only assigned offsets. Validate every response's range, length, encoding, and compatible representation identity.
 
 Add interval retries, bounded backoff, and safe sequential fallback. Exercise failures during concurrent transfer and run the race detector on meaningful paths.
 
-Completion evidence: parallel and resumed outputs match fixtures exactly; retries and fallbacks do not duplicate coverage or splice different representations.
+Completion evidence: parallel, resumed, and retried outputs match exact fixtures. Tests verify shared attempt budgets, Retry-After/backoff bounds, whole-chunk replacement, unchanged completed coverage, terminal identity/storage failures, progress rollback, and cancellation while workers wait. The full gate, race checks, CLI process checks, and documentation audit pass. See [testing](testing.md).
 
 ## Milestone D — v0.1 hardening
 

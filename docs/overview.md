@@ -6,7 +6,7 @@ YoinkDL aims to turn a direct HTTP(S) URL into a correct local file. Users shoul
 
 **Product promise:** Yoink a file. Keep it intact. Pick up where you left off.
 
-Milestones A/B and the current part of C implement sequential and bounded parallel downloads, verified checkpoints, safe resume, local inspection, progress, cancellation, and publication. Retries remain planned. See [project status](README.md#project-status) and the [current CLI](cli.md).
+Milestones A, B, and C implement sequential and bounded parallel downloads, verified checkpoints, safe resume, bounded retries, local inspection, progress, cancellation, and publication. See [project status](README.md#project-status) and the [current CLI](cli.md).
 
 ## Design principles
 

@@ -2,6 +2,7 @@ package transfer
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -180,6 +181,17 @@ func retryAfter(values []string, now time.Time) (time.Duration, bool) {
 
 func transient(err error) bool {
 	if errors.Is(err, context.Canceled) {
+		return false
+	}
+
+	for _, known := range []error{errRedirectLimit, errRedirectTarget, errDowngrade} {
+		if errors.Is(err, known) {
+			return false
+		}
+	}
+
+	var cert *tls.CertificateVerificationError
+	if errors.As(err, &cert) {
 		return false
 	}
 

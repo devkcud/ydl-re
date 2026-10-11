@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The CLI supports parallel downloads, safe sequential/range resume, checkpoint inspection, and interrupted-publication recovery. Automatic retries remain planned.
+The CLI supports parallel downloads, safe sequential/range resume, bounded retries, checkpoint inspection, and interrupted-publication recovery.
 
 ## The command or build is unavailable
 
@@ -18,7 +18,8 @@ If tests fail with a socket permission error, allow localhost listeners in the t
 | Percentage or ETA is absent | The server did not provide a reliable total | Use transferred bytes and speed; wait for verified completion |
 | Speed is low | The server, network, proxy, or disk can limit transfer speed | Check those resources and the active worker count; more connections are not always faster |
 | `404` | The resource is unavailable at that URL | Verify the direct file URL; blind retries should not continue |
-| `429` or transient `503` | The server is limiting or temporarily unable to serve requests | Retry later; automatic retries are not implemented |
+| `429` or transient `503` | The server is limiting or temporarily unable to serve requests | The retry budget and bounded backoff apply; retry later if the budget is exhausted or `Retry-After` exceeds 30 seconds |
+| Progress briefly decreases | A failed chunk is being replaced from its start | Completed checkpoints remain valid; failed-attempt bytes are removed from progress |
 | Short body or wrong length | The response cannot establish a complete file | Retry the same URL/path to resume when identity permits, or choose a fresh path if state is incompatible |
 | TLS or proxy failure | Certificate verification or proxy connectivity failed | Correct the certificate/proxy environment; no insecure-TLS bypass is specified |
 

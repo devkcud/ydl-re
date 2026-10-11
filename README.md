@@ -6,9 +6,9 @@ YoinkDL is a local-first HTTP(S) download manager written in Go. The first imple
 
 ## Status
 
-Milestones A and B are implemented and tested on Linux. `download`, `inspect`, `version`, safe resume, progress, cancellation, overwrite protection, and network inactivity timeouts work. Saved progress is synced and checksummed before reuse.
+Milestones A, B, and C are implemented and tested on Linux. `download`, `inspect`, `version`, safe resume, bounded retries, progress, cancellation, overwrite protection, and inactivity timeouts work. Saved progress is synced and checksummed before reuse.
 
-Milestone C supports parallel downloads and safe resume from verified chunk checkpoints. Downloads use up to four workers by default when the server supports safe ranges. Retries, bandwidth caps, JSON output, and configuration files remain planned. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
+Milestone C supports parallel downloads, safe resume, and bounded retries. Downloads use up to four workers and three additional attempts for transient failures. Bandwidth caps, JSON output, and configuration files remain planned. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
 
 ## Build and test
 
@@ -45,6 +45,8 @@ The parent directory must already exist. By default, existing completed files an
 ```
 
 Use `--connections <n>` or `-c <n>` to choose a worker limit from 1 to 32. One connection uses a direct stream for a new file, or one worker when resuming saved chunks. Use `--quiet` to suppress progress and `--timeout 2m` to change the network inactivity timeout. Progress and errors go to stderr; success prints the absolute output path to stdout.
+
+`--retries <n>` accepts 0 through 10 additional attempts; zero disables retries. Incomplete ranges restart from their assigned beginning after cancellable backoff. Interrupted sequential bodies keep their checkpoints for a later resume.
 
 Ctrl+C stops all workers and preserves verified checkpoints. Run the same URL and output again to resume compatible sequential or parallel state automatically. Parallel resume checks the saved version with the server before fetching whole missing chunks; completed chunks are retained.
 

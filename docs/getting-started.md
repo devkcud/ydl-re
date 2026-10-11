@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The CLI supports parallel and sequential downloads with safe resume and local checkpoint inspection. Automatic retries remain planned.
+The CLI supports parallel and sequential downloads with safe resume, bounded retries, and local checkpoint inspection.
 
 ## Build locally
 
@@ -65,6 +65,8 @@ A stalled connection or body read fails after the configured inactivity timeout.
 
 Active downloads may take longer than that timeout overall.
 
+Transient requests and incomplete range chunks get three additional attempts by default. Set `--retries 0` to disable retries, or choose a decimal count up to 10. Backoff and reasonable `Retry-After` waits are cancellable. A retry replaces the whole failed chunk, so displayed progress may briefly decrease. Sequential body interruptions preserve checkpoints for a later resume.
+
 ## Interrupt a transfer
 
 Press Ctrl+C. The process cancels requests, waits for workers to stop, preserves safe checkpoints, and reports the retained partial file. Interruption exits with status `130` and does not publish an incomplete output. Parallel transfers checkpoint only complete validated chunks.
@@ -102,7 +104,7 @@ This allows replacing an existing regular file after the transfer verifies succe
 
 ## Current limits
 
-Automatic retries remain unimplemented. `--retries`, `--limit`, and `--json` are not available yet. Configuration files are not loaded.
+`--limit` and `--json` are not available yet. Configuration files are not loaded. Automatic sequential body restart is not implemented; repeat the same request to resume compatible saved state.
 
 The engine asks for identity encoding and saves the exact bytes the server returns. If the server still applies content encoding, those bytes are preserved without transparent decoding. Unknown-length completion can establish clean HTTP completion, not the publisher's intended size without additional metadata.
 

@@ -218,7 +218,7 @@ func TestRangeResumePreflightRefusalPreservesArtifacts(t *testing.T) {
 			path := rangeFixture(t, url, "abcdefghijkl", 4, done)
 			before, meta := rangeArtifacts(t, path)
 			result, err := Download(context.Background(), Request{
-				URL: url, Output: path, Resume: true, Overwrite: true, Connections: 1, Timeout: 100 * time.Millisecond,
+				URL: url, Output: path, Resume: true, Overwrite: true, Connections: 1, Timeout: 100 * time.Millisecond, Retries: new(int),
 			}, nil)
 			wantCalls := int32(1)
 			if mode == "416" || mode == "redirect" || mode == "worker version" {
@@ -349,7 +349,7 @@ func TestRangeResumeInterruptedThenCompleted(t *testing.T) {
 			_, meta := rangeArtifacts(t, path)
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
-			result, err := Download(ctx, Request{URL: srv.URL, Output: path, Connections: 1, Timeout: 100 * time.Millisecond}, func(s Snapshot) {
+			result, err := Download(ctx, Request{URL: srv.URL, Output: path, Connections: 1, Timeout: 100 * time.Millisecond, Retries: new(int)}, func(s Snapshot) {
 				if mode == "cancel" && s.Bytes > s.Resumed {
 					cancel()
 				}

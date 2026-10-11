@@ -18,11 +18,35 @@ type probeResult struct {
 	stream   *http.Response
 }
 
-func probe(ctx context.Context, client *http.Client, source *url.URL, timeout time.Duration) (probeResult, error) {
+func probe(ctx context.Context, client *http.Client, source *url.URL, timeout time.Duration, policy retryPolicy) (probeResult, error) {
 	if timeout <= 0 {
 		return probeResult{}, errors.New("probe timeout must be positive")
 	}
 
+	var result probeResult
+	err := policy.run(ctx, func(int) error {
+		var err error
+		result, err = probeAttempt(ctx, client, source, timeout)
+		return err
+	})
+	if err != nil || result.stream != nil || result.identity.length > 0 {
+		return result, err
+	}
+
+	var resp *http.Response
+	err = policy.run(ctx, func(int) error {
+		var err error
+		resp, err = probeRequest(ctx, client, source, timeout, false)
+		return err
+	})
+	if err != nil {
+		return probeResult{}, err
+	}
+
+	return sequentialProbe(resp)
+}
+
+func probeAttempt(ctx context.Context, client *http.Client, source *url.URL, timeout time.Duration) (probeResult, error) {
 	resp, err := probeRequest(ctx, client, source, timeout, true)
 	if err != nil {
 		return probeResult{}, err
@@ -61,26 +85,19 @@ func probe(ctx context.Context, client *http.Client, source *url.URL, timeout ti
 		return probeResult{}, fmt.Errorf("HTTP %d %s during capability probe", resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
 
-	resp, err = probeRequest(ctx, client, source, timeout, false)
-	if err != nil {
-		return probeResult{}, err
-	}
-
-	return sequentialProbe(resp)
+	return probeResult{}, nil
 }
 
 func readProbeBody(body io.Reader, size int64) error {
 	data, err := io.ReadAll(io.LimitReader(body, size+1))
-	if err != nil {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return err
-		}
-
-		return errors.New("range probe body was incomplete")
-	}
-
-	if int64(len(data)) != size {
+	if int64(len(data)) > size {
 		return errors.New("range probe body has an incompatible length")
+	}
+	if err != nil {
+		return bodyFailure(err)
+	}
+	if int64(len(data)) < size {
+		return bodyFailure(io.ErrUnexpectedEOF)
 	}
 
 	return nil
@@ -145,7 +162,7 @@ func probeRequest(ctx context.Context, client *http.Client, source *url.URL, tim
 		req.Header.Set("Range", "bytes=0-0")
 	}
 
-	resp, err := client.Do(req)
+	resp, err := requestOnce(ctx, client, req)
 	if err != nil {
 		cause := context.Cause(ctx)
 		cancel(nil)
@@ -153,7 +170,7 @@ func probeRequest(ctx context.Context, client *http.Client, source *url.URL, tim
 			return nil, cause
 		}
 
-		return nil, requestError(err)
+		return nil, err
 	}
 
 	resp.Body = &probeBody{ReadCloser: resp.Body, ctx: ctx, cancel: cancel, timeout: timeout}

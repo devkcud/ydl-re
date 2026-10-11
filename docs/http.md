@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Parallel downloads, sequential streaming, and safe resume for both checkpoint formats are implemented. Fresh transfers probe range capability when more than one connection is requested; saved range state always revalidates its recorded identity. Automatic retries remain planned.
+Parallel downloads, sequential streaming, safe resume, and bounded retries are implemented. Fresh transfers probe range capability when more than one connection is requested; saved range state always revalidates its recorded identity.
 
 ## Implemented sequential transfer
 
@@ -12,7 +12,7 @@ The default timeout is 30 seconds per connection, TLS handshake, response-header
 
 Redirect chains allow at most ten requests. HTTPS-to-HTTP downgrades and URL credentials are rejected. Sensitive headers and referrers are stripped across origins, including subsequent redirects away from the original origin. Request errors avoid exposing URL tokens.
 
-Response headers establish the initial manifest identity. There is no separate HEAD dependency and no automatic retry. Local-server tests cover fresh transfers, resumed suffixes, crash recovery, and incompatible responses.
+Response headers establish the initial manifest identity. Request setup can retry eligible failures before accepting a response. Sequential body interruption keeps its checkpoint for a later resume; no automatic body restart occurs. There is no separate HEAD dependency. Local-server tests cover fresh transfers, resumed suffixes, crash recovery, and incompatible responses.
 
 ## Implemented resume validation
 
@@ -54,9 +54,10 @@ These identity helpers validate response headers. The capability probe separatel
 | `200` without `Content-Range`, including encoded or unknown-length content | Return that untouched full-response stream for sequential transfer |
 | Valid `206` with an unknown total, unsuitable encoding, or unusable validator | Discard the probe, then issue one unconditional full GET |
 | `416` | Discard the response, then issue one full GET; never infer an empty or completed file |
-| Invalid bounds, wrong/short/oversized body, failed body completion, or another status | Fail without fallback or retry |
+| Invalid bounds, declared payload-length conflicts, malformed or oversized bodies | Fail without fallback or retry |
+| Transient request failure or short/interrupted probe body | Retry within the probe's single shared budget |
 
-The second full GET must return `200` without `Content-Range`. Its metadata and bytes establish a new sequential transfer; no probe byte or identity is reused. It may therefore serve a newer representation without mixing versions. A second unsupported response fails. This is bounded mode selection, not an automatic retry policy; each request still follows the existing redirect limit.
+The fallback full GET must return `200` without `Content-Range`. Its metadata and bytes establish a new sequential transfer; no probe byte or identity is reused. It may serve a newer representation without mixing versions. Fallback request setup has a separate retry budget and does not repeat the preceding probe. An unsupported full response fails. Each attempt follows the existing redirect limit.
 
 The result contains either the selected representation or an open full-response stream. The coordinator must consume or close that stream, check its body completion and length, and publish only through storage. Probe and returned-stream body reads honor cancellation and the per-read inactivity timeout. A successful probe never authorizes skipping later range validation.
 
@@ -104,7 +105,7 @@ Never let an oversized response write into a neighboring worker's interval. A sh
 
 A `200` received for a range request is not the requested interval. It may mean the server ignored ranges or a conditional range no longer matches. Do not append it at the requested offset.
 
-Resume and active range workers refuse such a response and preserve state. The fresh capability probe can hand an untouched `200` to a sequential receiver before accepting any range bytes. Once workers start, failures cancel the pool without automatic fallback or destructive restart.
+Resume and active range workers refuse such a response and preserve state. The fresh capability probe can hand an untouched `200` to a sequential receiver before accepting range bytes. Workers retry only eligible transient failures, always retaining their selected identity and assigned bounds. Terminal failures cancel the pool without full-stream fallback or destructive restart.
 
 A `416` requires re-probing and checking identity, size, and local coverage. It must not be treated as proof that the local file is complete. Empty resources and offsets at the end of an object need explicit tests.
 
@@ -132,11 +133,11 @@ Without a reliable total, report bytes and speed. Successful EOF must mean the H
 | Valid `206` for an assigned interval | Receive and verify that interval |
 | `200` for an interval | Refuse active ranges; the fresh probe can select an untouched full stream |
 | `416` | Re-probe; never infer completion from status alone |
-| `408`, `429`, selected `5xx`, transient network failures | Fail currently; bounded retry policy is the next scheduling feature |
+| `408`, `429`, `500`, `502`, `503`, `504`, selected transient network failures | Apply the bounded retry policy; close failed responses before waiting |
 | Permanent `404` or other non-retryable failure | Fail clearly |
 | Bad range, mismatched validator, wrong length | Reject unsafe bytes and preserve only valid progress |
 
-Do not retry all `4xx` or all `5xx` indiscriminately. `Retry-After` handling and bounded backoff belong to the [scheduler](concurrency.md#retries).
+Other status codes, identity/bounds/encoding conflicts, malformed/oversized bodies, and local errors are not retried. Short or interrupted ranges are replaced in full. `Retry-After`, budgets, and cancellation are specified in the [retry policy](concurrency.md#retries).
 
 ## Redirects, proxies, and timeouts
 

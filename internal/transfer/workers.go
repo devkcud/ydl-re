@@ -15,14 +15,15 @@ import (
 )
 
 type workerEvent struct {
-	bytes   int
+	bytes   int64
 	workers int
 }
 
 func receiveRanges(ctx context.Context, client *http.Client, source *url.URL, id representation, f *storage.File,
-	count int, timeout time.Duration, progress func(Snapshot)) (int64, error) {
+	count int, timeout time.Duration, policy retryPolicy, progress func(Snapshot)) (int64, error) {
 	m, saved := f.Metadata()
-	if !saved || m.Version != storage.RangeManifestVersion || count < 1 || count > MaxConnections || timeout <= 0 {
+	if !saved || m.Version != storage.RangeManifestVersion || count < 1 || count > MaxConnections || timeout <= 0 ||
+		policy.limit < 0 || policy.limit > MaxRetries {
 		return 0, errors.New("invalid range worker configuration")
 	}
 
@@ -65,9 +66,21 @@ func receiveRanges(ctx context.Context, client *http.Client, source *url.URL, id
 				}
 
 				events <- workerEvent{workers: 1}
-				err := receiveRange(ctx, client, source, id, f, span, timeout, buf, func(n int) {
-					events <- workerEvent{bytes: n}
-				}, cancel)
+				var received int64
+				err := policy.run(ctx, func(attempt int) error {
+					if attempt > 0 && received > 0 {
+						events <- workerEvent{bytes: -received}
+						received = 0
+					}
+					return receiveRange(ctx, client, source, id, f, span, timeout, buf, func(n int) {
+						received += int64(n)
+						events <- workerEvent{bytes: int64(n)}
+					}, func(err error) {
+						if !policy.canRetry(ctx, attempt, err) {
+							cancel(err)
+						}
+					})
+				})
 				if err != nil {
 					cancel(err)
 				}
@@ -86,7 +99,7 @@ func receiveRanges(ctx context.Context, client *http.Client, source *url.URL, id
 	}()
 
 	for event := range events {
-		snapshot.Bytes += int64(event.bytes)
+		snapshot.Bytes += event.bytes
 		snapshot.Workers += event.workers
 		if progress != nil {
 			progress(snapshot)
@@ -105,13 +118,13 @@ func receiveRange(ctx context.Context, client *http.Client, source *url.URL, id 
 		return err
 	}
 
-	resp, err := client.Do(req)
+	resp, err := requestOnce(ctx, client, req)
 	if err != nil {
 		if cause := context.Cause(ctx); cause != nil {
 			return cause
 		}
 
-		return requestError(err)
+		return err
 	}
 	defer resp.Body.Close()
 
@@ -144,7 +157,7 @@ func receiveRange(ctx context.Context, client *http.Client, source *url.URL, id 
 	for {
 		n, readErr := body.Read(buf)
 		if cause := context.Cause(ctx); cause != nil {
-			return cause
+			return bodyFailure(cause)
 		}
 
 		if n > 0 {
@@ -165,12 +178,12 @@ func receiveRange(ctx context.Context, client *http.Client, source *url.URL, id 
 		}
 
 		if readErr != nil {
-			return fmt.Errorf("incomplete range response: %w", readErr)
+			return bodyFailure(readErr)
 		}
 	}
 
 	if received != span.End-span.Start {
-		return errors.New("range response did not fill its assigned interval")
+		return bodyFailure(io.ErrUnexpectedEOF)
 	}
 
 	return w.Commit(ctx)

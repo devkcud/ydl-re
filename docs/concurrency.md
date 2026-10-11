@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Fresh transfers use bounded range workers after a validated capability probe, with safe sequential fallback before range state begins. Parallel resume validates the saved representation before scheduling whole missing chunks. Sequential suffix resume remains supported; retries and the limiter are not implemented yet.
+Fresh transfers use bounded range workers after a validated capability probe, with safe sequential fallback before range state begins. Parallel resume validates the saved representation before scheduling whole missing chunks. Transient requests and incomplete ranges have bounded retries; the aggregate limiter remains planned.
 
 ## Range planning
 
@@ -31,29 +31,30 @@ The default is four workers, with `--connections`/`-c` accepting 1 through 32. A
 
 Each response must match the selected representation and assigned interval before acquiring a storage writer. Writes cannot leave that interval. Only exact body completion with clean EOF can commit the chunk. Storage serializes sync, checksum verification, and checkpoint publication; failed attempts release ownership without acknowledging bytes.
 
-The first failure cancels peer requests and stops admitting tasks. The coordinator drains progress and waits for all workers and writer claims to finish before returning. A worker `416` is re-probed and refused. No automatic fallback or retry occurs once range state exists. Progress callbacks are serialized through a channel bounded by the worker count, applying backpressure without unbounded events.
+Retryable failures release the response and writer, then wait within the same worker slot before replacing the whole chunk. The first terminal failure or exhausted budget cancels peers and stops admitting tasks. The coordinator drains progress and joins all workers before returning. A worker `416` is re-probed once and refused. Active range state never falls back to a full stream. Progress callbacks use a channel bounded by worker count.
 
 ## Retries
 
-The retry policy is implemented internally; transfer/CLI integration is the next slice. `--retries` will default to three additional attempts, with decimal values from zero through ten. Zero disables retries. Each chunk gets one shared budget for request failures and incomplete bodies, so header retries cannot multiply the chunk budget.
+`--retries` defaults to three additional attempts, with decimal values from zero through ten. Zero disables retries. Each chunk gets one shared budget for request failures and incomplete bodies, so header retries cannot multiply the chunk budget. The library's `Request.Retries` is optional: nil selects three; a pointer to zero disables retries.
 
 Retry only HTTP `408`, `429`, `500`, `502`, `503`, and `504`, or selected transient connection failures: network timeouts, temporary DNS errors, resets, refused/aborted connections, broken pipes, and unexpected EOF. NXDOMAIN, TLS certificate/redirect policy failures, incompatible identity/bounds/encoding, malformed or oversized bodies, local storage errors, and cancellation are terminal. Short range bodies can retry by replacing the whole uncheckpointed chunk.
 
 Exponential backoff starts at 125–250 ms, with equal jitter between half and all of the current delay and an eight-second cap. A single valid `Retry-After` delta or HTTP date can extend the wait up to 30 seconds; longer values stop the operation instead of retrying earlier than requested. Malformed or duplicate hints use normal backoff. All waits honor cancellation.
 
-| Failure | Intended treatment |
+| Failure | Implemented treatment |
 |---|---|
-| Selected transient connection errors or timeouts | Retry the incomplete work within budget |
-| `408`, `429`, selected `5xx` | Retry when appropriate; honor a reasonable `Retry-After` |
+| Selected transient connection errors or timeouts | Retry the request/probe or whole incomplete range within its budget |
+| `408`, `429`, `500`, `502`, `503`, `504` | Retry within budget and respect bounded `Retry-After` |
 | Permanent `404` or another non-retryable request failure | Fail without a blind retry loop |
-| Resource identity changes | Stop combining bytes; apply the safe restart/refusal policy |
-| Invalid bounds, short data, or wrong length | Never acknowledge completion; classify safe recovery explicitly |
+| Resource identity changes | Refuse without restart or further retries |
+| Invalid bounds, encoding, declared length, malformed or oversized bodies | Refuse without acknowledging or retrying the chunk |
+| Short range body or interrupted clean framing | Re-fetch the entire incomplete chunk; never acknowledge the failed attempt |
 | Local permissions, disk-full, or state persistence failure | Report the local problem and preserve valid recovery data where possible |
 | Cancellation | Stop; do not schedule another attempt |
 
-Fresh probes and saved-range validation will have separate bounded budgets, including their small bodies. Full-stream request setup will retry eligible failures before accepting a response, while sequential body interruption will keep its existing checkpoint-and-resume behavior. A fresh fallback GET has its own setup budget. The diagnostic GET after a `416` remains a single request followed by refusal.
+Fresh probes and saved-range validation each have a separate bounded budget, including their small bodies. Full-stream request setup retries eligible failures before accepting a response. Sequential body interruption preserves its checkpoint for a later resume; it does not automatically restart a stream. A fresh fallback GET has its own setup budget and does not repeat the preceding probe. The diagnostic GET after a `416` remains a single request followed by refusal. Every attempt still uses the existing redirect limit.
 
-An interval retry must replace failed writes consistently. A conservative implementation re-fetches the entire incomplete interval, counting it once after successful validation. Restarting a request must not introduce duplicate coverage or leave unverified bytes marked complete.
+An interval retry reuses the same immutable identity, bounds, worker slot, and buffer. The old writer is closed before waiting; the new attempt claims the chunk from its start. Only successful body completion and storage verification can commit coverage. Local storage and publication failures are never retried by the HTTP policy.
 
 ## Aggregate rate cap
 
@@ -83,7 +84,7 @@ Track useful completed or reliably received bytes without double-counting retrie
 
 Show speed and ETA only as advisory estimates. Suppress total percentage and ETA when total length is unknown. Report the active worker count rather than implying the configured maximum is always in use.
 
-The CLI renders snapshots at most every 200 ms while data arrives, plus a final snapshot. Percentage includes validated saved bytes; average speed counts only bytes received during the current attempt, excluding validation probes. The coordinator publishes initial saved progress before starting workers and honors cancellation from that point. Worker counts reflect active chunk processing and reach zero before final verification. Retry accounting and a durable event schema remain future contracts. Coverage and final verification remain the authority for completion.
+The CLI renders snapshots at most every 200 ms while data arrives, plus a final snapshot. Percentage includes validated saved bytes; average speed tracks useful received bytes, excluding probes and bytes discarded before a replacement attempt. Progress can move backward when a chunk retries, but never counts its failed attempt twice. The coordinator reports initial saved progress before starting workers and honors cancellation there. Worker counts include slots in backoff and reach zero before final verification. A durable event schema remains future work; checkpoints and verification remain the authority for completion.
 
 ## Deferred tuning
 

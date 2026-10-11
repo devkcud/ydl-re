@@ -6,16 +6,16 @@ The current CLI uses built-in defaults and flags. No configuration loader exists
 
 ## Current defaults
 
-The engine uses up to four workers for safe ranged transfers, automatic compatible resume, no retries, no overwrite, and no rate cap. `--connections`/`-c` accepts 1 through 32; one streams new files directly and resumes saved range tasks with one worker. The network inactivity timeout is `30s`. See [CLI](cli.md) for all flags. Explicit `--resume` requires saved state.
+The engine uses up to four workers, three additional attempts for transient failures, automatic compatible resume, no overwrite, and no rate cap. `--connections`/`-c` accepts 1 through 32; `--retries` accepts 0 through 10, with zero disabling repeats. One connection streams new files directly and resumes saved range tasks with one worker. The network inactivity timeout is `30s`. See [CLI](cli.md) for all flags. Explicit `--resume` requires saved state.
 
 No configuration directories or files are created or read. Transfer artifacts are the partial data file, versioned JSON manifest, and persistent lock file beside the output. Temporary manifest names can remain after a crash and are never trusted for recovery.
 
-## Planned v0.1 defaults
+## Transfer defaults
 
-| Setting | Proposed value | Meaning |
+| Setting | Value | Meaning |
 |---|---|---|
 | Connections | `4` | Desired range-worker count, reduced when necessary |
-| Retries | `3` per range | Bound transient retry behavior; exact attempt counting remains open |
+| Retries | `3` additional attempts | Separate request/probe budgets and one shared request/body budget per range; sequential bodies use later resume |
 | Resume | Enabled for compatible partial state | Revalidate before trusting saved bytes |
 | Rate limit | Absent | No configured transfer cap |
 | Overwrite | Disabled | Preserve a completed destination unless explicitly allowed |
@@ -92,7 +92,7 @@ The unit table explains intended semantics, not an implemented grammar. Accepted
 
 ## Validation to define
 
-Invalid CLI values are rejected before network or file work. Worker counts already accept only decimal integers from 1 through 32; the future configuration loader must preserve that contract. Retry counts need an explicit relationship to total attempts. Speed values still need bounded, unambiguous parsing.
+Invalid CLI values are rejected before network or file work. Workers accept decimal integers from 1 through 32 and retries from 0 through 10; the future configuration loader must preserve those contracts. Speed values still need bounded, unambiguous parsing.
 
 Configuration errors should name the offending setting without exposing credentials or URL tokens. Unknown-key handling and the meaning of `resume = false` alongside existing sidecars remain open; it must never imply silent destruction of partial data.
 

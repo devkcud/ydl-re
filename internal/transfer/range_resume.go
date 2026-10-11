@@ -12,6 +12,17 @@ import (
 )
 
 func validateRangeResume(ctx context.Context, client *http.Client, source *url.URL, saved storage.Manifest,
+	timeout time.Duration, policy retryPolicy) (representation, error) {
+	var id representation
+	err := policy.run(ctx, func(int) error {
+		var err error
+		id, err = rangeResumeAttempt(ctx, client, source, saved, timeout)
+		return err
+	})
+	return id, err
+}
+
+func rangeResumeAttempt(ctx context.Context, client *http.Client, source *url.URL, saved storage.Manifest,
 	timeout time.Duration) (representation, error) {
 	if saved.Version != storage.RangeManifestVersion || saved.State != storage.StatePartial ||
 		!saved.Resumable() || saved.SourceID != fingerprint(source) || timeout <= 0 {
@@ -44,13 +55,13 @@ func validateRangeResume(ctx context.Context, client *http.Client, source *url.U
 		}
 	}
 
-	resp, err := client.Do(req)
+	resp, err := requestOnce(ctx, client, req)
 	if err != nil {
 		if cause := context.Cause(ctx); cause != nil {
 			return representation{}, cause
 		}
 
-		return representation{}, requestError(err)
+		return representation{}, err
 	}
 	defer resp.Body.Close()
 

@@ -188,7 +188,7 @@ func TestWorkerFailuresPreserveCompletedChunks(t *testing.T) {
 			source, _ := parseURL(srv.URL)
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
-			_, err := receiveRanges(ctx, client, source, id, f, 1, 100*time.Millisecond, func(s Snapshot) {
+			_, err := receiveRanges(ctx, client, source, id, f, 1, 100*time.Millisecond, retryPolicy{}, func(s Snapshot) {
 				if mode == "cancel" && s.Bytes > 3 {
 					cancel()
 				}
@@ -247,7 +247,7 @@ func TestParallelFailureCancelsOtherWorkers(t *testing.T) {
 	source, _ := parseURL(srv.URL)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	if _, err := receiveRanges(ctx, client, source, id, f, 2, time.Second, nil); err == nil {
+	if _, err := receiveRanges(ctx, client, source, id, f, 2, time.Second, retryPolicy{}, nil); err == nil {
 		t.Fatal("accepted a changed representation")
 	}
 	for range 2 {
@@ -307,13 +307,13 @@ func TestInvalidWorkerConfigurationSkipsNetwork(t *testing.T) {
 	defer client.CloseIdleConnections()
 	source, _ := parseURL(srv.URL)
 	for _, count := range []int{0, -1, MaxConnections + 1} {
-		if _, err := receiveRanges(context.Background(), client, source, id, f, count, time.Second, nil); err == nil {
+		if _, err := receiveRanges(context.Background(), client, source, id, f, count, time.Second, retryPolicy{}, nil); err == nil {
 			t.Errorf("accepted invalid worker count %d", count)
 		}
 	}
 	changed := id
 	changed.etag = `"different"`
-	if _, err := receiveRanges(context.Background(), client, source, changed, f, 2, time.Second, nil); err == nil {
+	if _, err := receiveRanges(context.Background(), client, source, changed, f, 2, time.Second, retryPolicy{}, nil); err == nil {
 		t.Fatal("accepted a different storage identity")
 	}
 	for _, count := range []int{-1, MaxConnections + 1} {

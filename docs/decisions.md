@@ -39,20 +39,22 @@ Resolve each decision before the milestone or interface depending on it is decla
 - Before accepting any saved/downloaded bytes, reuse an ignored-range `200` as an untouched sequential stream, or make one full GET after a valid but ineligible `206` or a `416`. Discard probe bytes and adopt the full response's own metadata. Malformed probes fail; this adds no retry loop and does not change saved-state refusal. See [fresh probing](http.md#fresh-capability-probing).
 - Use four workers by default, with a maximum of 32 and a reduction to the number of missing chunks. `--connections`/`-c` accepts decimal digits for 1 through 32, including leading zeros; signs, zero, fractions, hexadecimal, and overflow are refused. One connection streams fresh files directly or resumes saved range tasks with one worker. Saved version-1 state always resumes sequentially.
 - A fully covered `partial` range checkpoint still needs remote validation before publication. Empty range checkpoints use a full conditional GET with `If-Match`, exact zero length, and clean EOF. A refused/canceled validation never mutates saved artifacts or falls back to a fresh stream; verified `ready` recovery remains offline.
-- Bound the queue to 256 intervals and allocate one 64 KiB payload buffer per worker. Storage grants exclusive incomplete-chunk writers, serializes commits, and blocks file closure/publication while claims exist. The coordinator serializes progress, cancels peers on failure, joins all workers, and verifies exact coverage before publication. Active range failures preserve state without automatic fallback or retry.
+- Bound the queue to 256 intervals and allocate one 64 KiB payload buffer per worker. Storage grants exclusive incomplete-chunk writers, serializes commits, and blocks file closure/publication while claims exist. The coordinator serializes progress, cancels peers on terminal failure, joins all workers, and verifies exact coverage before publication. Retries keep their worker slot and immutable range assignment; active range state never falls back destructively.
 - The implemented retry policy uses three additional attempts by default, with a ceiling of ten and zero disabling retries. A range shares one budget across request and body failures. Retry only `408`, `429`, `500`, `502`, `503`, `504`, and selected transient network failures; identity/protocol/storage failures are terminal.
-- Backoff uses equal jitter, starting at 125–250 ms and capped at eight seconds. Valid `Retry-After` values can extend a wait to 30 seconds; longer hints stop instead of retrying early. Malformed/duplicate hints use normal backoff. Waits honor cancellation. Transfer and CLI integration remain pending.
+- Backoff uses equal jitter, starting at 125–250 ms and capped at eight seconds. Valid `Retry-After` values can extend a wait to 30 seconds; longer hints stop instead of retrying early. Malformed/duplicate hints use normal backoff. Waits honor cancellation.
+- `--retries` accepts decimal digits from 0 through 10, allowing leading zeros and rejecting signs/fractions/overflow. Each probe or saved-range validation has one request/body budget, each chunk has one budget, and sequential/fallback request setup has its own budget. Sequential body interruption still requires later resume; `416` diagnostic GETs are never retried. The library uses nil for the default and an explicit zero pointer to disable retries.
+- Before a chunk's replacement attempt, remove the failed attempt's received bytes from useful progress. Progress may decrease; retries do not inflate total bytes or average useful-byte speed. Storage still commits only successfully verified whole chunks.
 
 ## Command and output decisions
 
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
-| C02 | Rate option grammar and bounds | Retry grammar is settled; retry CLI wiring is pending | [CLI](cli.md) |
+| C02 | Rate option grammar and bounds | Connections, retries, and timeouts are implemented | [CLI](cli.md) |
 | C05 | JSON event/result schema, framing, stream routing, `--quiet` interaction, compatibility | Makes machine output safe to script against | [CLI](cli.md) |
 | C08 | Future event schema, retry counters, and subscriber backpressure | Extends the implemented CLI snapshots for other consumers | [Concurrency](concurrency.md) |
 | C09 | TOML loader, precedence, unknown keys, rate/unit grammar, overflow/zero handling | Turns the illustrative configuration into a contract | [Configuration](configuration.md) |
 
-The default worker preference is four, the proposed retry default is three per range, and the default rate is unlimited. Preserve those choices unless a deliberate product change is made. The exact parser and boundary behavior still need decisions.
+The default worker preference is four, the retry default is three additional attempts, and the rate is currently unlimited. Rate parsing and accounting still need decisions.
 
 ## Storage and recovery decisions
 
