@@ -23,6 +23,19 @@ func openRegular(root *os.Root, name string, flags int) (*os.File, error) {
 	return file, nil
 }
 
+func checkMutable(info os.FileInfo) error {
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok || stat.Nlink != 1 {
+		return errors.New("mutable partial file must have exactly one hard link; existing state is preserved")
+	}
+
+	if info.Mode().Perm()&0o077 != 0 {
+		return errors.New("mutable partial file must have private permissions; existing state is preserved")
+	}
+
+	return nil
+}
+
 func acquireLock(root *os.Root, name string) (*os.File, error) {
 	file, err := openRegular(root, name, os.O_RDWR|os.O_CREATE)
 	if err != nil {

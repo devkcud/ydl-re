@@ -68,9 +68,9 @@ Persist only progress that recovery may safely reuse. A conservative checkpoint 
 
 | Mode | Required evidence |
 |---|---|
-| Known-length sequential | Successful transport completion and exactly the expected number of bytes |
+| Known-length sequential | Successful transport completion, expected byte count, exact stored length, and stored checksum matching received bytes |
 | Ranged | Valid responses for one representation; every interval complete; exact coverage of the known object length |
-| Unknown-length sequential | Clean, successful response completion with no reader or writer error |
+| Unknown-length sequential | Clean response completion, actual stored length matching received bytes, and matching stored checksum |
 
 Use interval coverage as well as byte totals. Two overlapping ranges can have the expected total byte count while leaving a hole. A preallocated file can have the expected filesystem length without having received its contents.
 

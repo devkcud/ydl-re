@@ -9,6 +9,8 @@ import (
 	"io"
 	"os"
 	"time"
+
+	"yoinkdl/internal/ranges"
 )
 
 const CheckpointBytes = 4 * 1024 * 1024
@@ -122,6 +124,10 @@ func (f *File) prepareContext(ctx context.Context) error {
 		return errors.New("cannot publish a transfer with active range writers")
 	}
 
+	if err := f.checkIdentity(); err != nil {
+		return err
+	}
+
 	if err := f.file.Sync(); err != nil {
 		return fmt.Errorf("sync partial file: %w", err)
 	}
@@ -138,12 +144,39 @@ func (f *File) prepareContext(ctx context.Context) error {
 		return errors.New("cannot publish an incomplete transfer")
 	}
 
+	if err := f.verifySequential(ctx); err != nil {
+		f.active = false
+		return err
+	}
+
 	m := *f.manifest
 	m.State = StateReady
 	m.Length = f.written
 	m.Completed = f.written
 	m.Checksum = hex.EncodeToString(f.digest.Sum(nil))
 	return f.saveManifest(m)
+}
+
+func (f *File) verifySequential(ctx context.Context) error {
+	info, err := f.file.Stat()
+	if err != nil {
+		return err
+	}
+
+	if info.Size() != f.written {
+		return errors.New("sequential file size does not match the received stream")
+	}
+
+	sum, err := f.hashSpan(ctx, ranges.Span{End: f.written})
+	if err != nil {
+		return err
+	}
+
+	if sum != hex.EncodeToString(f.digest.Sum(nil)) {
+		return errors.New("stored bytes do not match the received stream checksum")
+	}
+
+	return nil
 }
 
 func (f *File) restore(ctx context.Context) error {
@@ -168,6 +201,10 @@ func (f *File) restore(ctx context.Context) error {
 
 	f.info, err = f.file.Stat()
 	if err != nil {
+		return err
+	}
+
+	if err := f.checkIdentity(); err != nil {
 		return err
 	}
 

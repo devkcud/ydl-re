@@ -14,7 +14,9 @@ archive.zip.yoinkdl.json
 archive.zip.yoinkdl.lock
 ```
 
-Data and state files use private `0600` permissions. Partial data stays beside the destination, on the same filesystem. Parent directories must exist. Destination symlinks, directories, special files, invalid UTF-8 paths, and reserved artifact names are rejected.
+New data and state files use private `0600` permissions. Partial data stays beside the destination, on the same filesystem. Parent directories must exist. Destination symlinks, directories, special files, invalid UTF-8 paths, and reserved artifact names are rejected.
+
+Mutable partial files must have exactly one hard link and no group/other permission bits. Recovery, activation, writes, checkpoints, and preparation for publication check these constraints. An incompatible file is preserved without truncation, chmod, or unlinking its aliases, even with `--overwrite`. Verified `ready` recovery may retain the intentional final/partial hard links left by interrupted publication because it writes no content bytes. The caller must still trust the output directory and avoid external changes during a transfer; advisory locks do not exclude unrelated filesystem writers.
 
 The empty lock file is persistent. Every writer holds a nonblocking OS advisory lock on its inode until all writes and cleanup finish. Closing the descriptor or process termination releases ownership; a leftover lock file alone does not mean a writer is active. Keeping the inode avoids an unlink/recreate race between competing writers. Do not manually delete it while a transfer may be active. [Linux flock semantics](https://man7.org/linux/man-pages/man2/flock.2.html).
 
@@ -133,7 +135,7 @@ Resource changes, unsupported ranges, changed effective URLs, corrupt state, and
 
 ## Final publication and recovery
 
-After successful transport and length checks, storage syncs the complete file and publishes a `ready` manifest with its full checksum. Only then does it publish the final output.
+After successful transport and length checks, storage syncs the complete file and checks its stored bytes before publishing a `ready` manifest. Sequential transfers require the actual file size and a fresh full-file digest to match the received stream, including unknown-length streams. A failed readback stops further sequential checkpointing and preserves the previous manifest. Range transfers recheck exact coverage, each chunk, and the complete checksum. Only then does storage publish the final output. Sequential verification adds a full local read before publication and honors cancellation while hashing.
 
 Default publication uses a hard link that cannot replace an existing destination. Explicit overwrite uses rename. Directory sync occurs before removing the partial name; the manifest is removed last. Errors retain whether verified output was already published.
 

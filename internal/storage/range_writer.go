@@ -77,6 +77,16 @@ func (w *RangeWriter) Write(data []byte) (int, error) {
 		return 0, w.err
 	}
 
+	info, err := w.file.Stat()
+	if err == nil {
+		err = checkMutable(info)
+	}
+
+	if err != nil {
+		w.err = err
+		return 0, err
+	}
+
 	n, err := w.file.WriteAt(data, w.offset)
 	w.offset += int64(n)
 	w.digest.Write(data[:n])

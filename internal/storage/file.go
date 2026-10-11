@@ -190,6 +190,10 @@ func (f *File) Write(data []byte) (int, error) {
 		}
 	}
 
+	if err := f.checkIdentity(); err != nil {
+		return 0, err
+	}
+
 	n, err := f.file.Write(data)
 	f.written += int64(n)
 
@@ -345,6 +349,10 @@ func (f *File) checkIdentity() error {
 	info, err := f.root.Lstat(name)
 	if err != nil || f.info == nil || !info.Mode().IsRegular() || !os.SameFile(info, f.info) {
 		return errors.New("transfer file changed while it was owned")
+	}
+
+	if f.manifest == nil || f.manifest.State != StateReady {
+		return checkMutable(info)
 	}
 
 	return nil
