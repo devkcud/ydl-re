@@ -34,7 +34,8 @@ Options may appear before or after the URL.
       --limit <rate>       Aggregate body rate, e.g. 5MB/s (default: unlimited)
       --overwrite          Replace an existing completed file
       --resume             Require a saved compatible transfer
-      --quiet              Suppress progress; keep errors and final path
+      --json               Emit JSON progress and a terminal result to stdout
+      --quiet              Suppress progress; keep errors and final output
       --timeout <duration> Network inactivity timeout (default: 30s)
   -h, --help               Show this help
 
@@ -43,6 +44,7 @@ automatically; --resume requires saved state. Incompatible partials are preserve
 One connection uses a direct stream for new files and one worker for saved ranges.
 Interrupted sequential bodies keep their checkpoints for a later resume.
 Rates use positive integers and B/s, KB/s, MB/s, GB/s, KiB/s, MiB/s, or GiB/s.
+JSON uses one object per line; --quiet keeps only the terminal result.
 `
 
 const inspectUsage = `Usage: yoinkdl inspect <output>
@@ -103,7 +105,7 @@ func Run(ctx context.Context, args []string, out, errOut io.Writer, version stri
 }
 
 func download(ctx context.Context, args []string, out, errOut io.Writer) int {
-	req, quiet, err := parseDownload(args)
+	req, opts, err := parseDownload(args)
 	if errors.Is(err, flag.ErrHelp) {
 		fmt.Fprint(out, downloadUsage)
 		return 0
@@ -113,11 +115,14 @@ func download(ctx context.Context, args []string, out, errOut io.Writer) int {
 		fmt.Fprintln(errOut, err)
 		return 2
 	}
+	if opts.json {
+		return downloadJSON(ctx, req, opts.quiet, out, errOut)
+	}
 
 	var update func(transfer.Snapshot)
 	var display *progress
 
-	if !quiet {
+	if !opts.quiet {
 		display = newProgress(errOut)
 		update = display.Update
 	}
@@ -157,16 +162,22 @@ func download(ctx context.Context, args []string, out, errOut io.Writer) int {
 	return 0
 }
 
-func parseDownload(args []string) (transfer.Request, bool, error) {
+type outputOptions struct {
+	quiet bool
+	json  bool
+}
+
+func parseDownload(args []string) (transfer.Request, outputOptions, error) {
 	var req transfer.Request
-	var quiet bool
+	var opts outputOptions
 	fs := flag.NewFlagSet("download", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	fs.StringVar(&req.Output, "output", "", "output path")
 	fs.StringVar(&req.Output, "o", "", "output path")
 	fs.BoolVar(&req.Overwrite, "overwrite", false, "replace completed output")
 	fs.BoolVar(&req.Resume, "resume", false, "require existing transfer state")
-	fs.BoolVar(&quiet, "quiet", false, "suppress progress")
+	fs.BoolVar(&opts.quiet, "quiet", false, "suppress progress")
+	fs.BoolVar(&opts.json, "json", false, "JSON progress and result")
 	fs.DurationVar(&req.Timeout, "timeout", transfer.DefaultTimeout, "network inactivity timeout")
 
 	fs.Func("limit", "aggregate body rate", func(value string) error {
@@ -216,7 +227,7 @@ func parseDownload(args []string) (transfer.Request, bool, error) {
 		}
 
 		if arg == "-h" || arg == "--help" {
-			return req, quiet, flag.ErrHelp
+			return req, opts, flag.ErrHelp
 		}
 
 		if !strings.HasPrefix(arg, "-") || arg == "-" {
@@ -228,7 +239,7 @@ func parseDownload(args []string) (transfer.Request, bool, error) {
 		option := fs.Lookup(name)
 
 		if option == nil {
-			return req, quiet, errors.New("unknown option; run yoinkdl download --help")
+			return req, opts, errors.New("unknown option; run yoinkdl download --help")
 		}
 
 		options = append(options, arg)
@@ -238,7 +249,7 @@ func parseDownload(args []string) (transfer.Request, bool, error) {
 			i++
 
 			if i >= len(args) {
-				return req, quiet, fmt.Errorf("option --%s requires a value", name)
+				return req, opts, fmt.Errorf("option --%s requires a value", name)
 			}
 
 			options = append(options, args[i])
@@ -246,15 +257,15 @@ func parseDownload(args []string) (transfer.Request, bool, error) {
 	}
 
 	if err := fs.Parse(options); err != nil {
-		return req, quiet, err
+		return req, opts, err
 	}
 
 	if len(urls) != 1 {
-		return req, quiet, errors.New("download requires exactly one HTTP(S) URL")
+		return req, opts, errors.New("download requires exactly one HTTP(S) URL")
 	}
 
 	if req.Timeout <= 0 {
-		return req, quiet, errors.New("timeout must be positive")
+		return req, opts, errors.New("timeout must be positive")
 	}
 
 	var emptyOutput bool
@@ -265,11 +276,11 @@ func parseDownload(args []string) (transfer.Request, bool, error) {
 	})
 
 	if emptyOutput {
-		return req, quiet, errors.New("output path must not be empty")
+		return req, opts, errors.New("output path must not be empty")
 	}
 
 	req.URL = urls[0]
-	return req, quiet, nil
+	return req, opts, nil
 }
 
 func inspect(args []string, out, errOut io.Writer) int {

@@ -75,6 +75,14 @@ Active downloads may take longer than that timeout overall.
 
 Transient requests and incomplete range chunks get three additional attempts by default. Set `--retries 0` to disable retries, or choose a decimal count up to 10. Backoff and reasonable `Retry-After` waits are cancellable. A retry replaces the whole failed chunk, so displayed progress may briefly decrease. Sequential body interruptions preserve checkpoints for a later resume.
 
+For scripts, use `--json` to receive one JSON object per line on stdout. Combine it with `--quiet` for just the terminal result:
+
+```sh
+./bin/yoinkdl download 'https://example.org/archive.zip' -o ./archive.zip --json --quiet
+```
+
+Success requires `status: "completed"`, `published: true`, and exit status `0`. A failed/interrupted result reports known retained partial data. Output failures use stderr and a nonzero exit; stdout may then contain an incomplete line or no terminal result. See [JSON output](cli.md#json-output) for the schema, unknown totals, and stream behavior.
+
 ## Interrupt a transfer
 
 Press Ctrl+C. The process cancels requests, waits for workers to stop, preserves safe checkpoints, and reports the retained partial file. Interruption exits with status `130` and does not publish an incomplete output. Parallel transfers checkpoint only complete validated chunks.
@@ -112,7 +120,7 @@ This allows replacing an existing regular file after the transfer verifies succe
 
 ## Current limits
 
-`--json` is not available yet. Configuration files are not loaded. Automatic sequential body restart is not implemented; repeat the same request to resume compatible saved state.
+Configuration files are not loaded. Automatic sequential body restart is not implemented; repeat the same request to resume compatible saved state.
 
 The engine asks for identity encoding and saves the exact bytes the server returns. If the server still applies content encoding, those bytes are preserved without transparent decoding. Unknown-length completion can establish clean HTTP completion, not the publisher's intended size without additional metadata.
 

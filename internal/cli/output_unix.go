@@ -34,12 +34,13 @@ func openOutput(file *os.File) (*os.File, func() error, error) {
 			return
 		}
 
-		fd, callErr = syscall.Dup(int(source))
-		if callErr != nil {
+		dup, _, errno := syscall.Syscall(syscall.SYS_FCNTL, source, syscall.F_DUPFD_CLOEXEC, 3)
+		if errno != 0 {
+			callErr = errno
 			return
 		}
 
-		syscall.CloseOnExec(fd)
+		fd = int(dup)
 		callErr = syscall.SetNonblock(fd, true)
 	})
 	if err = errors.Join(err, callErr); err != nil {

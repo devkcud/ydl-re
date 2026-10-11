@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-This page defines the lifecycle intended for v0.1. State names are conceptual; serialized state and event schemas are not frozen.
+This page defines the lifecycle intended for v0.1. State names here are conceptual; implemented checkpoint formats are specified in [storage](resume-and-storage.md), and CLI event version 1 in [JSON output](cli.md#json-output).
 
 Milestones A, B, and C implement input/local-state validation, GET-based identity checks, sequential and parallel transfers with resume, bounded retries, durable checkpoints, verification, and publication recovery. The manifest records `partial` or verified `ready` checkpoints; these are distinct from the conceptual runtime states below.
 

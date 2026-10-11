@@ -8,7 +8,7 @@ YoinkDL is a local-first HTTP(S) download manager written in Go. The first imple
 
 Milestones A, B, and C are implemented and tested on Linux. `download`, `inspect`, `version`, safe resume, bounded retries, progress, cancellation, overwrite protection, and inactivity timeouts work. Saved progress is synced and checksummed before reuse.
 
-Milestone D has started with aggregate rate caps. Downloads use up to four workers and three additional attempts for transient failures. JSON output, configuration files, and final release qualification remain planned. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
+Milestone D includes aggregate rate caps and versioned JSON output. Downloads use up to four workers and three additional attempts for transient failures. Configuration files and final release qualification remain planned. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
 
 ## Build and test
 
@@ -49,6 +49,8 @@ Use `--connections <n>` or `-c <n>` to choose a worker limit from 1 to 32. One c
 `--retries <n>` accepts 0 through 10 additional attempts; zero disables retries. Incomplete ranges restart from their assigned beginning after cancellable backoff. Interrupted sequential bodies keep their checkpoints for a later resume.
 
 Use `--limit 5MB/s` to cap body traffic across all workers at 5,000,000 bytes per second. `5MiB/s` uses binary units. Rates require positive integers and explicit units; omission is unlimited. Probe and retry bytes count, throttle waits are cancellable, and protocol overhead/read-ahead is outside this application-level cap. See [rate accounting](docs/concurrency.md#aggregate-rate-cap).
+
+Use `--json` for newline-delimited progress and a terminal result on stdout. `--json --quiet` emits only the result. Check both the result and exit status; failures can preserve partial data or occur after publication. See [the JSON contract](docs/cli.md#json-output).
 
 Ctrl+C stops all workers and preserves verified checkpoints. Run the same URL and output again to resume compatible sequential or parallel state automatically. Parallel resume checks the saved version with the server before fetching whole missing chunks; completed chunks are retained.
 

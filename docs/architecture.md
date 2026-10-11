@@ -2,14 +2,14 @@
 
 [Documentation index](README.md)
 
-Milestones A, B, and C plus the Milestone D rate cap implement the packages below. The diagrams and proposed layout describe the larger target architecture.
+Milestones A, B, and C plus the Milestone D rate cap and JSON output implement the packages below. The diagrams and proposed layout describe the larger target architecture.
 
 ## Current packages
 
 | Package | Implemented responsibility |
 |---|---|
 | `cmd/yoinkdl` | Entry point, build version, SIGINT/SIGTERM cancellation |
-| `internal/cli` | Standard-library argument parsing, local inspection, stdout/stderr, terminal progress |
+| `internal/cli` | Standard-library parsing, inspection, stdout/stderr, text progress, versioned JSON records and output backpressure |
 | `internal/transfer` | Sequential/ranged HTTP, probing, immutable identity, response validation, retries, timeouts, aggregate rate budgets, byte checks, snapshots |
 | `internal/ranges` | Bounded fixed-chunk planning, validated coverage, missing work, HTTP endpoint conversion |
 | `internal/storage` | Stable OS locks, prefix/chunk manifests and checksums, durable checkpoints, preservation, publication recovery |
@@ -117,7 +117,7 @@ The coordinator needs reliable representation metadata, the selected mode, inter
 
 Snapshots should distinguish known and unknown totals and expose enough information for bytes, speed, ETA, and active workers. A progress subscriber must not decide whether a transfer is complete. Terminal success follows verification and final publication.
 
-The exact event schema and subscriber behavior remain [open](decisions.md#command-and-output-decisions).
+`cli/events.go` adapts engine snapshots/results into the [version-1 JSON contract](cli.md#json-output). `cli/json.go` cancels the engine on output failure and emits the terminal result only after `Download` returns with worker/storage cleanup complete. JSON output owns duplicated pipe/socket descriptors through `cli/output.go` and `output_unix.go`; writes are synchronous, bounded by deadlines where supported, and never create an event backlog. Generic daemon/TUI subscriptions and retry counters remain [open](decisions.md#command-and-output-decisions).
 
 ## Ownership and shutdown
 

@@ -88,7 +88,9 @@ Track useful completed or reliably received bytes without double-counting retrie
 
 Show speed and ETA only as advisory estimates. Suppress total percentage and ETA when total length is unknown. Report the active worker count rather than implying the configured maximum is always in use.
 
-The CLI renders snapshots at most every 200 ms while data arrives, plus a final snapshot. Percentage includes validated saved bytes; average speed tracks useful received bytes, excluding probes and bytes discarded before a replacement attempt. Progress can move backward when a chunk retries, but never counts its failed attempt twice. The coordinator reports initial saved progress before starting workers and honors cancellation there. Worker counts include slots in backoff and reach zero before final verification. A durable event schema remains future work; checkpoints and verification remain the authority for completion.
+The text CLI renders snapshots at most every 200 ms while data arrives, plus a final snapshot. Percentage includes validated saved bytes; average speed tracks useful received bytes, excluding probes and bytes discarded before a replacement attempt. Progress can move backward when a chunk retries, but never counts its failed attempt twice. The coordinator reports initial saved progress before starting workers and honors cancellation there. Worker counts include slots in backoff and reach zero before final verification. Checkpoints and verification remain the authority for completion.
+
+`--json` emits advisory progress at the same interval and one terminal result after transfer cleanup. `--quiet` suppresses progress only. The CLI writes synchronously with bounded memory; a slow consumer applies backpressure, while deadline-capable output can time out or be interrupted. Output errors cancel the transfer and join its workers before reporting known preserved/published paths. The [JSON schema](cli.md#json-output) does not introduce a replay log or a general subscriber bus.
 
 ## Deferred tuning
 

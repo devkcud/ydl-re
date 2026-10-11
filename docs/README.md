@@ -2,7 +2,7 @@
 
 *The download manager that yoinks.*
 
-YoinkDL is a local-first download manager written in Go. It provides sequential and bounded parallel HTTP(S) transfers with safe resumption, bounded retries, and aggregate rate limits. JSON output integration is next.
+YoinkDL is a local-first download manager written in Go. It provides sequential and bounded parallel HTTP(S) transfers with safe resumption, bounded retries, aggregate rate limits, and versioned JSON output.
 
 ## Project status
 
@@ -10,7 +10,7 @@ As of October 11, 2026, the transfer, resume, and retry engine is implemented an
 
 Use the root [README](../README.md) for an introduction, [STATUS.md](../STATUS.md) for the current handoff and next steps, and [AGENTS.md](../AGENTS.md) for implementation instructions.
 
-The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, aggregate rate caps, resume, and local inspection. Milestone C connects strict representation validation, exclusive offset writers, and bounded workers for fresh and resumed transfers. Milestone D has started with body-rate pacing; JSON events and configuration loading remain planned. No published installer or full v0.1 release is available.
+The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, aggregate rate caps, JSON events, resume, and local inspection. Milestone C connects strict representation validation, exclusive offset writers, and bounded workers for fresh and resumed transfers. Milestone D includes body-rate pacing and JSON output; final terminal/security/platform/release qualification and configuration loading remain. No published installer or full v0.1 release is available.
 
 These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions.
 

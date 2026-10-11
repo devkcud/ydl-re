@@ -22,6 +22,9 @@ func TestCLIProcess(t *testing.T) {
 	for i, arg := range os.Args {
 		if arg == "--" {
 			os.Args = append([]string{"yoinkdl"}, os.Args[i+1:]...)
+			if os.Getenv("YOINKDL_TEST_CLOSE_STDERR") == "1" {
+				os.Stderr.Close()
+			}
 			main()
 			return
 		}

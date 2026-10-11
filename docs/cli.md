@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A, B, and C plus the Milestone D rate cap implement the commands below. Examples use the built executable from the repository root. See [getting started](getting-started.md) to build it.
+Milestones A, B, and C plus the Milestone D rate cap and JSON output implement the commands below. Examples use the built executable from the repository root. See [getting started](getting-started.md) to build it.
 
 ## Commands
 
@@ -35,6 +35,7 @@ Options can precede or follow the URL. Supply exactly one absolute HTTP or HTTPS
 | `--limit <rate>` | Aggregate body rate across the transfer, such as `5MB/s` or `5MiB/s` | Unlimited |
 | `--overwrite` | Allow replacing an existing regular completed file | Off |
 | `--resume` | Require existing saved transfer metadata | Compatible existing state resumes automatically without the flag |
+| `--json` | Newline-delimited progress and one terminal result on stdout | Off |
 | `--quiet` | Suppress progress; retain errors and final output | Off |
 | `--timeout <duration>` | Timeout for connection, TLS, response headers, or an idle body read | `30s` |
 | `--help`, `-h` | Display download help | Off |
@@ -118,9 +119,15 @@ A percentage is advisory. Completion still requires transport and length checks 
 
 ## JSON output
 
-The version-1 encoder and output writer are implemented and tested; exposing `download --json` is the next integration step. This section defines that interface. Other commands retain their current text output.
+`download --json` implements the version-1 format below. Other commands retain their current text output; `--json=false` selects normal text download output.
 
-JSON mode emits newline-delimited UTF-8 objects on stdout, with no array, terminal control codes, or extra success-path line. Progress records are advisory; one terminal `result` follows transfer cleanup. `--quiet` suppresses progress only. Argument errors still use stderr and exit `2`; help remains text. Transfer failures/interruption belong in the result, with no duplicate human error on stderr. Output-stream failures use stderr because stdout may be unusable.
+For a machine-readable terminal result without progress:
+
+```sh
+./bin/yoinkdl download 'https://example.org/archive.zip' -o ./archive.zip --json --quiet
+```
+
+JSON mode emits newline-delimited UTF-8 objects on stdout, with no array, terminal control codes, or extra success-path line. Progress records are advisory; one terminal `result` follows transfer cleanup. `--quiet` suppresses progress only. Command/option parsing errors use stderr and exit `2`; help remains text. After parsing succeeds, transfer validation errors (including invalid URLs), failures, and interruption belong in the result, with no duplicate human error on stderr. Output-stream failures use stderr because stdout may be unusable.
 
 Each record includes `schema_version: 1`, an `event` discriminator, and integer `elapsed_ms` since the event stream started. Version 1 keeps existing field types and meanings stable; additive fields and nonterminal events may appear. Consumers should ignore unknown fields/events, reject unsupported schema versions, and require a `completed` result with `published: true` plus process exit `0` for success. Error messages are human-readable diagnostics, not stable error codes. JSON integers may reach signed 64-bit values; consumers must preserve integer precision.
 
@@ -183,9 +190,8 @@ These interfaces remain proposed and are rejected by the current CLI:
 
 | Addition | Intended milestone/release |
 |---|---|
-| `--json` | D: v0.1 hardening |
 | Configuration files | Optional format still to implement and specify |
 | Queue/daemon commands | v0.2 |
 | TUI, profiles, history, optional hooks | v0.3 |
 
-JSON event framing remains open; manifest versions 1 and 2 are documented in [storage](resume-and-storage.md). See [open decisions](decisions.md) before implementing later additions.
+The JSON event schema is separate from manifest versions 1 and 2, documented in [storage](resume-and-storage.md). See [open decisions](decisions.md) before implementing later additions.

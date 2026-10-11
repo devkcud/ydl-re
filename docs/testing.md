@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A, B, and C plus the Milestone D rate cap pass the local full gate on Go 1.27.2, Linux/amd64. The matrix below also covers remaining hardening/release work and must not be read as fully implemented.
+Milestones A, B, and C plus the Milestone D rate cap and JSON output pass the local full gate on Go 1.27.2, Linux/amd64. The matrix below also covers remaining hardening/release work and must not be read as fully implemented.
 
 ## Current evidence
 
@@ -29,18 +29,24 @@ Milestones A, B, and C plus the Milestone D rate cap pass the local full gate on
 | [Body pacing](../internal/transfer/body_test.go) | Bounded reads, throttle/timeout separation, later attempts after idle timeout, cancellation/cleanup, redirect-body accounting |
 | [Rate integration](../internal/transfer/limit_integration_test.go) | Fresh/saved probe and failed-chunk traffic, saved-byte exclusion, progress rollback, fallback budget continuity, canceled-worker joining, sequential/ranged resume and unknown-length streams |
 | [CLI](../internal/cli/cli_test.go) | Argument ordering, invalid options, help/version, progress, quiet output, overwrite, error codes |
+| [JSON records](../internal/cli/events_test.go) | Exact integer counts, null/empty totals, framing/escaping, progress coalescing/rollback, quiet mode, result statuses, publication/cleanup distinction, short writes |
+| [Output deadlines](../internal/cli/output_test.go) and [pipe ownership](../internal/cli/output_unix_test.go) | Controlled deadline/cancellation, deadline cleanup, duplicate ownership, original flag restoration, full-pipe cancellation |
+| [JSON integration](../internal/cli/json_test.go) | Known/unknown/empty/parallel output, sequential/ranged resume with retries, publication refusal and offline recovery, output failures before/after publication, source redaction, help/argument/text compatibility |
 | [Process](../cmd/yoinkdl/main_test.go) | Entry point, successful download, real SIGINT with retained partial bytes and no final output |
 | [Crash recovery](../cmd/yoinkdl/resume_test.go) | Kill a process after a durable checkpoint, inspect its state, resume in another process, and verify the complete fixture hash |
 | [Parallel process](../cmd/yoinkdl/parallel_test.go) | Actual CLI process, connection flag, conditional range requests, and complete fixture checksum |
 | [Parallel crash recovery](../cmd/yoinkdl/range_resume_test.go) | Kill with disjoint completed chunks and wrong unconfirmed bytes, restart with a different worker limit, fetch only whole missing chunks, verify final hash and cleanup |
 | [Retry process](../cmd/yoinkdl/retry_test.go) | Actual CLI default of three additional attempts, explicit one-retry budgets, zero disabling retries, and exact output |
 | [Rate process](../cmd/yoinkdl/limit_test.go) | Actual CLI aggregate `8MiB/s` cap across three chunks of a 9 MiB fixture, success timing before process teardown, and exact output checksum |
+| [JSON process](../cmd/yoinkdl/json_test.go) and [pipe failures](../cmd/yoinkdl/json_pipe_test.go) | Real SIGINT result and checkpoint/resume, quiet result, broken stdout before/after publication, closed stderr, full-stdout cancellation with cleanup before draining |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
 The built executable also passed a workspace-filesystem smoke test: interrupt, inspect the saved checkpoint, resume from 128 KiB, verify the complete fixture hash, and confirm that URL tokens were absent from metadata.
 
 The parallel crash test waits for two disjoint chunk checkpoints and unconfirmed bytes in both gaps, then forcibly kills the writer. A new process revalidates the saved identity, uses two workers instead of four, replaces only the missing chunks, and produces the exact fixture hash. The partial already has the full logical file length, so the test also rejects size-based completion shortcuts. Saved metadata contains no raw URL tokens.
+
+JSON process tests verify actual stdout descriptor behavior. Broken pipes return exit `1`, preserve state, and report known artifacts when stderr is available; exit status and preservation still hold when stderr is closed. A full-pipe test interrupts while progress output is blocked, proves partial cleanup completes before the reader drains, then receives the interrupted result. A SIGINT/resume test validates the checkpoint checksum and final fixture hash. Post-publication storage-cleanup failure is covered at the record-mapping boundary; broader storage fault injection remains separate qualification.
 
 Real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Fresh/resumed parallel transfers, bounded retries, aggregate body-rate caps, concurrent offset writers, and checkpoint serialization have executable tests. Retry unit/integration fixtures substitute controlled waits where timing itself is not under test; CLI process checks exercise real backoff. Process termination is not a real power-loss test; publication-boundary recovery also uses controlled ready/link/rename states.
 
