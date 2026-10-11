@@ -72,10 +72,6 @@ func rangeResumeAttempt(ctx context.Context, client *http.Client, source *url.UR
 		if err := validateResume(resp, saved); err != nil {
 			return representation{}, err
 		}
-
-		if len(resp.Header.Values("Content-Range")) != 0 {
-			return representation{}, errors.New("empty range resume requires a complete response")
-		}
 	} else if err := id.validate(resp, ranges.Span{End: 1}); err != nil {
 		return representation{}, err
 	}

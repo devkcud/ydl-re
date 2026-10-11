@@ -62,6 +62,10 @@ func validateResume(resp *http.Response, saved storage.Manifest) error {
 	}
 
 	if saved.Completed == 0 {
+		if err := validateFullResponse(resp); err != nil {
+			return err
+		}
+
 		if resp.ContentLength != saved.Length {
 			return errors.New("remote length changed; existing state is preserved")
 		}

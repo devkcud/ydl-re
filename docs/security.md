@@ -35,6 +35,8 @@ Validate range responses, byte counts, representation identity, and encoding. A 
 
 URLs may contain user information, signed query parameters, or other access tokens. Avoid exposing those values in progress, errors, logs, JSON output, or shareable diagnostics.
 
+Invalid option values are omitted from diagnostics. HTTP request and body errors are classified without raw URLs, headers, or parser messages. The private transport closes connections after responses to prevent its idle-connection diagnostic from logging unsolicited server bytes. This adds connection setup costs; explicitly enabled runtime debug tracing is outside this policy. Local paths are still reported, so use an explicit output name when the URL basename itself contains sensitive information.
+
 Manifest version 1 stores SHA-256 fingerprints of parsed source/effective URLs with fragments removed. It does not store raw URLs, query tokens, or request headers. It retains the validator and local checkpoint fields needed for recovery under private file permissions. The original draft's URL-bearing schema was illustrative and is not accepted by the loader.
 
 Query parameters remain part of the hashed identity. A refreshed signed URL or changed redirect target therefore fails matching rather than silently reusing bytes. Fingerprints are identity checks, not encryption or authentication of manifest contents.

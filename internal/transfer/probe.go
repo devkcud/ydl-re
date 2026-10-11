@@ -131,9 +131,9 @@ func probeLength(resp *http.Response) (int64, error) {
 }
 
 func sequentialProbe(resp *http.Response) (probeResult, error) {
-	if resp.StatusCode != http.StatusOK || len(resp.Header.Values("Content-Range")) != 0 {
+	if err := validateFullResponse(resp); err != nil {
 		resp.Body.Close()
-		return probeResult{}, errors.New("sequential fallback requires a complete 200 response without Content-Range")
+		return probeResult{}, err
 	}
 
 	return probeResult{stream: resp}, nil

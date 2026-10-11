@@ -6,11 +6,13 @@ Parallel downloads, sequential streaming, safe resume, and bounded retries are i
 
 ## Implemented sequential transfer
 
-Fresh transfers with `--connections 1` send a full `GET`, accept only `200`, use a 64 KiB buffer, check known body lengths, and require clean completion for unknown lengths. Probe fallback uses the same receiver. The engine requests identity encoding and disables transparent decompression; if the server still sends encoded content, the exact served bytes are saved and counted without decoding.
+Fresh transfers with `--connections 1` send a full `GET`, require `200` without `Content-Range`, use a 64 KiB buffer, check known body lengths, and require clean completion for unknown lengths. Probe fallback uses the same full-response validation and receiver. The engine requests identity encoding and disables transparent decompression; if the server still sends encoded content, the exact served bytes are saved and counted without decoding.
 
 The default timeout is 30 seconds per connection, TLS handshake, response-header wait, or idle body read. It is not an overall download deadline: active transfers may run longer. Cancellation closes active requests and retains nonempty partial data without publishing it.
 
 Redirect chains allow at most ten requests. HTTPS-to-HTTP downgrades and URL credentials are rejected. Sensitive headers and referrers are stripped across origins, including subsequent redirects away from the original origin. Request errors avoid exposing URL tokens.
+
+The private transport disables connection reuse. This prevents Go's HTTP/1 idle-connection diagnostic from logging unsolicited server bytes, at the cost of additional connection/TLS setup between requests. Body failures also use bounded, classified messages instead of raw HTTP parser errors; malformed trailers cannot leak server-supplied text. Explicit runtime debug tracing is outside the application's diagnostic policy.
 
 Response headers establish the initial manifest identity. Request setup can retry eligible failures before accepting a response. Sequential body interruption keeps its checkpoint for a later resume; no automatic body restart occurs. There is no separate HEAD dependency. Local-server tests cover fresh transfers, resumed suffixes, crash recovery, and incompatible responses.
 
@@ -20,7 +22,7 @@ Before sending a version-1 resume request, the engine validates the manifest, de
 
 For a positive saved prefix `n`, send `Range: bytes=n-` and `If-Range` with the saved strong ETag. Require `206`, one exact `Content-Range` covering `n` through `length - 1`, the same total, the same echoed strong ETag, identity encoding, and the same effective-URL fingerprint. A declared payload length must equal the remaining bytes; chunked framing is allowed when actual bytes match those bounds.
 
-For a zero-byte checkpoint, send a full GET with `If-Match` and require matching `200` metadata. Only after successful validation may storage truncate uncheckpointed tail bytes and receive the response.
+For a zero-byte checkpoint, send a full GET with `If-Match` and require matching `200` metadata without `Content-Range`. Only after successful validation may storage truncate uncheckpointed tail bytes and receive the response.
 
 A `200` received for a positive-offset resume is refused. A `416` triggers a fresh GET re-probe whose body is discarded, then fails without inferring completion. Neither case discards existing state or silently restarts from zero.
 

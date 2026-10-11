@@ -3,6 +3,7 @@ package transfer
 import (
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -17,6 +18,7 @@ var errDowngrade = errors.New("refusing an HTTPS to HTTP redirect")
 func newClient(timeout time.Duration, limit *limiter) *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.DisableCompression = true
+	transport.DisableKeepAlives = true
 	transport.DialContext = (&net.Dialer{Timeout: timeout, KeepAlive: 30 * time.Second}).DialContext
 	transport.TLSHandshakeTimeout = timeout
 	transport.ResponseHeaderTimeout = timeout
@@ -25,6 +27,18 @@ func newClient(timeout time.Duration, limit *limiter) *http.Client {
 		Transport:     &bodyTransport{next: transport, timeout: timeout, limit: limit},
 		CheckRedirect: checkRedirect,
 	}
+}
+
+func validateFullResponse(resp *http.Response) error {
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP %d %s; expected a complete 200 response", resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+
+	if len(resp.Header.Values("Content-Range")) != 0 {
+		return errors.New("complete 200 responses must not include Content-Range")
+	}
+
+	return nil
 }
 
 func checkRedirect(req *http.Request, via []*http.Request) error {

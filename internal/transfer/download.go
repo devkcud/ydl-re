@@ -228,8 +228,8 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 
 		result.Resumed = m.Completed
 	} else {
-		if resp.StatusCode != http.StatusOK {
-			return result, fmt.Errorf("HTTP %d %s; expected a complete 200 response", resp.StatusCode, http.StatusText(resp.StatusCode))
+		if err := validateFullResponse(resp); err != nil {
+			return result, err
 		}
 
 		m = responseMetadata(resp, u)
@@ -278,7 +278,7 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 		}
 
 		if readErr != nil {
-			return result, fmt.Errorf("incomplete response: %w", readErr)
+			return result, bodyFailure(readErr)
 		}
 	}
 
