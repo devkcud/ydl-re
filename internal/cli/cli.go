@@ -55,8 +55,7 @@ This does not verify stored bytes or current remote identity.
 
 func Run(ctx context.Context, args []string, out, errOut io.Writer, version string) int {
 	if len(args) == 0 {
-		fmt.Fprint(out, usage)
-		return 0
+		return reply(ctx, out, errOut, usage)
 	}
 
 	switch args[0] {
@@ -64,102 +63,50 @@ func Run(ctx context.Context, args []string, out, errOut io.Writer, version stri
 		if len(args) == 2 {
 			switch args[1] {
 			case "download":
-				fmt.Fprint(out, downloadUsage)
-				return 0
+				return reply(ctx, out, errOut, downloadUsage)
 			case "inspect":
-				fmt.Fprint(out, inspectUsage)
-				return 0
+				return reply(ctx, out, errOut, inspectUsage)
 			}
 		}
 
 		if len(args) != 1 {
-			fmt.Fprintln(errOut, "usage: yoinkdl help [download|inspect]")
-			return 2
+			return diagnostic(ctx, errOut, "usage: yoinkdl help [download|inspect]", 2)
 		}
 
-		fmt.Fprint(out, usage)
-		return 0
+		return reply(ctx, out, errOut, usage)
 
 	case "version":
 		if len(args) != 1 {
-			fmt.Fprintln(errOut, "usage: yoinkdl version")
-			return 2
+			return diagnostic(ctx, errOut, "usage: yoinkdl version", 2)
 		}
 
-		if _, err := fmt.Fprintln(out, "yoinkdl "+safeText(version)); err != nil {
-			return 1
-		}
-
-		return 0
+		return reply(ctx, out, errOut, "yoinkdl "+safeText(version)+"\n")
 
 	case "download":
 		return download(ctx, args[1:], out, errOut)
 
 	case "inspect":
-		return inspect(args[1:], out, errOut)
+		return inspect(ctx, args[1:], out, errOut)
 
 	default:
-		fmt.Fprintln(errOut, "unknown command; run yoinkdl help")
-		return 2
+		return diagnostic(ctx, errOut, "unknown command; run yoinkdl help", 2)
 	}
 }
 
 func download(ctx context.Context, args []string, out, errOut io.Writer) int {
 	req, opts, err := parseDownload(args)
 	if errors.Is(err, flag.ErrHelp) {
-		fmt.Fprint(out, downloadUsage)
-		return 0
+		return reply(ctx, out, errOut, downloadUsage)
 	}
 
 	if err != nil {
-		fmt.Fprintln(errOut, safeText(err.Error()))
-		return 2
+		return diagnostic(ctx, errOut, safeText(err.Error()), 2)
 	}
 	if opts.json {
 		return downloadJSON(ctx, req, opts.quiet, out, errOut)
 	}
 
-	var update func(transfer.Snapshot)
-	var display *progress
-
-	if !opts.quiet {
-		display = newProgress(errOut)
-		update = display.Update
-	}
-
-	result, err := transfer.Download(ctx, req, update)
-	if display != nil {
-		display.Finish()
-	}
-
-	if err != nil {
-		code := 1
-		label := "download failed"
-
-		if errors.Is(err, context.Canceled) {
-			code = 130
-			label = "download interrupted"
-		}
-
-		fmt.Fprintf(errOut, "%s: %s\n", label, safeText(err.Error()))
-
-		if result.Published {
-			fmt.Fprintf(errOut, "Verified output published: %s\n", safeText(result.Path))
-		}
-
-		if result.Partial != "" {
-			fmt.Fprintf(errOut, "Partial file preserved: %s\n", safeText(result.Partial))
-		}
-
-		return code
-	}
-
-	if _, err := fmt.Fprintln(out, safeText(result.Path)); err != nil {
-		fmt.Fprintln(errOut, "download completed, but the final path could not be written to stdout")
-		return 1
-	}
-
-	return 0
+	return downloadText(ctx, req, opts.quiet, out, errOut)
 }
 
 type outputOptions struct {
@@ -283,21 +230,18 @@ func parseDownload(args []string) (transfer.Request, outputOptions, error) {
 	return req, opts, nil
 }
 
-func inspect(args []string, out, errOut io.Writer) int {
+func inspect(ctx context.Context, args []string, out, errOut io.Writer) int {
 	if len(args) == 1 && (args[0] == "-h" || args[0] == "--help") {
-		fmt.Fprint(out, inspectUsage)
-		return 0
+		return reply(ctx, out, errOut, inspectUsage)
 	}
 
 	if len(args) != 1 {
-		fmt.Fprintln(errOut, "inspect requires exactly one output path")
-		return 2
+		return diagnostic(ctx, errOut, "inspect requires exactly one output path", 2)
 	}
 
 	m, err := storage.Inspect(args[0])
 	if err != nil {
-		fmt.Fprintf(errOut, "inspect failed: %s\n", safeText(err.Error()))
-		return 1
+		return diagnostic(ctx, errOut, "inspect failed: "+safeText(err.Error()), 1)
 	}
 
 	total := "unknown"
@@ -312,13 +256,9 @@ func inspect(args []string, out, errOut io.Writer) int {
 		resume = "eligible after local and server validation"
 	}
 
-	_, err = fmt.Fprintf(out,
+	text := fmt.Sprintf(
 		"Destination: %q\nState: %s\nSaved bytes: %d\nTotal bytes: %s\nEncoding: %s\nResume: %s\n",
 		m.Destination, m.State, m.Completed, total, safeText(m.Encoding), resume)
 
-	if err != nil {
-		return 1
-	}
-
-	return 0
+	return reply(ctx, out, errOut, text)
 }

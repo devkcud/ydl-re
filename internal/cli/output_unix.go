@@ -14,7 +14,11 @@ func openOutput(file *os.File) (*os.File, func() error, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	if info.Mode()&(os.ModeNamedPipe|os.ModeSocket) == 0 {
+	var terminal bool
+	if info.Mode()&os.ModeCharDevice != 0 {
+		_, terminal = terminalSize(file)
+	}
+	if info.Mode()&(os.ModeNamedPipe|os.ModeSocket) == 0 && !terminal {
 		return file, nil, nil
 	}
 

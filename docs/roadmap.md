@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A, B, and C are implemented and pass local Linux checks. Milestone D is in progress with its aggregate rate cap and JSON output implemented. There is no full v0.1 release or promised release date.
+Milestones A, B, and C are implemented and pass local Linux checks. Milestone D includes aggregate rate caps, JSON output, and locally qualified text-output behavior. There is no full v0.1 release or promised release date.
 
 ## Delivery sequence
 
@@ -49,9 +49,9 @@ Completion evidence: parallel, resumed, and retried outputs match exact fixtures
 
 ## Milestone D — v0.1 hardening
 
-**Status:** aggregate per-transfer body pacing and versioned JSON output are implemented. `--limit` has one cancellable budget, bounded burst credit, and probe/retry accounting. `--json` has advisory progress, terminal publication/preservation results, quiet mode, and cancellable pipe output. Controlled-clock, HTTP integration, and actual CLI process tests cover rates, JSON resume, interruption, and broken/full stdout pipes. Final terminal/error behavior and release qualification are next.
+**Status:** rate caps, JSON output, and text terminal/error handling are implemented and tested locally on Linux. Output failures cancel active transfers, report known retained/published files when possible, and preserve verified data. Text rendering escapes nonprinting characters and adapts progress to actual terminal width. Controlled-clock, HTTP, pseudo-terminal, and real-process tests cover rates, resume, interrupts, blocked/broken streams, quiet mode, and merged stdout/stderr. Security/platform/release qualification remains.
 
-Complete final terminal behavior and error/exit qualification. Then finish security review and Linux/macOS/Windows build and native behavior checks where support is claimed.
+Complete security review and Linux/macOS/Windows build and native behavior checks where support is claimed.
 
 Publish verified installation/use instructions, release binaries, and a changelog after choosing distribution and licensing. Update these docs from planned interfaces to observed behavior.
 

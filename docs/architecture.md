@@ -119,6 +119,8 @@ Snapshots should distinguish known and unknown totals and expose enough informat
 
 `cli/events.go` adapts engine snapshots/results into the [version-1 JSON contract](cli.md#json-output). `cli/json.go` cancels the engine on output failure and emits the terminal result only after `Download` returns with worker/storage cleanup complete. JSON output owns duplicated pipe/socket descriptors through `cli/output.go` and `output_unix.go`; writes are synchronous, bounded by deadlines where supported, and never create an event backlog. Generic daemon/TUI subscriptions and retry counters remain [open](decisions.md#command-and-output-decisions).
 
+`cli/text.go` applies the same writer to one-shot replies/diagnostics and text downloads. Progress owns its writer only during the transfer, then releases it before terminal reporting; stdout/stderr handles do not overlap when both refer to the same pipe. `render.go` escapes nonprinting text, and `terminal_unix.go` detects terminal geometry for clipped ANSI frames. Detected terminals also use the owned, cancellable output path.
+
 ## Ownership and shutdown
 
 One process owns a transfer's writable artifacts. Within that process, each worker owns one interval at a time. Shared metadata needs coordinated updates even when data writes target disjoint offsets.

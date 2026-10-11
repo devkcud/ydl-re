@@ -117,6 +117,12 @@ Success prints the absolute output path to stdout. Failure does not print a succ
 
 Text output quotes and escapes paths, error text, and version labels that contain nonprinting characters, including line breaks, escape sequences, and bidirectional formatting characters. Ordinary printable paths retain their existing format. This changes only display; the filesystem name stays exact. Use `--json` for unambiguous machine-readable paths.
 
+Help, version, inspection, progress, and diagnostics use the same bounded writer as JSON. Linux/macOS pipes, sockets, and detected terminals use owned descriptors above stdin/stdout/stderr, with five-second write deadlines and cancellation during live output. Each final report gets its own write budget after transfer cleanup. Disk files and custom writers without deadline support retain their underlying I/O behavior.
+
+Text downloads check stdout setup before file/network work and initialize stderr only when progress is enabled. `--quiet` can succeed with stderr unavailable. A failed or short progress write cancels the transfer; workers join and storage closes before a best-effort diagnostic. Failure to print the final path or final progress after publication exits nonzero and identifies the verified file when stderr is usable. Output failures never delete published data or redirect diagnostics into stdout.
+
+Help/version/inspection write failures exit `1`. Invalid commands/options retain exit `2` even if their diagnostic cannot be written. Caller interruption during blocked output exits `130`. An unavailable diagnostic stream cannot provide preservation messages; the nonzero exit still applies. Plain terminal output remains separate from JSON's versioned data contract.
+
 A percentage is advisory. Completion still requires transport and length checks followed by file publication.
 
 ## JSON output
@@ -159,7 +165,7 @@ Example records for a ten-byte transfer:
 {"schema_version":1,"event":"result","elapsed_ms":20,"status":"completed","exit_code":0,"path":"/tmp/file","partial":null,"bytes":10,"total":10,"resumed":0,"published":true,"error":null}
 ```
 
-Progress is emitted at most every 200 ms while snapshots arrive. Synchronous writes apply backpressure without an event queue or detached writer goroutine. Linux/macOS pipe/socket output uses an owned duplicate descriptor: writes have a five-second deadline and progress writes honor cancellation. Terminal reporting gets a separate bounded write so interruption can still produce a result. Disk writes and caller-supplied writers without deadline support retain their underlying I/O behavior.
+Progress is emitted at most every 200 ms while snapshots arrive. Synchronous writes apply backpressure without an event queue or detached writer goroutine. Linux/macOS pipe/socket/terminal output uses an owned duplicate descriptor: writes have a five-second deadline and progress writes honor cancellation. Terminal reporting gets a separate bounded write so interruption can still produce a result. Disk writes and caller-supplied writers without deadline support retain their underlying I/O behavior.
 
 A failed or short write stops further records and cancels transfer work. An interrupted write that delivered no bytes can still be followed by the terminal result; a partially written record makes the stream unusable. A broken stream can end with a truncated line or no result. Output failure exits `1`, or `130` when the caller interrupted, and stderr reports known publication/partial paths. Failure after publication preserves that verified file, even if the success record could not be delivered. Source URLs, redirect targets, headers, and validators are not event fields.
 

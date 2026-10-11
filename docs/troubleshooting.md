@@ -71,6 +71,12 @@ Publication may have succeeded before metadata cleanup. The recovery policy must
 
 The current CLI reports a failure and identifies the published output if a later directory-sync or cleanup operation fails. Repeat the same request to reconcile a `ready` checkpoint against complete local bytes and finish cleanup. A mismatched checksum or unrelated destination is refused. There is no automatic orphan-cleanup command.
 
+## An output pipe closed or stopped draining
+
+Help, progress, results, and diagnostics detect failed/short writes. Pipes, sockets, and detected terminals have five-second write deadlines; live output also honors cancellation. A progress failure stops the transfer and preserves safe checkpoints. If final reporting fails after publication, the verified file remains and stderr identifies it when available. A broken stderr cannot print preservation details, and errors are never redirected into stdout.
+
+Use `--quiet` when progress is unwanted and `--json --quiet` for a machine-readable result. Keep reading output while the process runs. A progress display or a partial JSON line is not a success signal; check the exit status and, for JSON, the terminal result. Nonprinting characters in text paths appear quoted/escaped; the underlying filename is unchanged.
+
 ## Information for a useful report
 
 Once an issue-reporting channel exists, include the program version, OS/filesystem, sanitized command, error text, whether another writer was active, and which final/partial/manifest files remain. State whether the failure followed a normal interrupt, network drop, or forced termination.

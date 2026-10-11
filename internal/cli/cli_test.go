@@ -257,8 +257,8 @@ func TestResumeAndInspectMissingState(t *testing.T) {
 
 func TestResumedBytesAreNotTransferSpeed(t *testing.T) {
 	var out bytes.Buffer
-	display := newProgress(&out)
-	display.Update(transfer.Snapshot{Bytes: 4096, Total: 8192, Resumed: 4096})
+	display := testProgress(t, &out)
+	display.Update(context.Background(), transfer.Snapshot{Bytes: 4096, Total: 8192, Resumed: 4096})
 
 	if !strings.Contains(out.String(), "50.0%") || !strings.Contains(out.String(), "0.0 B/s") {
 		t.Fatalf("saved bytes counted as new traffic: %q", &out)
@@ -356,8 +356,8 @@ func TestOneConnectionUsesDirectStream(t *testing.T) {
 func TestProgressWorkerCount(t *testing.T) {
 	for _, count := range []int{0, 1, 4} {
 		var out bytes.Buffer
-		p := newProgress(&out)
-		p.Update(transfer.Snapshot{Bytes: 3, Total: 10, Workers: count})
+		p := testProgress(t, &out)
+		p.Update(context.Background(), transfer.Snapshot{Bytes: 3, Total: 10, Workers: count})
 		p.Finish()
 		if !strings.Contains(out.String(), fmt.Sprintf("%d worker", count)) {
 			t.Errorf("missing active worker count %d: %q", count, &out)

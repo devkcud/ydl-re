@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A, B, and C plus the Milestone D rate cap and JSON output pass the local full gate on Go 1.27.2, Linux/amd64. The matrix below also covers remaining hardening/release work and must not be read as fully implemented.
+Milestones A, B, and C plus Milestone D rate, JSON, and text-output work pass the local full gate on Go 1.27.2, Linux/amd64. The matrix below also covers remaining hardening/release work and must not be read as fully implemented.
 
 ## Current evidence
 
@@ -30,6 +30,7 @@ Milestones A, B, and C plus the Milestone D rate cap and JSON output pass the lo
 | [Rate integration](../internal/transfer/limit_integration_test.go) | Fresh/saved probe and failed-chunk traffic, saved-byte exclusion, progress rollback, fallback budget continuity, canceled-worker joining, sequential/ranged resume and unknown-length streams |
 | [CLI](../internal/cli/cli_test.go) | Argument ordering, invalid options, help/version, progress, quiet output, overwrite, error codes |
 | [Text rendering](../internal/cli/render_test.go) and [Linux terminals](../internal/cli/terminal_linux_test.go) | Escaped paths/errors/build labels, unchanged actual filenames, redirected frames, nonterminal devices, final worker counts, real pseudo-terminal resizing and TERM=dumb |
+| [Text output](../internal/cli/text_test.go) | Failed/short help, version and inspection writes; read-only inspect; progress failure before/after publication; checkpoint ownership release; blocked reply/diagnostic cancellation; quiet mode with unavailable stderr; coalescing after backpressure |
 | [JSON records](../internal/cli/events_test.go) | Exact integer counts, null/empty totals, framing/escaping, progress coalescing/rollback, quiet mode, result statuses, publication/cleanup distinction, short writes |
 | [Output deadlines](../internal/cli/output_test.go) and [pipe ownership](../internal/cli/output_unix_test.go) | Controlled deadline/cancellation, deadline cleanup, duplicate ownership, original flag restoration, full-pipe cancellation |
 | [JSON integration](../internal/cli/json_test.go) | Known/unknown/empty/parallel output, sequential/ranged resume with retries, publication refusal and offline recovery, output failures before/after publication, source redaction, help/argument/text compatibility |
@@ -40,6 +41,7 @@ Milestones A, B, and C plus the Milestone D rate cap and JSON output pass the lo
 | [Retry process](../cmd/yoinkdl/retry_test.go) | Actual CLI default of three additional attempts, explicit one-retry budgets, zero disabling retries, and exact output |
 | [Rate process](../cmd/yoinkdl/limit_test.go) | Actual CLI aggregate `8MiB/s` cap across three chunks of a 9 MiB fixture, success timing before process teardown, and exact output checksum |
 | [JSON process](../cmd/yoinkdl/json_test.go) and [pipe failures](../cmd/yoinkdl/json_pipe_test.go) | Real SIGINT result and checkpoint/resume, quiet result, broken stdout before/after publication, closed stderr, full-stdout cancellation with cleanup before draining |
+| [Text process](../cmd/yoinkdl/text_pipe_test.go) | Broken help/stdout/stderr, diagnostic exit status, JSON fallback with both streams broken, quiet with unusable stderr, merged streams, and SIGTERM during full stderr with checkpoint ownership released before draining |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 

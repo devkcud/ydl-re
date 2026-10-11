@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,29 +14,38 @@ import (
 const progressInterval = 200 * time.Millisecond
 
 type progress struct {
-	out      io.Writer
+	out      *recordWriter
+	err      error
 	start    time.Time
 	last     time.Time
 	latest   transfer.Snapshot
 	started  bool
+	finished bool
 	inline   bool
 	terminal *os.File
 }
 
-func newProgress(out io.Writer) *progress {
-	p := &progress{out: out, start: time.Now()}
+func newProgress(out io.Writer) (*progress, error) {
+	w, err := newRecordWriter(out)
+	if err != nil {
+		return nil, err
+	}
+	p := &progress{out: w, start: time.Now()}
 
-	if file, ok := out.(*os.File); ok && os.Getenv("TERM") != "" && os.Getenv("TERM") != "dumb" {
+	if file, ok := w.out.(*os.File); ok && os.Getenv("TERM") != "" && os.Getenv("TERM") != "dumb" {
 		_, p.inline = terminalSize(file)
 		if p.inline {
 			p.terminal = file
 		}
 	}
 
-	return p
+	return p, nil
 }
 
-func (p *progress) Update(s transfer.Snapshot) {
+func (p *progress) Update(ctx context.Context, s transfer.Snapshot) error {
+	if p.err != nil || p.finished {
+		return p.err
+	}
 	if !p.started {
 		p.start = time.Now()
 	}
@@ -43,25 +54,28 @@ func (p *progress) Update(s transfer.Snapshot) {
 	p.started = true
 
 	if time.Since(p.last) >= progressInterval {
-		p.render()
+		return p.render(ctx, false)
 	}
+	return nil
 }
 
-func (p *progress) Finish() {
-	if !p.started {
-		return
+func (p *progress) Finish() error {
+	if p.finished {
+		return p.err
 	}
+	p.finished = true
 
 	p.latest.Workers = 0
-	p.render()
-
-	if p.inline {
-		fmt.Fprintln(p.out)
+	if p.started && p.err == nil {
+		p.render(context.Background(), true)
 	}
+	if err := p.out.Close(); err != nil {
+		p.err = errors.Join(p.err, fmt.Errorf("close progress output: %w", err))
+	}
+	return p.err
 }
 
-func (p *progress) render() {
-	p.last = time.Now()
+func (p *progress) render(ctx context.Context, final bool) error {
 	s := p.latest
 	rate := 0.0
 	if elapsed := time.Since(p.start).Seconds(); elapsed > 0 {
@@ -97,10 +111,21 @@ func (p *progress) render() {
 				line = line[:len(line)-3] + "..."
 			}
 		}
-		fmt.Fprint(p.out, "\r\x1b[2K"+line)
-	} else {
-		fmt.Fprintln(p.out, line)
+		line = "\r\x1b[2K" + line
 	}
+	if !p.inline || final {
+		line += "\n"
+	}
+	n, err := p.out.Write(ctx, []byte(line))
+	if err != nil {
+		err = fmt.Errorf("write progress: %w", err)
+		if n != 0 || ctx.Err() == nil {
+			p.err = err
+		}
+	} else {
+		p.last = time.Now()
+	}
+	return err
 }
 
 func size(value float64) string {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -57,8 +58,8 @@ func TestTextDiagnosticsEscapeControls(t *testing.T) {
 
 func TestProgressRedirectedFrames(t *testing.T) {
 	var out bytes.Buffer
-	p := newProgress(&out)
-	p.Update(transfer.Snapshot{Bytes: 2, Total: 10, Workers: 2})
+	p := testProgress(t, &out)
+	p.Update(context.Background(), transfer.Snapshot{Bytes: 2, Total: 10, Workers: 2})
 	p.Finish()
 	text := out.String()
 	if strings.ContainsAny(text, "\r\x1b") {
@@ -76,7 +77,17 @@ func TestProgressCharacterDeviceIsNotAlwaysTerminal(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer file.Close()
-	if p := newProgress(file); p.inline {
+	if p := testProgress(t, file); p.inline {
 		t.Fatal("treated the null device as an interactive terminal")
 	}
+}
+
+func testProgress(t *testing.T, out io.Writer) *progress {
+	t.Helper()
+	p, err := newProgress(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { p.Finish() })
+	return p
 }

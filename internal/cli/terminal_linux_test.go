@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	"io"
 	"os"
 	"strconv"
@@ -17,8 +18,8 @@ import (
 func TestProgressTerminalResizing(t *testing.T) {
 	t.Setenv("TERM", "xterm-256color")
 	master, slave := testTerminal(t, 40)
-	p := newProgress(slave)
-	p.Update(transfer.Snapshot{Bytes: 256, Total: 1000, Workers: 2})
+	p := testProgress(t, slave)
+	p.Update(context.Background(), transfer.Snapshot{Bytes: 256, Total: 1000, Workers: 2})
 	first := make([]byte, len("\r\x1b[2K")+39)
 	if _, err := io.ReadFull(master, first); err != nil {
 		t.Fatal(err)
@@ -43,8 +44,8 @@ func TestProgressTerminalWithoutANSICapability(t *testing.T) {
 		t.Run(strconv.Quote(term), func(t *testing.T) {
 			t.Setenv("TERM", term)
 			master, slave := testTerminal(t, 80)
-			p := newProgress(slave)
-			p.Update(transfer.Snapshot{Bytes: 2, Total: -1, Workers: 1})
+			p := testProgress(t, slave)
+			p.Update(context.Background(), transfer.Snapshot{Bytes: 2, Total: -1, Workers: 1})
 			line, err := bufio.NewReader(master).ReadString('\n')
 			if err != nil || strings.Contains(line, "\x1b") || !strings.Contains(line, "1 worker") {
 				t.Fatalf("plain terminal frame = %q, %v", line, err)

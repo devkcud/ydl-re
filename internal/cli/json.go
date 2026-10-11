@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 
 	"yoinkdl/internal/transfer"
@@ -35,15 +34,6 @@ func downloadJSON(parent context.Context, req transfer.Request, quiet bool, out,
 }
 
 func jsonFailure(ctx context.Context, out io.Writer, result transfer.Result, err error) int {
-	fmt.Fprintf(out, "JSON output failed: %s\n", safeText(err.Error()))
-	if result.Published {
-		fmt.Fprintf(out, "Verified output published: %q\n", result.Path)
-	}
-	if result.Partial != "" {
-		fmt.Fprintf(out, "Partial file preserved: %q\n", result.Partial)
-	}
-	if errors.Is(ctx.Err(), context.Canceled) {
-		return 130
-	}
-	return 1
+	writeText(context.Background(), out, "JSON output failed: "+safeText(err.Error())+"\n"+stateText(result))
+	return outputCode(ctx, 1)
 }
