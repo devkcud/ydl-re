@@ -99,6 +99,7 @@ func TestInvalidArguments(t *testing.T) {
 		{"download", "https://example.org", "--timeout", "0s"},
 		{"download", "https://example.org", "--timeout", "-1s"},
 		{"download", "https://example.org", "--timeout", "invalid"},
+		{"download", "https://example.org", "---quiet"},
 	}
 
 	for _, args := range cases {

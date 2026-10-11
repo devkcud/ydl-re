@@ -123,6 +123,8 @@ Text downloads check stdout setup before file/network work and initialize stderr
 
 Help/version/inspection write failures exit `1`. Invalid commands/options retain exit `2` even if their diagnostic cannot be written. Caller interruption during blocked output exits `130`. An unavailable diagnostic stream cannot provide preservation messages; the nonzero exit still applies. Plain terminal output remains separate from JSON's versioned data contract.
 
+Invalid option values are never echoed. Diagnostics identify the known option and refer to help for its accepted values; unknown option names are omitted too. This applies before either text or JSON transfers begin.
+
 A percentage is advisory. Completion still requires transport and length checks followed by file publication.
 
 ## JSON output
