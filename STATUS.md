@@ -10,6 +10,7 @@ Final terminal/security/platform qualification, configuration loading, and relea
 
 ## Handoff
 
+- `cli/render.go` quotes/escapes nonprinting text in displayed paths, errors, and version labels while preserving ordinary printable output and exact filesystem names. `terminal_unix.go` checks actual terminal geometry; ANSI refresh requires nonempty TERM other than `dumb`, clips below the current width, and adapts on the next frame after resizing. Redirected output/nonterminal devices use plain lines. `progress.Finish` now reports zero workers after transfer cleanup. Text write-error handling is still next.
 - `download --json` uses `internal/cli/events.go` for schema-version-1 progress/result records. Unknown totals/paths use null, quiet mode suppresses only progress, and counters remain advisory. Results distinguish completed/failed/interrupted status from publication/preserved partials; `published: true` can accompany a cleanup error. Null paths do not prove existing artifacts are absent. Error text is diagnostic; raw URLs/headers/validators are absent. See [the contract](docs/cli.md#json-output).
 - `cli/json.go` cancels the transfer on output failure, waits for `Download` cleanup, then emits the terminal result. Normal JSON failures/interruption go only to stdout; parsing errors/help remain text. Unusable output reports known publication/partial paths on stderr and exits 1 (130 for caller interruption). `--json=false` retains text behavior. New output setup failures occur before transfer work.
 - `output.go` detects short writes and gives deadline-capable writes five seconds, with cancellation during progress writes. `output_unix.go` uses `F_DUPFD_CLOEXEC` with minimum descriptor 3 so even closed stderr cannot cause fatal SIGPIPE before cleanup; normal close restores original flags and caller ownership. Synchronous backpressure has no event queue. Interrupted writes with zero bytes can still emit a terminal result; partial records poison the stream. Generic non-deadline writers retain their own blocking behavior.
@@ -28,16 +29,14 @@ Final terminal/security/platform qualification, configuration loading, and relea
 
 ## Validation
 
-- `go test -race ./internal/cli -run 'Test(JSON|RecordWriter)' -count=1` passed: exact 64-bit counters, progress coalescing/rollback, null totals, quiet mode, terminal outcomes, escaping, short writes, deadlines, cancellation, and descriptor ownership/flag restoration.
-- `go test -race ./internal/cli ./cmd/yoinkdl -run 'Test(JSON|RecordWriter|ProcessJSON)' -count=1` passed, including actual JSON SIGINT/resume and broken/full stdout pipes. `go test -race ./internal/cli -run 'TestJSON(RangeResume|EarlyFailures)' -count=1` passed for disjoint saved chunks/retries and unusable-output refusal.
-- The new closed-stderr process regression initially failed with fatal SIGPIPE. Restricting the duplicate to descriptors 3 and above fixed it; the focused race command above includes the passing regression.
-- Final integrated `make check` passed: formatting, vet, all tests, race checks, and build. Existing recovery, retry, and rate suites still pass alongside JSON process/pipe checks.
-- Documentation audit passed: 20 Markdown files, 201 local links/anchors, 26 shell blocks, four JSON examples, one TOML example, fences, and whitespace. Built-CLI help and documented result-field checks passed, including quiet failure framing, source redaction, and refusal without artifacts. The original design is unchanged; illustrative placeholders are excluded from runnable-example syntax checks.
+- Rendering regressions initially reproduced raw control characters in paths/errors, stale final worker counts, and `/dev/null` being classified as a terminal. `go test -race ./internal/cli -run 'Test(TextPathRendering|TextDiagnosticsEscapeControls|Progress|Resumed)' -count=1` now passes, including real Linux pseudo-terminal resizing and plain TERM behavior.
+- Rendering `make check` passed: formatting, vet, all tests, race checks, and build. Existing JSON, recovery, retry, and rate tests still pass.
+- Documentation audit passed: 20 Markdown files, 203 local links/anchors, 26 shell blocks, four JSON examples, one TOML example, fences, and whitespace. The original design is unchanged; illustrative placeholders are excluded from runnable-example syntax checks.
 - Environment: Go 1.27.2 on Linux/amd64. The full HTTP gate runs outside the sandbox to permit localhost listeners. Native macOS, Windows storage, network filesystems, and real power-loss durability remain unqualified.
 
 ## Next steps
 
-1. Qualify final text terminal/error behavior: redirected output and help/diagnostic write failures, path/control-character rendering, interrupt handling, and accurate state-preservation messages. Reuse the established JSON result semantics and output ownership where appropriate.
+1. Reuse the bounded output writer for text replies, diagnostics, and progress. Surface help/short-write failures, cancel transfers on progress failure, handle blocked/broken outputs and interrupts, and report known preserved/published state accurately. Preserve JSON version 1 and ordinary printable path output.
 2. Complete security review, platform/build/native filesystem qualification, and licensing/distribution/release tooling in roadmap order. Configuration files and daemon/TUI work remain optional/later scope.
 
 ## Open decisions and blockers

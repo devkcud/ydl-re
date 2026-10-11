@@ -86,7 +86,7 @@ func Run(ctx context.Context, args []string, out, errOut io.Writer, version stri
 			return 2
 		}
 
-		if _, err := fmt.Fprintln(out, "yoinkdl "+version); err != nil {
+		if _, err := fmt.Fprintln(out, "yoinkdl "+safeText(version)); err != nil {
 			return 1
 		}
 
@@ -112,7 +112,7 @@ func download(ctx context.Context, args []string, out, errOut io.Writer) int {
 	}
 
 	if err != nil {
-		fmt.Fprintln(errOut, err)
+		fmt.Fprintln(errOut, safeText(err.Error()))
 		return 2
 	}
 	if opts.json {
@@ -141,20 +141,20 @@ func download(ctx context.Context, args []string, out, errOut io.Writer) int {
 			label = "download interrupted"
 		}
 
-		fmt.Fprintf(errOut, "%s: %v\n", label, err)
+		fmt.Fprintf(errOut, "%s: %s\n", label, safeText(err.Error()))
 
 		if result.Published {
-			fmt.Fprintf(errOut, "Verified output published: %s\n", result.Path)
+			fmt.Fprintf(errOut, "Verified output published: %s\n", safeText(result.Path))
 		}
 
 		if result.Partial != "" {
-			fmt.Fprintf(errOut, "Partial file preserved: %s\n", result.Partial)
+			fmt.Fprintf(errOut, "Partial file preserved: %s\n", safeText(result.Partial))
 		}
 
 		return code
 	}
 
-	if _, err := fmt.Fprintln(out, result.Path); err != nil {
+	if _, err := fmt.Fprintln(out, safeText(result.Path)); err != nil {
 		fmt.Fprintln(errOut, "download completed, but the final path could not be written to stdout")
 		return 1
 	}
@@ -296,7 +296,7 @@ func inspect(args []string, out, errOut io.Writer) int {
 
 	m, err := storage.Inspect(args[0])
 	if err != nil {
-		fmt.Fprintf(errOut, "inspect failed: %v\n", err)
+		fmt.Fprintf(errOut, "inspect failed: %s\n", safeText(err.Error()))
 		return 1
 	}
 
@@ -314,7 +314,7 @@ func inspect(args []string, out, errOut io.Writer) int {
 
 	_, err = fmt.Fprintf(out,
 		"Destination: %q\nState: %s\nSaved bytes: %d\nTotal bytes: %s\nEncoding: %s\nResume: %s\n",
-		m.Destination, m.State, m.Completed, total, m.Encoding, resume)
+		m.Destination, m.State, m.Completed, total, safeText(m.Encoding), resume)
 
 	if err != nil {
 		return 1

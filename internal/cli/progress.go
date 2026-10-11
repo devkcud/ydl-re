@@ -12,20 +12,23 @@ import (
 const progressInterval = 200 * time.Millisecond
 
 type progress struct {
-	out     io.Writer
-	start   time.Time
-	last    time.Time
-	latest  transfer.Snapshot
-	started bool
-	inline  bool
+	out      io.Writer
+	start    time.Time
+	last     time.Time
+	latest   transfer.Snapshot
+	started  bool
+	inline   bool
+	terminal *os.File
 }
 
 func newProgress(out io.Writer) *progress {
 	p := &progress{out: out, start: time.Now()}
 
-	if file, ok := out.(*os.File); ok {
-		info, err := file.Stat()
-		p.inline = err == nil && info.Mode()&os.ModeCharDevice != 0
+	if file, ok := out.(*os.File); ok && os.Getenv("TERM") != "" && os.Getenv("TERM") != "dumb" {
+		_, p.inline = terminalSize(file)
+		if p.inline {
+			p.terminal = file
+		}
 	}
 
 	return p
@@ -49,6 +52,7 @@ func (p *progress) Finish() {
 		return
 	}
 
+	p.latest.Workers = 0
 	p.render()
 
 	if p.inline {
@@ -87,6 +91,12 @@ func (p *progress) render() {
 	}
 
 	if p.inline {
+		if width, ok := terminalSize(p.terminal); ok && width > 0 && len(line) >= width {
+			line = line[:width-1]
+			if len(line) > 3 {
+				line = line[:len(line)-3] + "..."
+			}
+		}
 		fmt.Fprint(p.out, "\r\x1b[2K"+line)
 	} else {
 		fmt.Fprintln(p.out, line)

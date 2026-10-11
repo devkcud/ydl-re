@@ -35,7 +35,7 @@ func downloadJSON(parent context.Context, req transfer.Request, quiet bool, out,
 }
 
 func jsonFailure(ctx context.Context, out io.Writer, result transfer.Result, err error) int {
-	fmt.Fprintf(out, "JSON output failed: %v\n", err)
+	fmt.Fprintf(out, "JSON output failed: %s\n", safeText(err.Error()))
 	if result.Published {
 		fmt.Fprintf(out, "Verified output published: %q\n", result.Path)
 	}

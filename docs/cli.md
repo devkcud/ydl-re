@@ -109,11 +109,13 @@ Replace a completed file deliberately:
 
 Progress and errors go to stderr. For a known size, progress shows transferred/total bytes, percentage, average rate, estimated remaining seconds, and the active worker count. Unknown-size transfers show bytes and rate without percentage or ETA. Workers reach zero before final verification/publication.
 
-Updates are throttled to about 200 ms while data arrives, with a final snapshot. Percentage includes validated saved bytes; speed counts only newly received bytes. Terminal output uses a refreshed line; redirected progress uses separate lines. There is no heartbeat while a body read is stalled; the inactivity timeout still applies.
+Updates are throttled to about 200 ms while data arrives, with a final snapshot showing zero active workers after transfer cleanup. Percentage includes validated saved bytes; speed counts only newly received bytes. A detected terminal with nonempty `TERM` other than `dumb` uses a refreshed line, clipped below its reported width to avoid wrapping. Width is checked again for each frame. Redirected output, nonterminal devices, and plain terminals use separate lines without ANSI controls. There is no heartbeat while a body read is stalled; the inactivity timeout still applies.
 
 Before replacing a failed chunk, its received bytes are removed from progress so retries cannot exceed the total or inflate speed. A worker waiting in backoff still occupies a worker slot. Backoff waits are cancellable and separate from network inactivity timeouts.
 
 Success prints the absolute output path to stdout. Failure does not print a success path. It identifies preserved partial data and, if publication already happened before a sync/cleanup error, identifies that verified output separately.
+
+Text output quotes and escapes paths, error text, and version labels that contain nonprinting characters, including line breaks, escape sequences, and bidirectional formatting characters. Ordinary printable paths retain their existing format. This changes only display; the filesystem name stays exact. Use `--json` for unambiguous machine-readable paths.
 
 A percentage is advisory. Completion still requires transport and length checks followed by file publication.
 
