@@ -29,7 +29,7 @@ const downloadUsage = `Usage: yoinkdl download <url> [options]
 Options may appear before or after the URL.
 
   -o, --output <path>      Final file path (default: safe URL filename)
-  -c, --connections <n>    Maximum workers, 1..32 (default: 4; 1 uses one stream)
+  -c, --connections <n>    Maximum workers, 1..32 (default: 4)
       --overwrite          Replace an existing completed file
       --resume             Require a saved compatible transfer
       --quiet              Suppress progress; keep errors and final path
@@ -38,8 +38,7 @@ Options may appear before or after the URL.
 
 The output directory must already exist. Compatible saved transfers resume
 automatically; --resume requires saved state. Incompatible partials are preserved.
-Parallel partials are preserved, but their resume support is not implemented yet.
-Start with --connections 1 when you need the current sequential resume support.
+One connection uses a direct stream for new files and one worker for saved ranges.
 `
 
 const inspectUsage = `Usage: yoinkdl inspect <output>
@@ -271,8 +270,6 @@ func inspect(args []string, out, errOut io.Writer) int {
 	resume := "unavailable for this representation"
 	if m.State == storage.StateReady {
 		resume = "local publication pending validation"
-	} else if m.Version == storage.RangeManifestVersion {
-		resume = "parallel resume is not implemented"
 	} else if m.Resumable() {
 		resume = "eligible after local and server validation"
 	}

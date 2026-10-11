@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The CLI supports fresh parallel downloads, sequential transfers with safe resume, and local checkpoint inspection. Parallel partial resume and retries remain planned.
+The CLI supports parallel and sequential downloads with safe resume and local checkpoint inspection. Automatic retries remain planned.
 
 ## Build locally
 
@@ -45,7 +45,7 @@ mkdir -p downloads
 
 The CLI does not create missing parent directories. Quote URLs, especially when they contain query parameters.
 
-Downloads use up to four workers when safe ranges are supported. Choose a limit from 1 to 32 with `--connections` or `-c`. Starting with `--connections 1` uses a direct sequential stream and the currently implemented resume path.
+Downloads use up to four workers when safe ranges are supported. Choose a limit from 1 to 32 with `--connections` or `-c`. One connection uses a direct stream for a new file or resumes saved chunks with one worker.
 
 ## Read progress and results
 
@@ -77,7 +77,7 @@ archive.zip.yoinkdl.json
 archive.zip.yoinkdl.lock
 ```
 
-For compatible sequential checkpoints, repeat the same URL and output to resume automatically, or require saved state explicitly:
+For compatible checkpoints, repeat the same URL and output to resume automatically, or require saved state explicitly:
 
 ```sh
 ./bin/yoinkdl download 'https://example.org/archive.zip' -o ./archive.zip --resume
@@ -86,9 +86,9 @@ For compatible sequential checkpoints, repeat the same URL and output to resume 
 
 Resume requires a known total, identity encoding, a matching strong ETag, and valid local state. Inspection only shows saved metadata; the download performs the checks before reuse. Servers without safe validators/ranges and legacy partials without a manifest cannot resume.
 
-Parallel partial checkpoints remain preserved and inspectable, but their network resume is not implemented yet. Use `--connections 1` from the start when the transfer needs resume support in this development build. That flag does not convert existing parallel state.
+Parallel resume validates the saved version with the server before fetching whole missing chunks. Completed chunks are reused, and the saved chunk size stays fixed. You can change `--connections` between attempts without changing the checkpoint format.
 
-After a crash, the last validated checkpoint may be behind displayed progress. Recovery hashes the saved prefix before network reuse, which can take time for a large file, and re-fetches uncertain bytes. A lock file can remain after process death or success; the OS releases ownership automatically, so do not delete a lock merely because its file remains.
+After a crash, the last validated checkpoint may be behind displayed progress. Recovery hashes saved prefix or chunk bytes before network reuse, which can take time for a large file, and re-fetches uncertain work. A lock file can remain after process death or success; the OS releases ownership automatically, so do not delete a lock merely because its file remains.
 
 Use a fresh output path when state is incompatible, or deliberately abandon old artifacts only after their writer has stopped. Do not rename a partial file into a final output manually.
 
@@ -102,7 +102,7 @@ This allows replacing an existing regular file after the transfer verifies succe
 
 ## Current limits
 
-Parallel partial resume and automatic retries remain unimplemented. `--retries`, `--limit`, and `--json` are not available yet. Configuration files are not loaded.
+Automatic retries remain unimplemented. `--retries`, `--limit`, and `--json` are not available yet. Configuration files are not loaded.
 
 The engine asks for identity encoding and saves the exact bytes the server returns. If the server still applies content encoding, those bytes are preserved without transparent decoding. Unknown-length completion can establish clean HTTP completion, not the publisher's intended size without additional metadata.
 

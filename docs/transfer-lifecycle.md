@@ -4,7 +4,7 @@
 
 This page defines the lifecycle intended for v0.1. State names are conceptual; serialized state and event schemas are not frozen.
 
-Milestones A/B and the current part of C implement input/local-state validation, GET-based identity checks, sequential streaming or suffix resume, fresh parallel transfers, durable checkpoints, verification, and publication recovery. Parallel partial resume and retries remain planned. The manifest records `partial` or verified `ready` checkpoints; these are distinct from the conceptual runtime states below.
+Milestones A/B and the current part of C implement input/local-state validation, GET-based identity checks, sequential and parallel transfers with resume, durable checkpoints, verification, and publication recovery. Retries remain planned. The manifest records `partial` or verified `ready` checkpoints; these are distinct from the conceptual runtime states below.
 
 ## States
 

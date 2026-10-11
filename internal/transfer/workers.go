@@ -38,6 +38,15 @@ func receiveRanges(ctx context.Context, client *http.Client, source *url.URL, id
 
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
+	snapshot := Snapshot{Bytes: m.Completed, Total: m.Length, Resumed: m.Completed}
+	if progress != nil {
+		progress(snapshot)
+	}
+
+	if cause := context.Cause(ctx); cause != nil {
+		return snapshot.Bytes, cause
+	}
+
 	count = min(count, len(plan))
 	jobs := make(chan ranges.Span, len(plan))
 	events := make(chan workerEvent, count)
@@ -75,11 +84,6 @@ func receiveRanges(ctx context.Context, client *http.Client, source *url.URL, id
 		group.Wait()
 		close(events)
 	}()
-
-	snapshot := Snapshot{Bytes: m.Completed, Total: m.Length, Resumed: m.Completed}
-	if progress != nil {
-		progress(snapshot)
-	}
 
 	for event := range events {
 		snapshot.Bytes += int64(event.bytes)

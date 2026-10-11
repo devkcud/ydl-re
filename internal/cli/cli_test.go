@@ -303,7 +303,7 @@ func TestInspectRangeCoverage(t *testing.T) {
 	var out, errOut bytes.Buffer
 	code := Run(context.Background(), []string{"inspect", path}, &out, &errOut, "test")
 	if code != 0 || errOut.Len() != 0 || !strings.Contains(out.String(), "Saved bytes: 6") ||
-		!strings.Contains(out.String(), "Total bytes: 10") || !strings.Contains(out.String(), "parallel resume is not implemented") {
+		!strings.Contains(out.String(), "Total bytes: 10") || !strings.Contains(out.String(), "eligible after local and server validation") {
 		t.Fatalf("range inspect: code = %d, out = %q, err = %q", code, &out, &errOut)
 	}
 

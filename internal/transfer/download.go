@@ -103,10 +103,6 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 			return result, f.FinalizeContext(ctx)
 		}
 
-		if m.Version == storage.RangeManifestVersion {
-			return result, errors.New("parallel resume is not implemented; existing range state is preserved")
-		}
-
 		if !m.Resumable() {
 			return result, errors.New("saved transfer needs a known length, identity encoding, and strong ETag to resume")
 		}
@@ -114,6 +110,32 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
+	client := newClient(req.Timeout)
+	defer client.CloseIdleConnections()
+
+	if saved && m.Version == storage.RangeManifestVersion {
+		id, err := validateRangeResume(ctx, client, u, m, req.Timeout)
+		if err != nil {
+			return result, err
+		}
+
+		if err := ctx.Err(); err != nil {
+			return result, err
+		}
+
+		if err := f.ContinueRanges(); err != nil {
+			return result, err
+		}
+
+		result.Resumed = m.Completed
+		result.Bytes, err = receiveRanges(ctx, client, u, id, f, req.Connections, req.Timeout, progress)
+		if err != nil {
+			return result, err
+		}
+
+		return result, f.FinalizeContext(ctx)
+	}
+
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return result, errors.New("cannot construct HTTP request")
@@ -131,8 +153,6 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 		}
 	}
 
-	client := newClient(req.Timeout)
-	defer client.CloseIdleConnections()
 	var resp *http.Response
 	if !saved && req.Connections > 1 {
 		plan, probeErr := probe(ctx, client, u, req.Timeout)

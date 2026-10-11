@@ -30,7 +30,7 @@ Options can precede or follow the URL. Supply exactly one absolute HTTP or HTTPS
 | Option | Behavior | Default |
 |---|---|---|
 | `--output <path>`, `-o <path>` | Final output path; parent must exist | Safe filename from the original URL path, or `download`, in the current directory |
-| `--connections <n>`, `-c <n>` | Maximum active range workers, from 1 to 32; one uses a direct sequential stream | `4`, reduced to the number of chunks |
+| `--connections <n>`, `-c <n>` | Maximum active range workers, from 1 to 32; one streams new files directly or resumes saved ranges with one worker | `4`, reduced to the number of missing chunks |
 | `--overwrite` | Allow replacing an existing regular completed file | Off |
 | `--resume` | Require existing saved transfer metadata | Compatible existing state resumes automatically without the flag |
 | `--quiet` | Suppress progress; retain errors and final output | Off |
@@ -52,7 +52,7 @@ Explicit output paths are resolved to absolute paths. Parent directories are not
 | No destination or artifacts | Start a new transfer |
 | Completed regular destination | Refuse unless `--overwrite` is supplied |
 | Compatible partial file and manifest | Validate saved bytes and remote identity before resuming |
-| Version-2 partial range state | Preserve and refuse before network access; parallel resume is not implemented |
+| Version-2 partial range state | Validate saved chunks and remote identity, then fetch whole missing chunks |
 | Incompatible state or a partial without a manifest | Refuse; leave it untouched, including with `--overwrite` |
 | Another writer owns the transfer | Nonblocking OS lock fails; no second writer proceeds |
 | Verified `ready` checkpoint | Finish publication/cleanup locally after full-checksum validation |
@@ -62,7 +62,7 @@ Failed transfers preserve useful partial state. Newly failed empty sequential tr
 
 ### Resume
 
-Use `--connections 1` when starting a transfer that needs the currently implemented sequential resume support. Repeat the same URL and output path to resume a compatible sequential checkpoint automatically:
+Repeat the same URL and output path to resume a compatible sequential or parallel checkpoint automatically:
 
 ```sh
 ./bin/yoinkdl download 'https://example.org/archive.zip' -o ./archive.zip
@@ -74,7 +74,7 @@ Partial reuse requires a known length, identity encoding, a matching strong ETag
 
 Ready-state recovery may publish a fully received earlier resource version without contacting the server. See [resume and storage](resume-and-storage.md) for the precise recovery contract.
 
-Parallel partials are preserved and inspectable, but their network resume remains unimplemented. Setting `--connections 1` does not convert or discard an existing parallel checkpoint.
+Parallel resume keeps completed chunks and the saved chunk size. It validates the saved server identity before starting missing work. You can change `--connections` between runs; setting it to one processes saved range tasks with one worker and does not convert or discard the checkpoint.
 
 ### Examples
 
@@ -123,7 +123,7 @@ A percentage is advisory. Completion still requires transport and length checks 
 
 The path names the intended final output. The command reads the versioned manifest and prints destination, checkpoint state, saved bytes, total bytes or `unknown`, encoding, and resume eligibility. It can read a published snapshot while another process owns the transfer.
 
-For version 2, saved bytes are the sum of validated disjoint chunks, not a contiguous prefix or resume offset. Inspection reports that partial range resume is not implemented; verified ready publication remains recoverable.
+For version 2, saved bytes are the sum of validated disjoint chunks, not a contiguous prefix or resume offset. Resume eligibility is conditional on local checksums and matching remote identity; verified ready publication remains recoverable offline.
 
 Inspection does not contact the server, hash the partial file, acquire writer ownership, or change artifacts. Eligibility is conditional; download validates local bytes and the remote representation before reuse. Missing/corrupt state exits `1`; wrong argument count exits `2`.
 

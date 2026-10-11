@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Fresh transfers use bounded range workers after a validated capability probe, with safe sequential fallback before range state begins. Sequential suffix resume remains supported; parallel resume, retries, and the limiter are not implemented yet.
+Fresh transfers use bounded range workers after a validated capability probe, with safe sequential fallback before range state begins. Parallel resume validates the saved representation before scheduling whole missing chunks. Sequential suffix resume remains supported; retries and the limiter are not implemented yet.
 
 ## Range planning
 
@@ -25,7 +25,7 @@ The planner tests exact coverage, every completion subset of small fixtures, mal
 
 ## Bounded workers
 
-The default is four workers, with `--connections`/`-c` accepting 1 through 32. Active workers are reduced to the number of planned chunks. One connection selects a direct sequential transfer without a capability probe. Existing version-1 checkpoints always use their sequential resume path.
+The default is four workers, with `--connections`/`-c` accepting 1 through 32. Active workers are reduced to the number of missing chunks. One connection selects a direct stream for fresh files or a single range worker for version-2 resume. Existing version-1 checkpoints always use their sequential resume path. Resuming retains the saved chunk size and boundaries.
 
 `internal/transfer/workers.go` starts only the bounded worker pool and a completion waiter. The task queue contains at most 256 intervals; no goroutine is created per chunk. Each worker owns one 64 KiB payload buffer, so their total is at most two MiB, excluding HTTP transport and hashing overhead. A worker keeps its slot through response validation and checkpointing.
 
@@ -79,7 +79,7 @@ Track useful completed or reliably received bytes without double-counting retrie
 
 Show speed and ETA only as advisory estimates. Suppress total percentage and ETA when total length is unknown. Report the active worker count rather than implying the configured maximum is always in use.
 
-The CLI renders snapshots at most every 200 ms while data arrives, plus a final snapshot. Percentage includes validated saved bytes; average speed counts only bytes received during the current attempt, excluding the capability probe. Worker counts reflect active chunk processing and reach zero before final verification. Retry accounting and a durable event schema remain future contracts. Coverage and final verification remain the authority for completion.
+The CLI renders snapshots at most every 200 ms while data arrives, plus a final snapshot. Percentage includes validated saved bytes; average speed counts only bytes received during the current attempt, excluding validation probes. The coordinator publishes initial saved progress before starting workers and honors cancellation from that point. Worker counts reflect active chunk processing and reach zero before final verification. Retry accounting and a durable event schema remain future contracts. Coverage and final verification remain the authority for completion.
 
 ## Deferred tuning
 

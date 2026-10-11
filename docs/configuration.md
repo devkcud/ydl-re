@@ -6,7 +6,7 @@ The current CLI uses built-in defaults and flags. No configuration loader exists
 
 ## Current defaults
 
-The engine uses up to four workers for fresh transfers with safe range support, automatic compatible sequential resume, no retries, no overwrite, and no rate cap. `--connections`/`-c` accepts 1 through 32; one selects a direct stream. The network inactivity timeout is `30s`. See [CLI](cli.md) for all flags. Explicit `--resume` requires saved state; parallel partial resume is not implemented yet.
+The engine uses up to four workers for safe ranged transfers, automatic compatible resume, no retries, no overwrite, and no rate cap. `--connections`/`-c` accepts 1 through 32; one streams new files directly and resumes saved range tasks with one worker. The network inactivity timeout is `30s`. See [CLI](cli.md) for all flags. Explicit `--resume` requires saved state.
 
 No configuration directories or files are created or read. Transfer artifacts are the partial data file, versioned JSON manifest, and persistent lock file beside the output. Temporary manifest names can remain after a crash and are never trusted for recovery.
 

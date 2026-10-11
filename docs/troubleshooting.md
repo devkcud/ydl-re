@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The CLI supports fresh parallel downloads, safe sequential resume, checkpoint inspection, and interrupted-publication recovery. Parallel partial resume and retries remain planned.
+The CLI supports parallel downloads, safe sequential/range resume, checkpoint inspection, and interrupted-publication recovery. Automatic retries remain planned.
 
 ## The command or build is unavailable
 
@@ -26,7 +26,7 @@ An HTTP success status does not necessarily mean the server sent the file the us
 
 ## A transfer will not resume
 
-Run `yoinkdl inspect <output>` to see saved metadata. Resume is automatic for compatible sequential state; `--resume` requires an existing manifest. Use the same original URL and output path and retain both the partial and manifest. Parallel partial resume is the next implementation step; start a new transfer with `--connections 1` when current resume support is required.
+Run `yoinkdl inspect <output>` to see saved metadata. Resume is automatic for compatible sequential or parallel state; `--resume` requires an existing manifest. Use the same original URL and output path and retain both the partial and manifest. Parallel resume validates a conditional response before it starts fetching whole missing chunks.
 
 Reasons for refusal include:
 
@@ -54,7 +54,7 @@ If another writer is active, stop or wait for that process through its normal li
 
 ## A partial remains after a crash
 
-A crash may leave bytes beyond the last sequential checkpoint or in incomplete parallel chunks. Sequential recovery verifies the prefix checksum and remote response before discarding only the unconfirmed tail. Parallel state is retained and verified locally, but partial network resume is not yet supported. Displayed progress can lead saved progress, and local checksum verification can take time.
+A crash may leave bytes beyond the last sequential checkpoint or in incomplete parallel chunks. Sequential recovery verifies the prefix checksum and remote response before discarding only the unconfirmed tail. Parallel recovery verifies saved chunks, validates the remote version, and replaces each missing chunk in full. Refused validation preserves existing artifacts. Displayed progress can lead saved progress, and local checksum verification can take time.
 
 A Milestone A partial without a manifest cannot be trusted or imported automatically. Choose another output path or deliberately abandon it when no process is active.
 

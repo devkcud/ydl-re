@@ -20,7 +20,9 @@ The chunk storage API provides exclusive `ClaimRange` writers with bounded offse
 
 For fresh transfers requesting multiple connections, `Download` calls `probe` after acquiring output ownership. It starts version-2 storage and `receiveRanges` for a selected representation, or consumes/closes the returned full stream with its own metadata and sequential storage. `representation.request` and `representation.validate` bind each worker to that immutable identity.
 
-The pool has at most 32 workers, 256 queued intervals, and one 64 KiB payload buffer per worker. Progress events use a channel bounded by worker count; only the coordinator invokes callbacks. Failure cancels peers and the coordinator joins every worker before storage closes or publishes. Existing sequential resume stays on its original path; version-2 partial resume remains unimplemented.
+The pool has at most 32 workers, 256 queued intervals, and one 64 KiB payload buffer per worker. Progress events use a channel bounded by worker count; only the coordinator invokes callbacks. Failure cancels peers and the coordinator joins every worker before storage closes or publishes. Existing sequential resume stays on its original path.
+
+For version-2 resume, storage verifies local chunks before `range_resume.go` validates a conditional response against the saved identity. Only then does `ContinueRanges` activate the same bounded pool over whole missing chunks. The coordinator emits initial saved progress and checks cancellation before starting workers. Saved-byte totals contribute to percentage, while probes and reused bytes are excluded from speed.
 
 ## Component flow
 

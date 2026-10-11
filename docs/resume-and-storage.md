@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestone B implements durable prefix checkpoints, local checksum validation, exclusive ownership, validated HTTP resume, inspection, and recovery after interrupted publication. Milestone C adds fresh parallel downloads with exclusive chunk writers and version-2 checkpoints; parallel partial resume is still pending. See [STATUS.md](../STATUS.md) for the current handoff.
+Milestone B implements durable prefix checkpoints, local checksum validation, exclusive ownership, validated HTTP resume, inspection, and recovery after interrupted publication. Milestone C adds parallel transfers and safe resume with exclusive chunk writers and version-2 checkpoints. See [STATUS.md](../STATUS.md) for the current handoff.
 
 ## Files and ownership
 
@@ -101,7 +101,7 @@ The identity and destination fields retain their version-1 meanings. Version 2 r
 
 Saved-byte totals are derived from validated coverage. The example has six saved bytes and missing chunks `[3, 6)` and `[9, 10)`; six is not a resume offset. A `partial` manifest has an empty top-level `sha256`, even if all chunks have completed. A `ready` manifest additionally requires exact coverage, exact file length, and a full-file SHA-256 digest. Empty ready files use an empty chunk array and the SHA-256 digest of empty content.
 
-`inspect` understands both versions. Fresh ranged downloads create version 2; direct/fallback streams create version 1. Current downloads preserve and refuse version-2 partials before network access, and can recover verified version-2 ready publication locally. Network range resume is not implemented yet; use `--connections 1` when starting a transfer that needs current sequential resume support.
+`inspect` understands both versions. Fresh ranged downloads create version 2; direct/fallback streams create version 1. Either format resumes automatically after local and remote validation, or explicitly with `--resume`. Saved chunk sizes remain fixed even when the connection limit changes. Both formats can recover verified `ready` publication locally.
 
 ## Checkpoint ordering
 
@@ -140,7 +140,7 @@ Default publication uses a hard link that cannot replace an existing destination
 | Recovery state | Behavior |
 |---|---|
 | Version-1 `partial` manifest and valid prefix | Candidate for validated network resume |
-| Version-2 `partial` manifest and valid chunks | Inspectable; network resume is refused until the range-resume step is implemented |
+| Version-2 `partial` manifest and valid chunks | Validate the stored representation remotely, then re-fetch whole missing chunks |
 | `ready` manifest and intact complete partial | Can finish publication without downloading again |
 | `ready` with final/partial names for the same inode | Reconcile completed hard-link publication and cleanup |
 | `ready` with no partial and a matching complete final file | Verify full checksum and finish cleanup after rename |

@@ -9,7 +9,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -17,12 +16,15 @@ import (
 	"yoinkdl/internal/storage"
 )
 
-func TestPartialRangeStateIsPreservedBeforeNetwork(t *testing.T) {
+func TestPartialRangeStateRefusesIgnoredRanges(t *testing.T) {
 	for _, explicit := range []bool{false, true} {
 		t.Run(fmt.Sprint(explicit), func(t *testing.T) {
 			var calls atomic.Int32
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				calls.Add(1)
+				if r.Header.Get("Range") != "bytes=0-0" || r.Header.Get("If-Range") != `"v1"` {
+					t.Error("resume did not validate the saved representation first")
+				}
 				fmt.Fprint(w, "unsafe response")
 			}))
 			defer srv.Close()
@@ -40,7 +42,7 @@ func TestPartialRangeStateIsPreservedBeforeNetwork(t *testing.T) {
 			result, err := Download(context.Background(), Request{
 				URL: srv.URL, Output: path, Resume: explicit, Overwrite: true,
 			}, nil)
-			if err == nil || !strings.Contains(err.Error(), "parallel resume") || result.Bytes != 3 || result.Published || calls.Load() != 0 {
+			if err == nil || result.Bytes != 3 || result.Resumed != 0 || result.Published || calls.Load() != 1 {
 				t.Fatalf("range refusal = %+v, error = %v, requests = %d", result, err, calls.Load())
 			}
 

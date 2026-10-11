@@ -8,7 +8,7 @@ YoinkDL is a local-first HTTP(S) download manager written in Go. The first imple
 
 Milestones A and B are implemented and tested on Linux. `download`, `inspect`, `version`, safe resume, progress, cancellation, overwrite protection, and network inactivity timeouts work. Saved progress is synced and checksummed before reuse.
 
-Milestone C now supports fresh parallel downloads with verified chunk checkpoints. Downloads use up to four workers by default when the server supports safe ranges. Parallel resume, retries, bandwidth caps, JSON output, and configuration files remain planned. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
+Milestone C supports parallel downloads and safe resume from verified chunk checkpoints. Downloads use up to four workers by default when the server supports safe ranges. Retries, bandwidth caps, JSON output, and configuration files remain planned. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
 
 ## Build and test
 
@@ -44,11 +44,11 @@ The parent directory must already exist. By default, existing completed files an
 ./bin/yoinkdl download 'https://example.org/archive.zip' -o ./archive.zip --overwrite
 ```
 
-Use `--connections <n>` or `-c <n>` to choose a worker limit from 1 to 32. One connection uses a direct sequential stream. Use `--quiet` to suppress progress and `--timeout 2m` to change the network inactivity timeout. Progress and errors go to stderr; success prints the absolute output path to stdout.
+Use `--connections <n>` or `-c <n>` to choose a worker limit from 1 to 32. One connection uses a direct stream for a new file, or one worker when resuming saved chunks. Use `--quiet` to suppress progress and `--timeout 2m` to change the network inactivity timeout. Progress and errors go to stderr; success prints the absolute output path to stdout.
 
-Ctrl+C stops all workers and preserves verified checkpoints. For a transfer you need to resume with this development build, start it with `--connections 1`; compatible sequential checkpoints resume automatically. Interrupted parallel checkpoints are preserved and inspectable, but parallel resume is the next implementation step.
+Ctrl+C stops all workers and preserves verified checkpoints. Run the same URL and output again to resume compatible sequential or parallel state automatically. Parallel resume checks the saved version with the server before fetching whole missing chunks; completed chunks are retained.
 
-Require an existing compatible sequential checkpoint explicitly:
+Require an existing compatible checkpoint explicitly:
 
 ```sh
 ./bin/yoinkdl download 'https://example.org/archive.zip' -o ./archive.zip --resume
@@ -70,7 +70,7 @@ Linux is tested locally. Storage operations are also enabled on macOS, which sti
 | [CLI reference](docs/cli.md) | Implemented commands and planned additions |
 | [Configuration](docs/configuration.md) | Current defaults and proposed configuration |
 | [Architecture](docs/architecture.md) | Current packages and target design |
-| [Resume and storage](docs/resume-and-storage.md) | File safety and planned recovery |
+| [Resume and storage](docs/resume-and-storage.md) | File safety, checkpoints, and recovery |
 | [Development](docs/development.md) | Make targets and contributor workflow |
 | [Testing](docs/testing.md) | Current evidence and remaining scenarios |
 | [Roadmap](docs/roadmap.md) | Milestones and release scope |

@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Fresh parallel downloads, sequential streaming, and safe sequential resume are implemented. The CLI probes range capability when more than one connection is requested. Parallel partial resume and automatic retries remain planned.
+Parallel downloads, sequential streaming, and safe resume for both checkpoint formats are implemented. Fresh transfers probe range capability when more than one connection is requested; saved range state always revalidates its recorded identity. Automatic retries remain planned.
 
 ## Implemented sequential transfer
 
@@ -16,7 +16,7 @@ Response headers establish the initial manifest identity. There is no separate H
 
 ## Implemented resume validation
 
-Before sending a resume request, the engine validates the manifest, destination, saved-prefix checksum, and original URL fingerprint. Unknown-length, encoded, unversioned, or weak-tagged partials are refused. Strong ETags must be quoted, valid UTF-8, at most 4096 bytes, and contain no invalid opaque-tag characters.
+Before sending a version-1 resume request, the engine validates the manifest, destination, saved-prefix checksum, and original URL fingerprint. Unknown-length, encoded, unversioned, or weak-tagged partials are refused. Strong ETags must be quoted, valid UTF-8, at most 4096 bytes, and contain no invalid opaque-tag characters.
 
 For a positive saved prefix `n`, send `Range: bytes=n-` and `If-Range` with the saved strong ETag. Require `206`, one exact `Content-Range` covering `n` through `length - 1`, the same total, the same echoed strong ETag, identity encoding, and the same effective-URL fingerprint. A declared payload length must equal the remaining bytes; chunked framing is allowed when actual bytes match those bounds.
 
@@ -25,6 +25,16 @@ For a zero-byte checkpoint, send a full GET with `If-Match` and require matching
 A `200` received for a positive-offset resume is refused. A `416` triggers a fresh GET re-probe whose body is discarded, then fails without inferring completion. Neither case discards existing state or silently restarts from zero.
 
 An already verified `ready` checkpoint can finish publication locally after source-identity and full-file checksum validation. It does not need a network request and may complete an older, already received resource version while the server is unavailable.
+
+## Parallel checkpoint resume
+
+Storage first validates every saved chunk and its bounds. The original URL must match before network access. For a nonempty representation, `range_resume.go` sends `Range: bytes=0-0` and `If-Range` with the stored strong ETag. It requires the saved effective URL, ETag, total, identity encoding, exact one-byte bounds, and one byte followed by clean completion. That byte is discarded and excluded from progress.
+
+Only after this validation does storage activate range writers. The pool keeps the saved chunk size, subtracts completed chunks, and re-fetches each missing chunk in full. Saved-byte totals never become request offsets. Changing the connection limit affects concurrency, including one-worker resume, without changing the checkpoint format or boundaries. Every subsequent response must still match the stored identity.
+
+Refused validation, timeout, or cancellation before workers start leaves data and metadata unchanged. Ignored ranges never trigger a full-stream fallback for saved state; `416` is re-probed and refused. A later interrupted worker can leave unconfirmed bytes in its missing chunk, but only validated whole chunks advance coverage. Another invocation replaces incomplete chunks in full.
+
+A `partial` checkpoint with all chunks saved still needs remote validation before final verification/publication. A zero-length range checkpoint instead uses a full GET with `If-Match`, matching `200` metadata, an explicit zero length, no `Content-Range`, and clean empty-body completion. Verified `ready` checkpoints retain their offline recovery path.
 
 ## Selected range identity
 

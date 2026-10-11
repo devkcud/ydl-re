@@ -39,18 +39,14 @@ func probe(ctx context.Context, client *http.Client, source *url.URL, timeout ti
 			return probeResult{}, err
 		}
 
-		data, err := io.ReadAll(io.LimitReader(resp.Body, 2))
+		err = readProbeBody(resp.Body, 1)
 		closeErr := resp.Body.Close()
 		if err != nil {
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-				return probeResult{}, err
-			}
-
-			return probeResult{}, errors.New("range probe body was incomplete")
+			return probeResult{}, err
 		}
 
-		if len(data) != 1 || closeErr != nil {
-			return probeResult{}, errors.New("range probe must complete with exactly one byte")
+		if closeErr != nil {
+			return probeResult{}, errors.New("cannot close range probe response")
 		}
 
 		if id, ok := selectRepresentation(resp, source, length); ok {
@@ -71,6 +67,23 @@ func probe(ctx context.Context, client *http.Client, source *url.URL, timeout ti
 	}
 
 	return sequentialProbe(resp)
+}
+
+func readProbeBody(body io.Reader, size int64) error {
+	data, err := io.ReadAll(io.LimitReader(body, size+1))
+	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return err
+		}
+
+		return errors.New("range probe body was incomplete")
+	}
+
+	if int64(len(data)) != size {
+		return errors.New("range probe body has an incompatible length")
+	}
+
+	return nil
 }
 
 func probeLength(resp *http.Response) (int64, error) {
