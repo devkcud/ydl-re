@@ -45,16 +45,20 @@ Resolve each decision before the milestone or interface depending on it is decla
 - `--retries` accepts decimal digits from 0 through 10, allowing leading zeros and rejecting signs/fractions/overflow. Each probe or saved-range validation has one request/body budget, each chunk has one budget, and sequential/fallback request setup has its own budget. Sequential body interruption still requires later resume; `416` diagnostic GETs are never retried. The library uses nil for the default and an explicit zero pointer to disable retries.
 - Before a chunk's replacement attempt, remove the failed attempt's received bytes from useful progress. Progress may decrease; retries do not inflate total bytes or average useful-byte speed. Storage still commits only successfully verified whole chunks.
 
+## Milestone D decisions made
+
+- Rate syntax is a positive ASCII integer followed by `B/s`, `KB/s`, `MB/s`, `GB/s`, `KiB/s`, `MiB/s`, or `GiB/s`. Leading zeros are accepted; signs, fractions, whitespace, different casing, zero, and values exceeding signed 64-bit bytes per second are refused. Omission means unlimited. The parser is implemented; CLI integration remains next.
+- Use one body-byte budget per standalone transfer, including probes, redirects read by the HTTP client, and failed attempts. Initial/idle credit is `min(65536, ceil(bytes_per_second / 10))` bytes. Reservations and cancellation do not refund received bytes. Timers round up to nanoseconds; controlled-clock rounding tolerance is one microsecond and HTTP sampling tolerance is five milliseconds. Socket read-ahead and protocol overhead are outside this application-level cap. The budget is tested; HTTP integration remains next.
+
 ## Command and output decisions
 
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
-| C02 | Rate option grammar and bounds | Connections, retries, and timeouts are implemented | [CLI](cli.md) |
 | C05 | JSON event/result schema, framing, stream routing, `--quiet` interaction, compatibility | Makes machine output safe to script against | [CLI](cli.md) |
 | C08 | Future event schema, retry counters, and subscriber backpressure | Extends the implemented CLI snapshots for other consumers | [Concurrency](concurrency.md) |
-| C09 | TOML loader, precedence, unknown keys, rate/unit grammar, overflow/zero handling | Turns the illustrative configuration into a contract | [Configuration](configuration.md) |
+| C09 | TOML loader, precedence, and unknown keys | Turns the illustrative configuration into a contract while retaining implemented value validation | [Configuration](configuration.md) |
 
-The default worker preference is four, the retry default is three additional attempts, and the rate is currently unlimited. Rate parsing and accounting still need decisions.
+The default worker preference is four, the retry default is three additional attempts, and the rate is unlimited unless a cap is configured.
 
 ## Storage and recovery decisions
 
@@ -70,9 +74,7 @@ Atomic final publication is implemented and tested locally on Linux. Windows pub
 
 ## HTTP and scheduling decisions
 
-| ID | Decision needed | Why it matters | Owner page |
-|---|---|---|---|
-| H07 | Limiter burst size, timing tolerance, and probe/retry accounting | Gives `--limit` a measurable testable meaning | [Concurrency](concurrency.md#aggregate-rate-cap) |
+The rate grammar and budget policy are settled above; HTTP integration must preserve the [aggregate accounting contract](concurrency.md#aggregate-rate-cap).
 
 The safe fallback is a sequential transfer when parallel ranges cannot be trusted. Applying that fallback to existing partial data still requires an explicit, non-destructive state transition.
 

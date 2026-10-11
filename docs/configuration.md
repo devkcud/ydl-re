@@ -74,7 +74,7 @@ That exception makes interrupted CLI transfers discoverable without a central se
 
 ## Units
 
-The size/rate parser should distinguish decimal and binary byte units explicitly:
+The rate parser distinguishes decimal and binary byte units explicitly:
 
 | Unit | Bytes |
 |---|---|
@@ -88,11 +88,13 @@ The size/rate parser should distinguish decimal and binary byte units explicitly
 
 For rates, `/s` means per second. Thus `5MB/s` is 5,000,000 bytes per second and `5MiB/s` is 5,242,880 bytes per second. Rates apply across all workers of the transfer.
 
-The unit table explains intended semantics, not an implemented grammar. Accepted units, fractional values, whitespace, case sensitivity, overflow, and treatment of zero still need a parser contract. Arbitrary size expressions are outside the v0.1 requirement.
+`internal/transfer.ParseLimit` accepts ASCII decimal digits followed immediately by one of these units and `/s`. Values must be positive and convert to at most 9,223,372,036,854,775,807 bytes per second. Leading zeros are allowed. Signs, fractions, exponents, whitespace, missing units, different casing, and overflow are rejected. For example, write `1500KB/s` instead of `1.5MB/s`.
+
+Omitting a limit means unlimited; explicit zero is invalid CLI rate syntax. The parser and shared budget are implemented, but HTTP/CLI integration is the next step. Arbitrary size expressions remain outside v0.1.
 
 ## Validation to define
 
-Invalid CLI values are rejected before network or file work. Workers accept decimal integers from 1 through 32 and retries from 0 through 10; the future configuration loader must preserve those contracts. Speed values still need bounded, unambiguous parsing.
+Invalid CLI values are rejected before network or file work. Workers accept decimal integers from 1 through 32 and retries from 0 through 10; the future configuration loader must preserve those contracts and the rate grammar above.
 
 Configuration errors should name the offending setting without exposing credentials or URL tokens. Unknown-key handling and the meaning of `resume = false` alongside existing sidecars remain open; it must never imply silent destruction of partial data.
 

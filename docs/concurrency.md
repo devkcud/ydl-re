@@ -62,7 +62,11 @@ An interval retry reuses the same immutable identity, bounds, worker slot, and b
 
 For example, `--connections 4 --limit 5MB/s` requests a combined cap of 5,000,000 bytes per second. It does not allow each worker that rate independently.
 
-The proposed mechanism is a shared token bucket. Bucket capacity, burst allowance, timer granularity, and whether rate accounting includes probe/retry traffic still need decisions. Cancellation must interrupt limiter waits.
+The shared token budget is implemented in `internal/transfer/limit.go`; HTTP/CLI integration remains next. For a rate `R` in bytes per second, initial and maximum idle credit is `B = min(65536, ceil(R / 10))` bytes. This allows up to 100 ms of credit, rounded up to a whole byte and capped at 64 KiB. Additional idle time does not build a larger burst.
+
+Body reads will be bounded by `B` and charged before delivery to the transfer code. All workers reserve against the same budget, including probe bytes and failed attempts. A failed/canceled read never refunds bytes already read. Waits honor cancellation and round up to nanoseconds. Controlled-clock tests allow at most one microsecond of accumulated rounding; local HTTP timing checks will allow five milliseconds for sampling. Scheduling or a slow server can lower throughput.
+
+This is application body pacing: headers, framing, TLS, and socket/HTTP read-ahead are outside the cap. Each active reader can hold at most one pending `B`-byte read while waiting. Body bytes read during redirects also count; unread rejected responses are closed without draining. Useful progress is separate and never supplies or refunds rate credit. Network inactivity timers must cover only actual reads, excluding throttle waits.
 
 The v0.1 cap is not a specified global cap across separate CLI processes. Scheduling and bandwidth allocation across daemon-managed transfers belong to later design work.
 
