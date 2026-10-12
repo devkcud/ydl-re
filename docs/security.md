@@ -71,4 +71,4 @@ The full `make check` gate covers formatting, vet, tests, race tests, and build.
 
 ## Remaining release policy
 
-The project's license, security contact, and disclosure process have not been selected. Do not invent a contact address or claim a published policy until those exist.
+The project uses [MPL 2.0](../LICENSE), with no named copyright-holder notice. The selected reporting channel is public [GitHub Issues](https://github.com/devkcud/ydl-re/issues/new), as documented in [SECURITY.md](../SECURITY.md). Issues are enabled; private vulnerability reporting is disabled and is not advertised. No response deadline or maintenance window is promised. Initial binary distribution is through GitHub Releases for Linux/amd64.

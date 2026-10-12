@@ -88,13 +88,14 @@ The safe fallback is a sequential transfer when parallel ranges cannot be truste
 
 ## Release and compatibility decisions
 
+The owner selected MPL 2.0 with no named copyright-holder notice, GitHub Releases for initial Linux/amd64 binaries, and public GitHub Issues for security reports. [LICENSE](../LICENSE) and [SECURITY.md](../SECURITY.md) record these choices. No remote settings or releases were changed.
+
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
-| R01 | License, distribution channels, artifact naming, version metadata, changelog process | The project is intended to be open source but has no license or release tooling yet | [Development](development.md) |
+| R01 | Artifact naming, version metadata, changelog, and release tooling | MPL 2.0 and GitHub Releases for Linux/amd64 are selected; packaging remains to be implemented | [Development](development.md) |
 | R02 | Native CI, qualification beyond Linux/amd64, and published release support policy | The recorded build matrix does not prove foreign runtime behavior | [Platforms](platforms.md) |
 | R03 | Future daemon-wide bandwidth allocation | The v0.1 cap applies to one standalone transfer; separate processes do not share it | [Roadmap](roadmap.md) |
 | R04 | Local IPC, daemon permissions, persistence, and queue scheduling | Required before v0.2, not a blocker for standalone transfers | [Architecture](architecture.md#future-front-ends) |
-| R05 | Security contact and disclosure process | Allows real reports without publishing an invented contact | [Security](security.md) |
 
 For R03, the aggregate cap for one transfer is implemented for v0.1. Daemon-wide budget semantics remain uncommitted.
 

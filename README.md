@@ -93,4 +93,6 @@ Read [AGENTS.md](AGENTS.md) and [STATUS.md](STATUS.md). Follow the first unfinis
 
 ## License
 
-An open-source license has not been selected and no `LICENSE` file exists yet.
+This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+The repository-wide license is [MPL-2.0](LICENSE). Report security problems through the public channel described in [SECURITY.md](SECURITY.md).

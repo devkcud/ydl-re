@@ -91,6 +91,6 @@ Check local links, anchors, code fences, structured examples, shell syntax, and 
 
 ## Release preparation
 
-Milestone D is in progress: aggregate rate caps, JSON events, text-output handling, and security regression fixes have local Linux evidence. The [security review](security.md) and [platform matrix](platforms.md) record the tested boundaries. Native CI, qualification beyond Linux/amd64, and release work remain. There is no license, CI workflow, installer, or published release configuration yet. Select those before distribution and validate every claimed platform natively.
+Milestone D is in progress: aggregate rate caps, JSON events, text-output handling, and security regression fixes have local Linux evidence. The [security review](security.md) and [platform matrix](platforms.md) record the tested boundaries. MPL 2.0, GitHub Releases for initial Linux/amd64 binaries, and public GitHub Issues reporting are selected. Native CI and packaging are being prepared; qualification beyond Linux/amd64 remains open. Validate every claimed platform natively before distribution.
 
 Tag v0.1.0 only when the [release acceptance criteria](roadmap.md#v010-acceptance) have actual evidence. Milestone B success does not qualify parallel ranges, retry policies, other platforms, or the full v0.1 feature set.
