@@ -8,7 +8,7 @@ YoinkDL is a local-first HTTP(S) download manager written in Go. The first imple
 
 Milestones A, B, and C are implemented and tested on Linux. `download`, `inspect`, `version`, safe resume, bounded retries, progress, cancellation, overwrite protection, and inactivity timeouts work. Saved progress is synced and checksummed before reuse.
 
-Milestone D includes aggregate rate caps, versioned JSON output, checked text/terminal output, and a completed local [security review](docs/security.md). Downloads use up to four workers and three additional attempts for transient failures. Native qualification beyond Linux/amd64 and release work remain; configuration loading is optional later work. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
+Milestone D includes aggregate rate caps, versioned JSON output, checked text/terminal output, a completed local [security review](docs/security.md), and locally validated CI/release tooling. Initial binary releases target Linux/amd64 through GitHub Releases. Hosted CI/draft-release execution and native qualification beyond Linux/amd64 remain unverified. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
 
 ## Build and test
 
@@ -29,6 +29,8 @@ make check
 `make test` runs the tests. `make check` checks formatting, runs vet, tests and the race detector, then builds. Tests use localhost servers and require permission to open local sockets; race checks require a supported Go/CGO environment.
 
 Other targets are `make vet`, `make race`, `make fmt`, `make fmt-check`, and `make help`. Set a build label with `make build VERSION=0.1.0-dev`.
+
+On native Linux/amd64, packaging tests also require Bash, Git, GNU tar/coreutils, and gzip. From a clean committed tree, `make release VERSION=0.1.0-rc.1` runs the gate and creates binary/source archives and checksums under `bin/releases/`. This example does not create a tag or publish a release. See [release and installation instructions](docs/releases.md).
 
 ## Download
 
@@ -84,6 +86,7 @@ The output filesystem must support advisory locking, hard links, and directory s
 | [Development](docs/development.md) | Make targets and contributor workflow |
 | [Testing](docs/testing.md) | Current evidence and remaining scenarios |
 | [Platforms](docs/platforms.md) | Native evidence, cross-build matrix, and support limits |
+| [Releases](docs/releases.md) | CI, packaging, draft releases, and binary installation |
 | [Roadmap](docs/roadmap.md) | Milestones and release scope |
 | [Original design](yoinkdl-design.md) | Unmodified engineering proposal |
 

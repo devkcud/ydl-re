@@ -47,6 +47,7 @@ The ignored `bin/` directory contains build output. The default version label is
 | `make fmt` | Run `gofmt -w cmd internal` |
 | `make fmt-check` | Fail if Go source needs formatting |
 | `make check` | Formatting check, vet, tests, race tests, then build |
+| `make release VERSION=X.Y.Z` | Full gate, then Linux/amd64 binary/source archives and checksums from a clean committed tree |
 | `make help` | List targets |
 
 Go's build and test caches are used normally. The Makefile does not clear them. A direct build also works:
@@ -60,6 +61,8 @@ go build -o ./bin/yoinkdl ./cmd/yoinkdl
 ## Test environment
 
 Tests use localhost HTTP servers, temporary directories, and subprocesses. Sandboxes must allow local socket listeners. The race detector requires a supported Go/CGO environment.
+
+On native Linux/amd64, `tools/release_test.go` also uses Bash, Git, GNU tar/coreutils, and gzip. It builds real archives from temporary Git fixtures, verifies checksums and source identity, executes an extracted binary against a local HTTP server, and checks reproducibility, refusal, and failure cleanup. These packaging tests skip on other native platforms. `make fmt` and `make fmt-check` include the Go tooling tests.
 
 The implementation was checked with Go 1.27.2 on Linux/amd64. Initial sandboxed Go checks could not resolve standard packages, and HTTP tests could not open sockets; equivalent checks outside the sandbox passed. These are environment restrictions, not skipped correctness cases.
 
@@ -93,6 +96,6 @@ Check local links, anchors, code fences, structured examples, shell syntax, and 
 
 ## Release preparation
 
-Milestone D is in progress: aggregate rate caps, JSON events, text-output handling, and security regression fixes have local Linux evidence. The [security review](security.md) and [platform matrix](platforms.md) record the tested boundaries. MPL 2.0, GitHub Releases for initial Linux/amd64 binaries, and public GitHub Issues reporting are selected. Native CI and packaging are being prepared; qualification beyond Linux/amd64 remains open. Validate every claimed platform natively before distribution.
+Milestone D includes locally validated CI and Linux/amd64 packaging under MPL 2.0. The [release guide](releases.md) defines version/tag grammar, source/checksum assets, changelog requirements, draft creation, and installation. Hosted Actions/draft-release execution remains unverified because the work was not pushed. Native qualification beyond Linux/amd64 remains open. Validate every claimed platform before distribution.
 
 Tag v0.1.0 only when the [release acceptance criteria](roadmap.md#v010-acceptance) have actual evidence. Milestone B success does not qualify parallel ranges, retry policies, other platforms, or the full v0.1 feature set.

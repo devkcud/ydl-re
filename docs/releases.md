@@ -1,0 +1,55 @@
+# CI and releases
+
+[Documentation index](README.md)
+
+Initial binary releases target Linux/amd64 through [GitHub Releases](https://github.com/devkcud/ydl-re/releases). Project sources use [MPL 2.0](../LICENSE); the binary also carries the Go runtime's [BSD notice](../LICENSES/Go-BSD-3-Clause.txt). Security reports use public [GitHub Issues](../SECURITY.md). No stable version has been published by this work.
+
+## Continuous integration
+
+[CI](../.github/workflows/ci.yml) runs on pull requests, main-branch pushes, and manual dispatch. Ubuntu 24.04 runs the existing `make check` gate and an uncached CGO-disabled test run. A separate job cross-builds the CLI and test programs for Linux, macOS, and Windows on amd64/arm64. Foreign test programs are compiled only; Windows storage remains unsupported.
+
+Both workflows pin [checkout v7.0.1](https://github.com/actions/checkout/releases/tag/v7.0.1) and [setup-go v7.0.0](https://github.com/actions/setup-go/releases/tag/v7.0.0) to full commit IDs. The Go version comes from `go.mod`; dependency caching is disabled because the project has no external Go modules or `go.sum`. Checkout does not persist credentials. CI has read-only repository permissions, time limits, and cancellation of superseded runs.
+
+Local replay validates the commands using the installed Go toolchain. It does not prove a GitHub-hosted run or the exact minimum Go patch selected by setup-go. Hosted evidence must be recorded after these local commits are pushed by the maintainer.
+
+## Build release assets locally
+
+Use native Linux/amd64 with Go, GNU Make, Git, Bash, GNU tar/coreutils, and gzip. Start from a clean committed tree. Stable versions use `X.Y.Z`; prereleases use `X.Y.Z-alpha.N`, `-beta.N`, or `-rc.N`, with N starting at 1. These are examples, not published versions:
+
+```sh
+make release VERSION=0.1.0-rc.1
+```
+
+This runs the full gate before [the packaging script](../tools/release.sh). The script exports the exact Git commit, builds from that snapshot with CGO disabled and `GOAMD64=v1`, and checks the packaged version/help. Dirty trees, malformed versions, failed builds, and existing output are refused. Temporary files are cleaned on failure; completed asset directories are never overwritten.
+
+The output directory `bin/releases/<version>/` contains:
+
+- `yoinkdl_<version>_linux_amd64.tar.gz`: executable, project/runtime licenses, security policy, changelog, installation text, and `SOURCE.txt` identifying the commit/toolchain/source archive.
+- `yoinkdl_<version>_source.tar.gz`: matching committed sources, including build files and tests.
+- `SHA256SUMS`: checksums for both archives, verified before final output appears.
+
+Archive ownership, modes, ordering, and timestamps are normalized. Tests verify identical archives when the same snapshot is rebuilt with the same toolchain. This does not promise identical binaries across Go versions or toolchain configurations. Artifacts are unsigned; the checksum file detects corruption and is not a separate publisher-authentication mechanism.
+
+## Draft-release workflow
+
+[Draft release](../.github/workflows/release.yml) runs for pushed `v*` tags. It validates the tag, requires nonempty notes beneath the exact `## [<version>]` heading in [CHANGELOG.md](../CHANGELOG.md), runs `make release`, and creates a GitHub draft with both archives and checksums. A prerelease version produces a prerelease draft. Missing notes or failed validation stop before any draft is created. Existing releases are not overwritten.
+
+Before creating a tag, move the relevant Unreleased entries into a matching version section, review the changes, and commit them. Review the generated draft and its assets before publishing. The workflow needs `contents: write` only for its release job; it does not use a personal token or create tags. This implementation does not push commits/tags, dispatch Actions, or create a remote release itself.
+
+An interrupted upload can leave an incomplete draft. Inspect it before retrying; the workflow will not overwrite an existing release.
+
+## Install a published binary
+
+After a maintainer publishes a release, download its binary archive, matching source archive, and checksum file from the same release. Replace this example version with that published version:
+
+```sh
+version=0.1.0-rc.1
+sha256sum -c SHA256SUMS
+tar -xzf "yoinkdl_${version}_linux_amd64.tar.gz"
+cd "yoinkdl_${version}_linux_amd64"
+./yoinkdl version
+mkdir -p "$HOME/.local/bin"
+install -m 0755 yoinkdl "$HOME/.local/bin/yoinkdl"
+```
+
+Ensure `$HOME/.local/bin` is on PATH. The archive's `SOURCE.txt` identifies the corresponding source archive. Other native platforms, native hosted CI results, broader filesystem durability, signing, and package-manager distribution remain outside the current release evidence; see [platform qualification](platforms.md).

@@ -45,6 +45,7 @@ Milestones A, B, and C plus Milestone D rate, JSON, text-output, and security re
 | [CLI security](../internal/cli/security_test.go) | Invalid scalar/boolean values carrying synthetic credentials never echo their contents or start transfer work |
 | [HTTP security](../internal/transfer/security_test.go) and [transport process](../cmd/yoinkdl/security_test.go) | Malformed trailer redaction, rejected full-response range headers, unchanged zero-prefix artifacts, and no unsolicited server bytes in transport logs |
 | [Storage security](../internal/storage/security_test.go) | Refused hard-linked/shared-permission mutable partials, late-created aliases, no writes to other names, and exact stored-byte verification before sequential publication |
+| [Release packaging](../tools/release_test.go) | Real binary/source archives, checksum/source identity, extracted-binary downloads, byte reproducibility, dirty-tree/version/output refusal, and build/smoke-failure cleanup on native Linux/amd64 |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
@@ -139,6 +140,8 @@ go test -race ./...
 These checks pass locally on Linux. Use the toolchain selected by the project; race testing and native filesystem tests need suitable platform environments. Other operating systems have not been qualified by these results.
 
 The [platform report](platforms.md) records the October 12 native Linux toolchain, ext4/tmpfs evidence, CGO-disabled run, exact source revision, and reproduction commands. The six CLI targets build, and all test packages compile for foreign targets, with CGO disabled. Foreign binaries were not executed; native runtime evidence remains separate from compilation results.
+
+The [CI/release workflows](releases.md) passed local actionlint v1.7.12 checks and Bash syntax checks. Native CI commands and the six-target compilation loop were replayed locally. The final packaging gate passed, including race checks; separate shell fixtures reject malformed tags and missing notes and select only the intended changelog section. Optional ShellCheck/Pyflakes integrations were disabled because those tools were not installed. No hosted workflow or remote release creation was run.
 
 ## Release evidence
 

@@ -10,7 +10,7 @@ As of October 12, 2026, the transfer, resume, and retry engine has native Linux/
 
 Use the root [README](../README.md) for an introduction, [STATUS.md](../STATUS.md) for the current handoff and next steps, and [AGENTS.md](../AGENTS.md) for implementation instructions.
 
-The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, aggregate rate caps, JSON events, resume, and local inspection. Milestone C connects strict representation validation, exclusive offset writers, and bounded workers for fresh and resumed transfers. Milestone D includes body-rate pacing, JSON, text-output handling, a completed local [security review](security.md), and a recorded [platform matrix](platforms.md). Other native platforms, release qualification, and optional configuration loading remain. No published installer or full v0.1 release is available.
+The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, aggregate rate caps, JSON events, resume, and local inspection. Milestone D includes body-rate pacing, JSON, text-output handling, a local [security review](security.md), [platform evidence](platforms.md), and locally validated [CI/release tooling](releases.md). MPL 2.0, Linux/amd64 GitHub Releases, and public issue reporting are selected. Hosted execution and other native platforms remain unverified; a full v0.1 release is not complete.
 
 These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions.
 
@@ -38,6 +38,7 @@ These pages distinguish the implementation from the original design. The [decisi
 | [Development](development.md) | Current checkout, proposed build workflow, coding conventions |
 | [Testing](testing.md) | Deterministic tests, fault cases, release evidence |
 | [Platforms](platforms.md) | Native Linux evidence, cross-build results, reproduction commands, and limits |
+| [Releases](releases.md) | CI, clean-snapshot packaging, draft workflow, and installation |
 | [Troubleshooting](troubleshooting.md) | Expected failures and safe recovery guidance |
 | [Roadmap](roadmap.md) | Milestones, acceptance criteria, deferred features |
 | [Open decisions](decisions.md) | Unsettled interfaces and implementation policies |

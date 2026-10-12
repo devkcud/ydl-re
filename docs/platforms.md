@@ -85,4 +85,4 @@ Use `go version -m` and `file` on the generated CLI files to inspect the recorde
 
 These are ordinary filesystem and forced-process-termination results on one host. They do not simulate loss of power, a failing disk/controller, full disks, network filesystems, or all mount configurations. Directory sync and atomic visibility still need qualification wherever storage support is claimed. Broader sync/cleanup fault injection remains open.
 
-Native Linux/arm64 and macOS execution have not been performed here. Windows storage remains deliberately unsupported. Native CI coverage and a published support policy remain release work; the [decision register](decisions.md#release-and-compatibility-decisions) tracks those requirements.
+Native Linux/arm64 and macOS execution have not been performed here. Windows storage remains deliberately unsupported. The later [CI/release tooling](releases.md) selects Linux/amd64 for initial binary releases and adds packaging tests to local validation; hosted execution still needs evidence. The [decision register](decisions.md#release-and-compatibility-decisions) tracks remaining qualification.

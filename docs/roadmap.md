@@ -49,11 +49,11 @@ Completion evidence: parallel, resumed, and retried outputs match exact fixtures
 
 ## Milestone D — v0.1 hardening
 
-**Status:** rate caps, JSON output, and text terminal/error handling are implemented and tested locally on Linux. The local [security review](security.md) is complete with fixes for diagnostic disclosure, contradictory full responses, mutable partial ownership, sequential disk verification, and derived filename presentation. The [platform report](platforms.md) records native Linux/amd64 ext4/tmpfs qualification and six-target CLI/test compilation. Native qualification beyond Linux/amd64, CI, and release work remain.
+**Status:** rate caps, JSON/text output, security regression fixes, native Linux/amd64 evidence, and six-target compilation are recorded. [CI and release tooling](releases.md) are locally validated: MPL 2.0, public issue reporting, Linux/amd64 binary/source archives with checksums, and tag-triggered GitHub drafts. Hosted CI/draft execution and publication remain unverified; native qualification beyond Linux/amd64 is still open.
 
 Qualify native behavior and CI for any additional platform before claiming support, preserving the reviewed security contracts and documented trust boundaries. Cross-build success alone is insufficient; Windows storage remains unsupported.
 
-Publish verified installation/use instructions, release binaries, and a changelog after choosing distribution and licensing. Update these docs from planned interfaces to observed behavior.
+Record successful hosted CI and draft-asset verification before publication. The [changelog](../CHANGELOG.md) remains Unreleased until the maintainer prepares version-specific notes. No tag or public release is created by local validation.
 
 Completion evidence: all release acceptance criteria have recorded results, documented platform limits, and no unresolved integrity failure.
 
