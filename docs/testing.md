@@ -138,6 +138,8 @@ go test -race ./...
 
 These checks pass locally on Linux. Use the toolchain selected by the project; race testing and native filesystem tests need suitable platform environments. Other operating systems have not been qualified by these results.
 
+The [platform report](platforms.md) records the October 12 native Linux toolchain, ext4/tmpfs evidence, CGO-disabled run, exact source revision, and reproduction commands. Native runtime evidence must remain separate from cross-compilation results.
+
 ## Release evidence
 
 Before v0.1, record the revision, toolchain, native platform/filesystem, commands run, results, and any skipped cases. The evidence must cover direct download, safe resume, representation consistency, wrong-length detection, atomic publication, exclusive ownership, integration tests, and race checks.

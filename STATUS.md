@@ -1,15 +1,16 @@
 # Project status
 
-Updated: October 11, 2026.
+Updated: October 12, 2026.
 
 ## Current state
 
 Milestones A, B, and C are implemented and pass the local Linux gate. The CLI supports sequential/parallel transfers, safe resume, exclusive offset writes, verified checkpoints, bounded retries, inspection, cancellation, overwrite protection, and inactivity timeouts. Milestone D includes aggregate body-rate caps through `--limit` and versioned newline-delimited output through `--json`.
 
-Text terminal/error handling and the local v0.1 security review are complete with Linux evidence. Platform qualification and release tooling remain; configuration loading is optional later work. Go 1.27 and the standard library are still the only runtime development requirements. A full v0.1 release is not complete.
+Text terminal/error handling and the local v0.1 security review are complete with Linux evidence. Native Linux qualification now covers ext4 with the full gate and tmpfs with an uncached CGO-disabled run. The build matrix is being recorded; other native platforms and release tooling remain unqualified. Configuration loading is optional later work. A full v0.1 release is not complete.
 
 ## Handoff
 
+- [Platform qualification](docs/platforms.md) records the exact source revision, toolchain, filesystems, native results, and reproduction commands. Runtime/test sources remain at `ee2f295`; no product-code fix was needed. The full gate used an ext4-backed temporary directory under ignored `bin/`; the separate CGO-disabled test run used tmpfs. Cross-platform build/test-compilation evidence is being completed separately.
 - The local security review is complete; [security.md](docs/security.md) records trust boundaries, tested protections, tradeoffs, and release limits. The caller/environment/output directory remain trusted. The Unix path policy is settled; Windows paths/storage and native qualification remain open.
 - `cli.go` applies recognized options through `flag.Set` and reports only a known option name when validation fails. Invalid values, malformed option names, and parser error text cannot echo credentials. Existing boolean/inline/separated syntax, options around the URL, help, and `--` remain supported.
 - HTTP body errors now use the existing safe classification, including malformed trailers. The private transport disables connection reuse to prevent Go's idle HTTP/1 diagnostic from logging unsolicited bytes; subsequent requests pay connection setup costs. Direct/fallback/zero-prefix full responses share `200`/no-Content-Range validation before saved tails can be truncated. See [HTTP handling](docs/http.md).
@@ -24,6 +25,7 @@ Text terminal/error handling and the local v0.1 security review are complete wit
 
 ## Validation
 
+- Native qualification: Go `go1.27.2-X:nodwarf5`, Linux/amd64, Arch Linux kernel `7.2.9-zen1-1-zen`, `CGO_ENABLED=1`, GCC `16.2.1`, UID 1000. `TMPDIR=/nvme/Projects/personal/yoink-reborn/bin/platform.E9zScW make check` passed on ext4, including race tests. Only the pure range planner used its matching cached result. `CGO_ENABLED=0 go test -count=1 ./...` passed uncached on tmpfs. The separate CGO-disabled Linux CLI is statically linked and `version` passed.
 - Security regressions reproduced credential-bearing invalid option values, raw malformed HTTP trailer errors, unsolicited HTTP transport logs, and acceptance of contradictory full-response headers. These regressions now pass, including preserved partials after malformed trailers and unchanged zero-prefix artifacts after refused headers.
 - `go test ./internal/cli ./internal/transfer ./cmd/yoinkdl -run 'Test(InvalidOptionsDoNotEcho|SequentialTrailerErrors|SingleStreamRejects|ProcessDoesNotLog|DownloadOptions|InvalidArguments|Resume)' -count=1` passed after the initial fixes.
 - `make check` passed after the initial security changes: formatting, vet, all tests, race tests, and build, including the new zero-prefix full-response preservation test.
@@ -34,7 +36,7 @@ Text terminal/error handling and the local v0.1 security review are complete wit
 
 ## Next steps
 
-1. Establish the supported platform/build matrix: record Go/CGO and native Linux filesystem evidence, run cross-platform builds, and distinguish build success from untested native macOS/unsupported Windows storage. Keep network-filesystem and power-loss claims unqualified without evidence.
+1. Finish recording the six-target CLI/test-compilation matrix and connect the platform report to the development/support guides. Keep cross-build results distinct from unavailable native Linux/arm64/macOS/Windows execution.
 2. Resolve license/distribution and security-contact choices, then add validated release tooling and installation instructions. Configuration files and daemon/TUI work remain optional/later scope.
 
 ## Open decisions and blockers
