@@ -6,9 +6,11 @@ Updated: October 12, 2026.
 
 Milestones A, B, and C are implemented and pass the local Linux gate. The CLI supports sequential/parallel transfers, safe resume, exclusive offset writes, verified checkpoints, bounded retries, inspection, cancellation, overwrite protection, and inactivity timeouts. Milestone D includes aggregate body-rate caps through `--limit` and versioned newline-delimited output through `--json`.
 
-Text terminal/error handling, the local security review, and the platform/build evidence are recorded. Linux/amd64 passes the full gate on ext4 and uncached CGO-disabled tests on tmpfs. Six CLI targets build; foreign test programs compile without native execution. MPL 2.0, Linux/amd64 GitHub Releases, and public issue reporting are selected. CI and release tooling are being prepared; native qualification beyond Linux/amd64 remains open. Configuration loading is optional later work. A full v0.1 release is not complete.
+Text terminal/error handling, the local security review, and the platform/build evidence are recorded. Linux/amd64 passes the full gate on ext4 and uncached CGO-disabled tests on tmpfs. Six CLI targets build; foreign test programs compile without native execution. MPL 2.0, Linux/amd64 GitHub Releases, and public issue reporting are selected. CI is defined and locally validated; release tooling is being finalized, while native qualification beyond Linux/amd64 remains open. Configuration loading is optional later work. A full v0.1 release is not complete.
 
 ## Handoff
+
+- `.github/workflows/ci.yml` defines pull-request/main/manual CI on Ubuntu 24.04: native `make check`, uncached CGO-disabled tests, and six-target CLI/test compilation. Checkout v7.0.1 and setup-go v7.0.0 use verified full commit pins, read-only permissions, no persisted checkout credentials, and no dependency cache. Hosted execution remains unverified because nothing was pushed or dispatched.
 
 - Owner choices: MPL 2.0, no named copyright holder; initial binaries through GitHub Releases for Linux/amd64; security reports through public GitHub Issues. `LICENSE` uses Mozilla's official text and `SECURITY.md` identifies the public channel without inventing a private contact or response promise. Repository metadata confirms issues are enabled and private reporting is disabled. No settings were changed.
 
@@ -23,6 +25,8 @@ Text terminal/error handling, the local security review, and the platform/build 
 
 ## Validation
 
+- CI: `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck= -pyflakes= .github/workflows/ci.yml` passed. The extracted native commands (`bash /tmp/yoinkdl-ci-native.sh`) and six-target compilation commands (`RUNNER_TEMP=/tmp/yoinkdl-release-ci-compile bash /tmp/yoinkdl-ci-compile.sh`) passed locally. Optional ShellCheck/Pyflakes integrations were disabled; Bash syntax and executable packaging regressions provide local shell validation.
+
 - License/reporting documentation: official Mozilla MPL 2.0 text was fetched; repository API reads confirmed public issues enabled and private reporting disabled. `python3 /tmp/yoinkdl-security-doccheck.py` passed (22 Markdown files, 249 links/anchors, examples/fences/whitespace); `git diff --check` passed. No runtime sources changed, so Go tests were not repeated for this policy-only slice.
 
 - Native environment: Go `go1.27.2-X:nodwarf5`, Linux/amd64, Arch Linux kernel `7.2.9-zen1-1-zen`, `GOAMD64=v1`, `CGO_ENABLED=1`, GCC `16.2.1`, UID 1000. `findmnt` identifies workspace ext4 and default `/tmp` tmpfs.
@@ -33,7 +37,7 @@ Text terminal/error handling, the local security review, and the platform/build 
 
 ## Next steps
 
-1. Implement CI and Linux/amd64 release packaging for the chosen GitHub Releases channel, with validated installation instructions, artifact/version naming, and a changelog. Obtain native evidence before advertising any additional platform. Keep configuration files and daemon/TUI work optional/later.
+1. Finish Linux/amd64 release packaging for the chosen GitHub Releases channel, with validated installation instructions, artifact/version naming, and a changelog. Obtain native evidence before advertising any additional platform. Keep configuration files and daemon/TUI work optional/later.
 
 ## Open decisions and blockers
 

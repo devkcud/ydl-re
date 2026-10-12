@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    name: Linux amd64 checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up Go (setup-go v7.0.0)
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Native gate
+        run: make check
+      - name: CGO-disabled tests
+        run: CGO_ENABLED=0 go test -count=1 ./...
+
+  compile:
+    name: Six-target compilation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up Go (setup-go v7.0.0)
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Compile CLI and test programs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
+            os=${target%/*}
+            arch=${target#*/}
+            out="$RUNNER_TEMP/yoinkdl-$os-$arch"
+            ext=
+            if [[ "$os" == windows ]]; then
+              ext=.exe
+            fi
+            mkdir -p "$out/tests"
+            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -p 2 -trimpath -o "$out/yoinkdl$ext" ./cmd/yoinkdl
+            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go test -p 2 -c -o "$out/tests/" ./...
+          done

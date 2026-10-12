@@ -55,6 +55,8 @@ Go's build and test caches are used normally. The Makefile does not clear them. 
 go build -o ./bin/yoinkdl ./cmd/yoinkdl
 ```
 
+[GitHub CI](../.github/workflows/ci.yml) runs the native gate and uncached CGO-disabled tests on Ubuntu 24.04, plus CLI/test compilation for all six recorded targets. Actions are pinned to full commits, checkout credentials are not persisted, and CI uses read-only permissions. Go is selected from `go.mod`, with dependency caching disabled for this standard-library-only module. Local command replay and workflow linting do not constitute a hosted CI run.
+
 ## Test environment
 
 Tests use localhost HTTP servers, temporary directories, and subprocesses. Sandboxes must allow local socket listeners. The race detector requires a supported Go/CGO environment.
