@@ -8,7 +8,7 @@ YoinkDL is a local-first HTTP(S) download manager written in Go. The first imple
 
 Milestones A, B, and C are implemented and tested on Linux. `download`, `inspect`, `version`, safe resume, bounded retries, progress, cancellation, overwrite protection, and inactivity timeouts work. Saved progress is synced and checksummed before reuse.
 
-Milestone D includes aggregate rate caps, versioned JSON output, checked text/terminal output, and a completed local [security review](docs/security.md). Downloads use up to four workers and three additional attempts for transient failures. Platform qualification and release work remain; configuration loading is optional later work. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
+Milestone D includes aggregate rate caps, versioned JSON output, checked text/terminal output, and a completed local [security review](docs/security.md). Downloads use up to four workers and three additional attempts for transient failures. Native qualification beyond Linux/amd64 and release work remain; configuration loading is optional later work. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
 
 ## Build and test
 
@@ -67,7 +67,9 @@ Partial reuse requires a known size, identity encoding, and a matching strong ET
 
 ## Platforms
 
-Linux is tested locally. Storage operations are also enabled on macOS, which still needs native qualification. Windows downloads are explicitly unsupported until safe publication is implemented there. The output filesystem must support advisory locking, hard links, and directory sync.
+Linux/amd64 has local runtime evidence on ext4 and tmpfs, including race tests on ext4. CLI builds and test compilation pass for Linux, macOS, and Windows on amd64/arm64. Linux/arm64 and macOS still need native qualification; Windows storage remains explicitly unsupported. See the [platform matrix and reproduction commands](docs/platforms.md).
+
+The output filesystem must support advisory locking, hard links, and directory sync. Network filesystems and power-loss durability remain unqualified.
 
 ## Documentation
 
@@ -81,6 +83,7 @@ Linux is tested locally. Storage operations are also enabled on macOS, which sti
 | [Resume and storage](docs/resume-and-storage.md) | File safety, checkpoints, and recovery |
 | [Development](docs/development.md) | Make targets and contributor workflow |
 | [Testing](docs/testing.md) | Current evidence and remaining scenarios |
+| [Platforms](docs/platforms.md) | Native evidence, cross-build matrix, and support limits |
 | [Roadmap](docs/roadmap.md) | Milestones and release scope |
 | [Original design](yoinkdl-design.md) | Unmodified engineering proposal |
 

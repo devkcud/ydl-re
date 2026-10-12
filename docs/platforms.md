@@ -4,6 +4,21 @@
 
 The current native evidence is for Linux/amd64 development builds. It does not establish a v0.1 release, other native platforms, or power-loss guarantees. The results below were recorded on October 12, 2026, against runtime and test sources at `ee2f29558b3b162f4ad39fc6682ba7edf878f240`.
 
+## Build and runtime matrix
+
+| Target | CLI build | Test programs | Native runtime evidence | Current status |
+|---|---|---|---|---|
+| `linux/amd64` | Pass | Compiled and run | Full ext4 gate with race tests; uncached CGO-disabled tests on tmpfs | Locally qualified development platform |
+| `linux/arm64` | Pass | Compile only | Unavailable on this host | Storage enabled; native behavior unqualified |
+| `darwin/amd64` | Pass | Compile only | Unavailable on this host | Storage enabled; native behavior unqualified |
+| `darwin/arm64` | Pass | Compile only | Unavailable on this host | Storage enabled; native behavior unqualified |
+| `windows/amd64` | Pass | Compile only | Unavailable on this host | Download/inspection storage unsupported by design |
+| `windows/arm64` | Pass | Compile only | Unavailable on this host | Download/inspection storage unsupported by design |
+
+All six matrix CLI builds used `CGO_ENABLED=0`, `-trimpath`, and the default `dev` label. `file` identified the intended ELF, Mach-O, and PE architectures. All five Go test packages compiled for each foreign target; no foreign binary or test program was executed. The separate native full gate used CGO for race testing. No cross-C compiler was needed.
+
+Linux/amd64 is the only platform with native qualification in this report. The code enables Linux and macOS storage; compilation alone does not qualify another architecture, locking, signals, terminal handling, filesystem semantics, or an OS version. Windows builds retain explicit storage refusal and are not usable downloader releases. Other targets have not been checked. The temporary build outputs are validation artifacts, with no installer, signing, packaging, or distribution contract.
+
 ## Native Linux evidence
 
 | Item | Observed value |
@@ -27,6 +42,7 @@ The existing suites exercise prefix/chunk resume, forced process termination, st
 Run from the repository root with Go 1.27 or newer, GNU Make, a working C compiler for race tests, and permission to use localhost listeners. Record the actual toolchain and filesystem rather than assuming the defaults match this report.
 
 ```sh
+set -eu
 go version
 go env GOOS GOARCH GOAMD64 CGO_ENABLED CC GOEXPERIMENT
 uname -srm
@@ -40,6 +56,30 @@ CGO_ENABLED=0 go test -count=1 ./...
 ```
 
 `findmnt` is a Linux inspection command. Confirm the private temporary directory is on the filesystem being qualified. `rmdir` removes only an empty directory; investigate retained fixtures if a failed run leaves it nonempty. Tests need no public service and use deterministic local HTTP fixtures.
+
+## Reproduce compilation checks
+
+Run this POSIX shell block from the repository root. It creates separate temporary CLI/test outputs per target and stops on the first failure. `go test -c` compiles without claiming a test run; do not substitute an execution wrapper that reports foreign tests as passing.
+
+```sh
+set -eu
+build_dir=$(mktemp -d "${TMPDIR:-/tmp}/yoinkdl-platform.XXXXXX")
+for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
+    os=${target%/*}
+    arch=${target#*/}
+    out="$build_dir/$os-$arch"
+    ext=
+    if [ "$os" = windows ]; then
+        ext=.exe
+    fi
+    mkdir -p "$out/tests"
+    CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -p 2 -trimpath -o "$out/yoinkdl$ext" ./cmd/yoinkdl
+    CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go test -p 2 -c -o "$out/tests/" ./...
+done
+printf '%s\n' "$build_dir"
+```
+
+Use `go version -m` and `file` on the generated CLI files to inspect the recorded source revision, CGO setting, and target format. Repeat compilation whenever platform-specific code or build tags change. Native checks are still required before expanding the qualified runtime matrix.
 
 ## Qualification limits
 

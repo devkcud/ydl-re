@@ -61,7 +61,7 @@ Tests use localhost HTTP servers, temporary directories, and subprocesses. Sandb
 
 The implementation was checked with Go 1.27.2 on Linux/amd64. Initial sandboxed Go checks could not resolve standard packages, and HTTP tests could not open sockets; equivalent checks outside the sandbox passed. These are environment restrictions, not skipped correctness cases.
 
-Only Linux has native runtime evidence. macOS code paths are enabled but unqualified; Windows downloads are rejected until publication is implemented there. Cross-compiling would not establish filesystem or signal guarantees.
+The [platform report](platforms.md) records native Linux/amd64 checks on ext4/tmpfs and CLI/test compilation for Linux, macOS, and Windows on amd64/arm64. Linux/arm64 and macOS code paths remain unqualified natively; Windows storage remains unsupported. Cross-compilation does not establish filesystem, signal, or terminal guarantees. The report includes commands for repeating both native and compilation checks without adding runtime dependencies.
 
 ## Working on a change
 
@@ -91,6 +91,6 @@ Check local links, anchors, code fences, structured examples, shell syntax, and 
 
 ## Release preparation
 
-Milestone D is in progress: aggregate rate caps, JSON events, text-output handling, and security regression fixes have local Linux evidence. The [security review](security.md) records the tested boundaries; platform/release qualification remains. There is no license, CI workflow, installer, or published release configuration yet. Select those before distribution and validate every claimed platform natively.
+Milestone D is in progress: aggregate rate caps, JSON events, text-output handling, and security regression fixes have local Linux evidence. The [security review](security.md) and [platform matrix](platforms.md) record the tested boundaries. Native CI, qualification beyond Linux/amd64, and release work remain. There is no license, CI workflow, installer, or published release configuration yet. Select those before distribution and validate every claimed platform natively.
 
 Tag v0.1.0 only when the [release acceptance criteria](roadmap.md#v010-acceptance) have actual evidence. Milestone B success does not qualify parallel ranges, retry policies, other platforms, or the full v0.1 feature set.

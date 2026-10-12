@@ -138,7 +138,7 @@ go test -race ./...
 
 These checks pass locally on Linux. Use the toolchain selected by the project; race testing and native filesystem tests need suitable platform environments. Other operating systems have not been qualified by these results.
 
-The [platform report](platforms.md) records the October 12 native Linux toolchain, ext4/tmpfs evidence, CGO-disabled run, exact source revision, and reproduction commands. Native runtime evidence must remain separate from cross-compilation results.
+The [platform report](platforms.md) records the October 12 native Linux toolchain, ext4/tmpfs evidence, CGO-disabled run, exact source revision, and reproduction commands. The six CLI targets build, and all test packages compile for foreign targets, with CGO disabled. Foreign binaries were not executed; native runtime evidence remains separate from compilation results.
 
 ## Release evidence
 

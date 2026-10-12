@@ -57,6 +57,7 @@ Resolve each decision before the milestone or interface depending on it is decla
 - Current Unix storage requires an existing parent, anchors operations to that opened directory, refuses destination/sidecar symlinks and special files, and uses private creation permissions. Mutable partials must have one hard link and no group/other permission bits; refusal preserves incompatible artifacts. Verified `ready` recovery retains intentional publication links. The caller must trust the directory and avoid external artifact mutation; advisory locks do not exclude arbitrary external writers.
 - Sequential finalization re-reads the complete file and matches its size and checksum against the received stream before making a `ready` checkpoint. Failed verification disables later checkpointing during close. This adds a full local read and complements existing chunk/coverage verification.
 - URL-derived names replace nonprinting Unicode characters, separators, and reserved punctuation, preserve printable localized text, and fall back for unusable names or names over 200 bytes. Explicit output paths stay exact. Current Unix path behavior is settled; Windows naming and native filesystem qualification remain open. See [security](security.md).
+- Separate the six-target compilation matrix from native runtime qualification. Linux/amd64 has ext4 full-gate/race evidence and an uncached CGO-disabled tmpfs run. Linux/arm64 and macOS remain enabled but unqualified natively; Windows storage stays unsupported despite successful builds. Matrix binaries use CGO disabled and remain validation artifacts, not a distribution promise. See [platforms](platforms.md).
 
 ## Command and output decisions
 
@@ -90,7 +91,7 @@ The safe fallback is a sequential transfer when parallel ranges cannot be truste
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
 | R01 | License, distribution channels, artifact naming, version metadata, changelog process | The project is intended to be open source but has no license or release tooling yet | [Development](development.md) |
-| R02 | Supported OS/architecture/filesystem matrix and native CI coverage | Build success alone does not prove locking, signals, or atomic publication | [Testing](testing.md) |
+| R02 | Native CI, qualification beyond Linux/amd64, and published release support policy | The recorded build matrix does not prove foreign runtime behavior | [Platforms](platforms.md) |
 | R03 | Future daemon-wide bandwidth allocation | The v0.1 cap applies to one standalone transfer; separate processes do not share it | [Roadmap](roadmap.md) |
 | R04 | Local IPC, daemon permissions, persistence, and queue scheduling | Required before v0.2, not a blocker for standalone transfers | [Architecture](architecture.md#future-front-ends) |
 | R05 | Security contact and disclosure process | Allows real reports without publishing an invented contact | [Security](security.md) |

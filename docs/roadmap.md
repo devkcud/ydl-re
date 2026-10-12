@@ -49,9 +49,9 @@ Completion evidence: parallel, resumed, and retried outputs match exact fixtures
 
 ## Milestone D — v0.1 hardening
 
-**Status:** rate caps, JSON output, and text terminal/error handling are implemented and tested locally on Linux. The local [security review](security.md) is complete with fixes for diagnostic disclosure, contradictory full responses, mutable partial ownership, sequential disk verification, and derived filename presentation. Controlled-clock, HTTP, filesystem, pseudo-terminal, and real-process tests cover these contracts. Platform/release qualification remains.
+**Status:** rate caps, JSON output, and text terminal/error handling are implemented and tested locally on Linux. The local [security review](security.md) is complete with fixes for diagnostic disclosure, contradictory full responses, mutable partial ownership, sequential disk verification, and derived filename presentation. The [platform report](platforms.md) records native Linux/amd64 ext4/tmpfs qualification and six-target CLI/test compilation. Native qualification beyond Linux/amd64, CI, and release work remain.
 
-Complete Linux/macOS/Windows build and native behavior checks where support is claimed, preserving the reviewed security contracts and documented trust boundaries.
+Qualify native behavior and CI for any additional platform before claiming support, preserving the reviewed security contracts and documented trust boundaries. Cross-build success alone is insufficient; Windows storage remains unsupported.
 
 Publish verified installation/use instructions, release binaries, and a changelog after choosing distribution and licensing. Update these docs from planned interfaces to observed behavior.
 
