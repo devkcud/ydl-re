@@ -64,6 +64,7 @@ Milestones A, B, and C plus Milestone D rate, JSON, text-output, security regres
 | [Queue HTTP integration](../internal/queue/coordinator_http_linux_test.go) | Default engine runner, real pause/checkpoint/conditional resume, exact published bytes, terminal URL removal, and existing-output refusal |
 | [Queue shared-budget integration](../internal/queue/budget_http_linux_test.go) | One retained budget across real pause/resume, failure/retry, cancellation, completion, subsequent jobs, and live concurrency increases/reductions; exact output and retained partial data |
 | [Daemon ownership](../internal/daemon/ownership_linux_test.go) | XDG/default/fallback paths, length bounds, both lock combinations, private modes, stale/live/unsafe/replaced sockets, changed roots/locks, simulated foreign artifact owners, and actual kernel peer credentials |
+| [Daemon protocol](../internal/daemon/protocol_test.go) | Every request/reply shape, nested duplicates/unknown/null fields, normalized transfer input, Unicode and size bounds, fixed redacted errors, and exact newline frame boundaries |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
