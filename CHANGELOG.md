@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-No changes yet.
+- Internal v0.2 queue foundation: shared request validation, strict bounded snapshots, and a private Linux atomic store with exclusive ownership. Sequential/concurrent queue settings persist; scheduling and daemon commands remain under development.
 
 ## [0.1.0]
 

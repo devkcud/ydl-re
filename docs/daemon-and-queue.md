@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-This is the accepted v0.2 contract. E1's shared request normalization and queue model/codec are implemented; private persistence and the rest of the daemon remain pending. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
+This is the accepted v0.2 contract. E1's shared request normalization, strict queue model/codec, and private Linux atomic store are implemented. Scheduling, restart transitions, IPC, and daemon commands remain pending. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
 
 ## Scope and ownership
 
@@ -86,6 +86,10 @@ Use at most 256 retained jobs, 16 KiB per URL, 4096 bytes per output path, 4096 
 One coordinator owns mutations. Serialize a candidate snapshot to a new private temporary file, sync it, rename it to `queue.json`, sync the directory, then expose the new in-memory state and acknowledge. Live progress never triggers queue persistence. A mutation is accepted only after that sequence succeeds.
 
 Before-rename failure preserves the committed state. Rename-success/directory-sync failure has an uncertain durable outcome: stop dispatch, cancel/join active transfers, refuse further mutations, and stop the daemon. Do not write an older in-memory snapshot over the possibly committed file. Restart validates the canonical snapshot; it never promotes temporary files. A missing snapshot with leftover queue temporary files is refused rather than treated as a new empty queue. Preserve unrecognized/corrupt files for explicit recovery.
+
+The implemented `queue.Open` accepts an explicit absolute clean directory with an existing parent, creates the final directory if needed, acquires `queue.lock`, and durably initializes or strictly loads `queue.json`. `Store.Snapshot` returns a deep copy of the last committed state; `Store.Save` owns its candidate, enforces immutable retained requests and monotonic admission orders, and follows the sync sequence above. Before replacement, it rechecks lock identity, file safety, and the canonical snapshot's inode and content digest. These checks operate within the same-user/trusted-parent boundary; callers must honor the advisory lock.
+
+`ErrLocked` means another store holds ownership. `ErrChanged` disables the store after detected artifact changes; `ErrUncertain` does so after uncertain replacement/durability. Both prevent further snapshots and mutations until close/reopen, and ownership remains held until `Close`. Close releases descriptors without unlinking the lock. Only the store's own unchanged temporary inode may be cleaned up; stale or replaced artifacts are preserved. Non-Linux storage returns `ErrUnsupported`. State reconciliation and safe public views remain E2 work: loading a saved running job alone does not change its state or start a transfer.
 
 ## States and operations
 

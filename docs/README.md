@@ -10,9 +10,9 @@ As of October 13, 2026, stable `0.1.0` is published for Linux/amd64. The transfe
 
 Use the root [README](../README.md) for an introduction, [STATUS.md](../STATUS.md) for the current handoff and next steps, and [AGENTS.md](../AGENTS.md) for implementation instructions.
 
-The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, aggregate rate caps, JSON events, resume, and local inspection. Milestones A through D are complete for the initial Linux/amd64 scope, with a local [security review](security.md), [platform evidence](platforms.md), and verified [stable public downloads and installation](releases.md#stable-publication). MPL 2.0, GitHub Releases, and public issue reporting remain the policies. Other native platforms and v0.2 daemon/queue work remain future work.
+The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, aggregate rate caps, JSON events, resume, and local inspection. Milestones A through D are complete for the initial Linux/amd64 scope, with a local [security review](security.md), [platform evidence](platforms.md), and verified [stable public downloads and installation](releases.md#stable-publication). MPL 2.0, GitHub Releases, and public issue reporting remain the policies. Other native platforms and the daemon runtime remain future work.
 
-These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions. The [v0.2 daemon/queue contract](daemon-and-queue.md) and [ordered plan](roadmap.md#v02-implementation-order) are accepted, including configurable queue concurrency. E1 now includes shared request normalization and the strict queue model/codec; queue storage and daemon commands remain unimplemented.
+These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions. The [v0.2 daemon/queue contract](daemon-and-queue.md) and [ordered plan](roadmap.md#v02-implementation-order) are accepted, including configurable queue concurrency. E1 is complete: shared request normalization, strict queue model/codec, and private Linux atomic storage. The E2 coordinator is next; daemon commands remain unimplemented.
 
 ## Start here
 
@@ -34,7 +34,7 @@ These pages distinguish the implementation from the original design. The [decisi
 | [HTTP handling](http.md) | Probing, ranges, validators, fallback, redirects |
 | [Resume and storage](resume-and-storage.md) | Sidecars, manifest, checkpoints, locks, crash recovery |
 | [Concurrency and retries](concurrency.md) | Range planning, workers, backoff, rate limits, progress |
-| [Daemon and queue](daemon-and-queue.md) | Accepted v0.2 queue, concurrency setting, private IPC, persistence, and recovery contracts; not implemented |
+| [Daemon and queue](daemon-and-queue.md) | v0.2 contracts and implemented queue storage; scheduling, IPC, and commands pending |
 | [Security](security.md) | File safety, credentials, network trust, future daemon risks |
 | [Development](development.md) | Current checkout, proposed build workflow, coding conventions |
 | [Testing](testing.md) | Deterministic tests, fault cases, release evidence |

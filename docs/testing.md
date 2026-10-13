@@ -49,6 +49,9 @@ Milestones A, B, and C plus Milestone D rate, JSON, text-output, security regres
 | [Storage security](../internal/storage/security_test.go) | Refused hard-linked/shared-permission mutable partials, late-created aliases, no writes to other names, and exact stored-byte verification before sequential publication |
 | [Release packaging](../tools/release_test.go) | Real binary/source archives, checksum/source identity, extracted-binary downloads, byte reproducibility, dirty-tree/version/output refusal, and build/smoke-failure cleanup on native Linux/amd64 |
 | [Queue model](../internal/queue/model_test.go) and [codec](../internal/queue/codec_test.go) | E1 pure normalization, immutable hash encoding, state/source combinations, private errors, empty/full snapshots, limits, duplicate/null/unknown fields, and lossless Unicode |
+| [Queue store](../internal/queue/store_linux_test.go) | Private creation, restart round trips, settings, deep-copy isolation, terminal URL removal, immutable requests/order, unsafe/corrupt state refusal, stale-file preservation, and changed-artifact detection |
+| [Queue commit failures](../internal/queue/store_faults_linux_test.go) | Partial/short writes, file sync, rename, directory sync, acknowledgment ordering, uncertain-commit refusal, retryable pre-rename failures, and safe temporary cleanup |
+| [Queue ownership](../internal/queue/store_lock_linux_test.go) | Concurrent opens, real competing processes, forced owner death, persistent lock inode, and unchanged saved running intent on load |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
@@ -61,6 +64,8 @@ JSON process tests verify actual stdout descriptor behavior. Broken pipes return
 The security review first reproduced option-value and HTTP-parser disclosure, raw unsolicited HTTP/1 transport logging, contradictory full-response acceptance, writes through hard-linked/shared-permission partials, publication of altered sequential disk bytes, and nonprinting URL-derived names. Focused regressions and the final full gate pass after the fixes. Existing interrupted link/rename recovery still works for both manifest versions. See [review evidence and boundaries](security.md#review-evidence).
 
 Real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Fresh/resumed parallel transfers, bounded retries, aggregate body-rate caps, concurrent offset writers, and checkpoint serialization have executable tests. Retry unit/integration fixtures substitute controlled waits where timing itself is not under test; CLI process checks exercise real backoff. Process termination is not a real power-loss test; publication-boundary recovery also uses controlled ready/link/rename states.
+
+The October 13 E1 queue tests pass on Linux/amd64 with ordinary, race, and CGO-disabled execution. `make check` passes, and the CI compilation recipe builds the CLI and all test programs for Linux/macOS/Windows on amd64/arm64 with CGO disabled. Queue storage is Linux-only; foreign binaries were not run. Store fault tests inject failures at write/sync/rename boundaries, preserve committed state before rename, and require close/reopen after uncertainty. They do not establish daemon lifecycle or real power-loss behavior.
 
 ## Test layers
 
@@ -148,7 +153,7 @@ The [CI/release workflows](releases.md) passed local actionlint v1.7.12 checks a
 
 ## Planned v0.2 validation
 
-These are required future checks for the [accepted daemon design](daemon-and-queue.md); none is current implementation evidence. The [delivery order](roadmap.md#v02-implementation-order) determines when each group becomes executable.
+These are required checks for the [accepted daemon design](daemon-and-queue.md). E1 codec/store and storage-mutation evidence is recorded above; coordinator, public-view privacy, IPC, shared-budget, and full daemon process checks remain pending. The [delivery order](roadmap.md#v02-implementation-order) determines when each group becomes executable.
 
 | Group | Required evidence |
 |---|---|
