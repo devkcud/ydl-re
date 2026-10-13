@@ -4,7 +4,7 @@
 
 The CLI supports parallel and sequential downloads with safe resume, bounded retries, aggregate rate caps, and local checkpoint inspection.
 
-Linux/amd64 users can [install the published `0.1.0-rc.1` candidate](releases.md#install-a-published-binary). The steps below build from source and use `./bin/yoinkdl`; with an installed binary on PATH, use `yoinkdl` instead.
+Linux/amd64 users can [install stable `0.1.0`](releases.md#install-a-published-binary). The steps below build from source and use `./bin/yoinkdl`; with an installed binary on PATH, use `yoinkdl` instead.
 
 ## Build locally
 

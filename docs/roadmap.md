@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A, B, and C are implemented and pass local Linux checks. Milestone D includes aggregate rate caps, JSON output, and locally qualified text-output behavior. There is no full v0.1 release or promised release date.
+Milestones A through D are complete for the initial Linux/amd64 scope. Stable [0.1.0](https://github.com/devkcud/ydl-re/releases/tag/v0.1.0) is published with verified public downloads and installation. v0.2 remains planned; there is no promised release date for later milestones.
 
 ## Delivery sequence
 
@@ -49,17 +49,17 @@ Completion evidence: parallel, resumed, and retried outputs match exact fixtures
 
 ## Milestone D — v0.1 hardening
 
-**Status:** rate caps, JSON/text output, security regression fixes, native Linux/amd64 evidence, and six-target compilation are recorded. Hosted Ubuntu 24.04.5 CI passed with Go 1.27.0. [Release tooling](releases.md) is validated through the public `0.1.0-rc.1` prerelease and verified `0.1.0` draft. Candidate review and all seven acceptance criteria have evidence, including real HTTPS subprocess tests. Stable publication remains next; native qualification beyond Linux/amd64 is still open.
+**Status:** complete for the initial Linux/amd64 release. Stable `0.1.0` is published as Latest. Rate caps, JSON/text output, security regression fixes, native platform evidence, six-target compilation, all seven acceptance criteria, and real HTTPS subprocess tests are recorded. Hosted Ubuntu 24.04.5 CI passed with Go 1.27.0; [public stable downloads and installation](releases.md#stable-publication) passed. Native qualification beyond Linux/amd64 remains separate work.
 
 Qualify native behavior and CI for any additional platform before claiming support, preserving the reviewed security contracts and documented trust boundaries. Cross-build success alone is insufficient; Windows storage remains unsupported.
 
-The [stable review](releases.md#stable-readiness-review) found no reported regressions and checked actual acceptance evidence. The [0.1.0 draft](releases.md#stable-archive-verification) uses revision `31330c6b07d33af148341bdfb346c0e139082fdb`, preserving the candidate's runtime behavior and adding HTTPS qualification. Its hosted files are verified and await publication. The [changelog](../CHANGELOG.md#010) preserves both version sections and an Unreleased section; stable readiness was not inferred from lack of reports alone.
+The [stable review](releases.md#stable-readiness-review) found no reported regressions and checked actual acceptance evidence. The [0.1.0 release](releases.md#stable-publication) uses revision `31330c6b07d33af148341bdfb346c0e139082fdb`, preserving the candidate's runtime behavior and adding HTTPS qualification. Public files match the verified hosted assets exactly. The [changelog](../CHANGELOG.md#010) preserves both version sections and an Unreleased section; stable readiness was not inferred from lack of reports alone.
 
 Completion evidence: all release acceptance criteria have recorded results, documented platform limits, and no unresolved integrity failure.
 
 ## v0.1.0 acceptance
 
-Do not tag v0.1.0 until evidence shows that:
+The published Linux/amd64 release has recorded evidence for these criteria; future changes must preserve them:
 
 - A direct HTTP(S) download produces the expected file.
 - A supporting server resumes a compatible transfer across process termination.

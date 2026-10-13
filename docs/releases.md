@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The [0.1.0-rc.1 prerelease](https://github.com/devkcud/ydl-re/releases/tag/v0.1.0-rc.1) provides Linux/amd64 binaries, matching sources, and checksums. Project sources use [MPL 2.0](../LICENSE); the binary also carries the Go runtime's [BSD notice](../LICENSES/Go-BSD-3-Clause.txt). Security reports use public [GitHub Issues](../SECURITY.md). No stable version has been published by this work.
+Stable [YoinkDL 0.1.0](https://github.com/devkcud/ydl-re/releases/tag/v0.1.0) provides Linux/amd64 binaries, matching sources, and checksums. Project sources use [MPL 2.0](../LICENSE); the binary also carries the Go runtime's [BSD notice](../LICENSES/Go-BSD-3-Clause.txt). Security reports use public [GitHub Issues](../SECURITY.md). The earlier `0.1.0-rc.1` prerelease remains available separately.
 
 ## Continuous integration
 
@@ -14,10 +14,10 @@ Both workflows pin [checkout v7.0.1](https://github.com/actions/checkout/release
 
 ## Build release assets locally
 
-Use native Linux/amd64 with Go, GNU Make, Git, Bash, GNU tar/coreutils, and gzip. Start from a clean committed tree. Stable versions use `X.Y.Z`; prereleases use `X.Y.Z-alpha.N`, `-beta.N`, or `-rc.N`, with N starting at 1. The first candidate is published as `0.1.0-rc.1`; this command demonstrates local packaging without modifying that release:
+Use native Linux/amd64 with Go, GNU Make, Git, Bash, GNU tar/coreutils, and gzip. Start from a clean committed tree. Stable versions use `X.Y.Z`; prereleases use `X.Y.Z-alpha.N`, `-beta.N`, or `-rc.N`, with N starting at 1. This command demonstrates local packaging without modifying the published release:
 
 ```sh
-make release VERSION=0.1.0-rc.1
+make release VERSION=0.1.0
 ```
 
 This runs the full gate before [the packaging script](../tools/release.sh). The script exports the exact Git commit, builds from that snapshot with CGO disabled and `GOAMD64=v1`, and checks the packaged version/help. Dirty trees, malformed versions, failed builds, and existing output are refused. Temporary files are cleaned on failure; completed asset directories are never overwritten.
@@ -67,7 +67,7 @@ The verified candidate was published at `2026-10-13T02:24:50Z` (October 12 in Am
 
 Unauthenticated HTTPS requests returned success for the release page, the public release API, and all three canonical asset URLs. Public downloads under `bin/releases/0.1.0-rc.1-public/` match the verified hosted files byte for byte, including SHA256SUMS. The checksums above therefore apply to the published release as well.
 
-The publicly downloaded archives passed checksum verification, exact source-snapshot comparison, packaged license/metadata checks, and isolated installation. Version/help and one-/four-connection downloads reproduced the same 9,437,201-byte fixture hash, successful JSON results, and partial-state cleanup. The public API reports `draft: false`, `prerelease: true`, and the publication time above. This qualifies the published Linux/amd64 candidate; stable promotion still requires candidate review.
+The publicly downloaded archives passed checksum verification, exact source-snapshot comparison, packaged license/metadata checks, and isolated installation. Version/help and one-/four-connection downloads reproduced the same 9,437,201-byte fixture hash, successful JSON results, and partial-state cleanup. The public API reports `draft: false`, `prerelease: true`, and the publication time above. These checks qualified the published Linux/amd64 candidate; the subsequent stable review is recorded below.
 
 ## Stable readiness review
 
@@ -87,7 +87,7 @@ The [seven acceptance criteria](roadmap.md#v010-acceptance) have the following e
 
 The HTTPS test was added in `a17767a`; it uses isolated per-process CA files without changing the host trust store or product transport settings. Native Linux/arm64/macOS, Windows storage, network filesystems, full-disk/power-loss behavior, and interrupted remote uploads remain outside these claims. No unresolved integrity failure was found on the reviewed paths. Lack of issue reports alone was not used as an acceptance result.
 
-The exact `## [0.1.0]` section in [CHANGELOG.md](../CHANGELOG.md#010) is prepared, preserving the prerelease notes. Annotated tag `v0.1.0` points to `31330c6b07d33af148341bdfb346c0e139082fdb`. The same revision and tag were pushed atomically for hosted CI and draft creation; publication remains pending. Preserve the published prerelease and its tag/assets.
+The exact `## [0.1.0]` section in [CHANGELOG.md](../CHANGELOG.md#010) supplies the published notes, preserving the prerelease section. Annotated tag `v0.1.0` points to `31330c6b07d33af148341bdfb346c0e139082fdb`. The same revision and tag were pushed atomically for hosted CI and draft creation, followed by verified publication. Preserve both published releases and their tags/assets.
 
 ## Stable archive verification
 
@@ -102,7 +102,7 @@ Checksums, exact `git archive` source identity, packaged licenses/metadata, CGO-
 
 [Stable draft run 38338657349](https://github.com/devkcud/ydl-re/actions/runs/38338657349) passed the full gate, packaging, and uploads with Go 1.27.0 on Ubuntu 24.04.5. [CI run 38338657280](https://github.com/devkcud/ydl-re/actions/runs/38338657280) passed native/race tests, uncached CGO-disabled tests, and six-target compilation at the same revision. These runs include the new Linux HTTPS fixture.
 
-The [YoinkDL 0.1.0 draft](https://github.com/devkcud/ydl-re/releases/tag/untagged-cc8f1c4b4de60a1b50f4) has `isDraft: true`, `isPrerelease: false`, no publication time, and notes exactly matching its tagged changelog section. All three assets are uploaded; downloaded sizes and SHA-256 digests match GitHub metadata. The files are retained separately under `bin/releases/0.1.0-hosted/`.
+The [YoinkDL 0.1.0 release](https://github.com/devkcud/ydl-re/releases/tag/v0.1.0) was verified as a stable draft before publication, with notes exactly matching its tagged changelog section. All three assets are uploaded; downloaded sizes and SHA-256 digests match GitHub metadata. The draft downloads are retained separately under `bin/releases/0.1.0-hosted/`.
 
 | Hosted stable asset | SHA-256 |
 |---|---|
@@ -110,7 +110,15 @@ The [YoinkDL 0.1.0 draft](https://github.com/devkcud/ydl-re/releases/tag/untagge
 | `yoinkdl_0.1.0_source.tar.gz` | `756afe74e9488e8bfb06e3a07093a45429d1683fe3bd4f4d303a78ba9f7c99d0` |
 | `SHA256SUMS` | `48ed2cf34506be56d08e238605e889526deb16df728fd0d902e634b17ab7f68b` |
 
-The downloaded source archive matches the local source archive and exact Git snapshot. The hosted binary identifies Go 1.27.0, CGO disabled, Linux/amd64, and `GOAMD64=v1`; installed version/help, all four HTTP/HTTPS fixture downloads, exact hashes, successful JSON, partial-state cleanup, and untrusted TLS refusal passed again. The stable draft is verified but unpublished. Publish its existing assets and verify public access before claiming stable distribution is complete; preserve `0.1.0-rc.1` unchanged.
+The downloaded source archive matches the local source archive and exact Git snapshot. The hosted binary identifies Go 1.27.0, CGO disabled, Linux/amd64, and `GOAMD64=v1`; installed version/help, all four HTTP/HTTPS fixture downloads, exact hashes, successful JSON, partial-state cleanup, and untrusted TLS refusal passed again. The existing assets were then published unchanged, preserving `0.1.0-rc.1`.
+
+## Stable publication
+
+The verified stable release was published at `2026-10-13T03:00:30Z` with `gh release edit v0.1.0 --repo devkcud/ydl-re --draft=false --prerelease=false --latest --verify-tag`. The public API reports `draft: false`, `prerelease: false`, and that publication time; its Latest endpoint resolves to the same `v0.1.0` release.
+
+Unauthenticated HTTPS requests succeeded for the release page, release API, Latest API, and all three canonical asset URLs. Public files under `bin/releases/0.1.0-public/` match the verified hosted files byte for byte. Release notes, asset IDs, sizes, and digests are unchanged, so the hosted stable checksums above apply to the public release.
+
+The public binary passed an isolated `install -m 0755`, version/help, and the same 9,437,201-byte HTTP/HTTPS fixture with one and four connections. Exact hashes, completed/published JSON results, partial-state cleanup, and untrusted-certificate refusal passed. Source archive, licenses, metadata, and build settings were rechecked. The existing `0.1.0-rc.1` remains a separate published prerelease with unchanged notes, asset identities, sizes, and digests. Milestones A through D are complete for the qualified Linux/amd64 scope; future platforms and wider durability claims need separate evidence.
 
 ## Draft-release workflow
 
@@ -122,10 +130,10 @@ An interrupted upload can leave an incomplete draft. Inspect it before retrying;
 
 ## Install a published binary
 
-For Linux/amd64, save the published [binary archive](https://github.com/devkcud/ydl-re/releases/download/v0.1.0-rc.1/yoinkdl_0.1.0-rc.1_linux_amd64.tar.gz), [source archive](https://github.com/devkcud/ydl-re/releases/download/v0.1.0-rc.1/yoinkdl_0.1.0-rc.1_source.tar.gz), and [SHA256SUMS](https://github.com/devkcud/ydl-re/releases/download/v0.1.0-rc.1/SHA256SUMS) in an empty directory, then run:
+For Linux/amd64, save the stable [binary archive](https://github.com/devkcud/ydl-re/releases/download/v0.1.0/yoinkdl_0.1.0_linux_amd64.tar.gz), [source archive](https://github.com/devkcud/ydl-re/releases/download/v0.1.0/yoinkdl_0.1.0_source.tar.gz), and [SHA256SUMS](https://github.com/devkcud/ydl-re/releases/download/v0.1.0/SHA256SUMS) in an empty directory, then run:
 
 ```sh
-version=0.1.0-rc.1
+version=0.1.0
 sha256sum -c SHA256SUMS
 tar -xzf "yoinkdl_${version}_linux_amd64.tar.gz"
 cd "yoinkdl_${version}_linux_amd64"

@@ -2,13 +2,13 @@
 
 [Documentation index](README.md)
 
-The current native evidence is for Linux/amd64 development builds. It does not establish a v0.1 release, other native platforms, or power-loss guarantees. The local results were recorded on October 12, 2026, against runtime and test sources at `ee2f29558b3b162f4ad39fc6682ba7edf878f240`. The later [hosted CI run](#hosted-ci-evidence) also covers packaging tests at `1ce24810b7b6a05607c30ab37ff725758e29ebb8`.
+The native evidence covers Linux/amd64. The local results were recorded on October 12, 2026, against runtime and test sources at `ee2f29558b3b162f4ad39fc6682ba7edf878f240`. The later [hosted CI run](#hosted-ci-evidence) covers packaging tests at `1ce24810b7b6a05607c30ab37ff725758e29ebb8`; [stable publication evidence](releases.md#stable-publication) records `0.1.0` at `31330c6b07d33af148341bdfb346c0e139082fdb`. Other native platforms and power-loss behavior remain unqualified.
 
 ## Build and runtime matrix
 
 | Target | CLI build | Test programs | Native runtime evidence | Current status |
 |---|---|---|---|---|
-| `linux/amd64` | Pass | Compiled and run | Local ext4/tmpfs checks; hosted Ubuntu 24.04.5 gate, race, and CGO-disabled tests | Locally and CI-qualified development platform |
+| `linux/amd64` | Pass | Compiled and run | Local ext4/tmpfs checks; hosted Ubuntu 24.04.5 gate, race, and CGO-disabled tests | Qualified initial stable binary target |
 | `linux/arm64` | Pass | Compile only | Unavailable on this host | Storage enabled; native behavior unqualified |
 | `darwin/amd64` | Pass | Compile only | Unavailable on this host | Storage enabled; native behavior unqualified |
 | `darwin/arm64` | Pass | Compile only | Unavailable on this host | Storage enabled; native behavior unqualified |
@@ -100,4 +100,4 @@ Use `go version -m` and `file` on the generated CLI files to inspect the recorde
 
 These are ordinary filesystem and forced-process-termination results on the local host and hosted CI runner. They do not simulate loss of power, a failing disk/controller, full disks, network filesystems, or all mount configurations. Directory sync and atomic visibility still need qualification wherever storage support is claimed. Broader sync/cleanup fault injection remains open.
 
-Native Linux/arm64 and macOS execution have not been performed here. Windows storage remains deliberately unsupported. The [CI/release tooling](releases.md) selects Linux/amd64 for initial binary releases. Hosted CI, draft-release execution, and [public candidate downloads and installation](releases.md#publication-and-public-downloads) passed for `0.1.0-rc.1`. The [decision register](decisions.md#release-and-compatibility-decisions) tracks remaining qualification.
+Native Linux/arm64 and macOS execution have not been performed here. Windows storage remains deliberately unsupported. The [CI/release tooling](releases.md) selects Linux/amd64 for initial binary releases. Hosted CI, release packaging, and [stable public downloads and installation](releases.md#stable-publication) passed for `0.1.0`. The [decision register](decisions.md#release-and-compatibility-decisions) tracks remaining qualification.

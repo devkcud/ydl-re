@@ -6,11 +6,11 @@ YoinkDL is a local-first download manager written in Go. It provides sequential 
 
 ## Project status
 
-As of October 12, 2026, the transfer, resume, and retry engine has native Linux/amd64 evidence on ext4/tmpfs and six-target compilation evidence. Use `make build` to build `bin/yoinkdl`, `make test` for tests, and `make check` for the full gate. There are no external Go dependencies.
+As of October 13, 2026, stable `0.1.0` is published for Linux/amd64. The transfer, resume, and retry engine has native ext4/tmpfs evidence, hosted CI, and six-target compilation evidence. Use `make build` to build `bin/yoinkdl`, `make test` for tests, and `make check` for the full gate. There are no external Go dependencies.
 
 Use the root [README](../README.md) for an introduction, [STATUS.md](../STATUS.md) for the current handoff and next steps, and [AGENTS.md](../AGENTS.md) for implementation instructions.
 
-The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, aggregate rate caps, JSON events, resume, and local inspection. Milestone D includes body-rate pacing, JSON, text-output handling, a local [security review](security.md), [platform evidence](platforms.md), passing hosted CI, and the published `0.1.0-rc.1` candidate with [public download and installation evidence](releases.md#publication-and-public-downloads). MPL 2.0, Linux/amd64 GitHub Releases, and public issue reporting are selected. Other native platforms and a stable v0.1 release remain pending.
+The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, aggregate rate caps, JSON events, resume, and local inspection. Milestones A through D are complete for the initial Linux/amd64 scope, with a local [security review](security.md), [platform evidence](platforms.md), and verified [stable public downloads and installation](releases.md#stable-publication). MPL 2.0, GitHub Releases, and public issue reporting remain the policies. Other native platforms and v0.2 daemon/queue work remain future work.
 
 These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions.
 
@@ -66,6 +66,6 @@ The original design remains the source proposal. This map shows where its subjec
 
 ## Documentation conventions
 
-`v0.1`, `v0.2`, and `v0.3` identify planned release boundaries, not existing releases. “Later” means unscheduled. “Illustrative” means an example is not a stable schema or output contract.
+`v0.1` is released as `0.1.0`; `v0.2` and `v0.3` identify planned release boundaries. “Later” means unscheduled. “Illustrative” means an example is not a stable schema or output contract.
 
 Remote example URLs are placeholders. Build commands use the actual repository layout; choose output paths appropriate to your filesystem. A successful-looking progress display is never evidence that a transfer has passed verification.

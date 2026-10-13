@@ -96,6 +96,6 @@ Check local links, anchors, code fences, structured examples, shell syntax, and 
 
 ## Release preparation
 
-Milestone D includes passing hosted CI and verified local/hosted Linux/amd64 packaging under MPL 2.0. The [release guide](releases.md) defines version/tag grammar, source/checksum assets, changelog requirements, draft creation, and installation. The owner-authorized `0.1.0-rc.1` prerelease is published, with public access, unchanged assets, and installation verified. Native qualification beyond Linux/amd64 remains open. Validate every claimed platform before distribution.
+Milestone D is complete for stable `0.1.0` on Linux/amd64 under MPL 2.0. The [release guide](releases.md) defines version/tag grammar, source/checksum assets, changelog requirements, draft creation, and installation. Hosted CI, packaging, public downloads, unchanged assets, and HTTP/HTTPS installation checks passed. Native qualification beyond Linux/amd64 remains open. Validate every claimed platform before distribution.
 
-Tag v0.1.0 only when the [release acceptance criteria](roadmap.md#v010-acceptance) have actual evidence. Milestone B success does not qualify parallel ranges, retry policies, other platforms, or the full v0.1 feature set.
+Preserve the published `v0.1.0` tag and assets. Future releases need fresh evidence for changed behavior under the [acceptance criteria](roadmap.md#v010-acceptance), including parallel transfers, retries, and every claimed native platform.
