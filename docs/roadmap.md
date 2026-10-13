@@ -49,11 +49,11 @@ Completion evidence: parallel, resumed, and retried outputs match exact fixtures
 
 ## Milestone D — v0.1 hardening
 
-**Status:** rate caps, JSON/text output, security regression fixes, native Linux/amd64 evidence, and six-target compilation are recorded. Hosted Ubuntu 24.04.5 CI passed with Go 1.27.0. [Release tooling](releases.md) is locally validated: MPL 2.0, public issue reporting, Linux/amd64 binary/source archives with checksums, and tag-triggered GitHub drafts. Draft execution and publication remain unverified; native qualification beyond Linux/amd64 is still open.
+**Status:** rate caps, JSON/text output, security regression fixes, native Linux/amd64 evidence, and six-target compilation are recorded. Hosted Ubuntu 24.04.5 CI passed with Go 1.27.0. [Release tooling](releases.md) is validated locally and through the `0.1.0-rc.1` hosted draft: MPL 2.0, public issue reporting, Linux/amd64 binary/source archives with verified checksums and installation. Publication remains pending; native qualification beyond Linux/amd64 is still open.
 
 Qualify native behavior and CI for any additional platform before claiming support, preserving the reviewed security contracts and documented trust boundaries. Cross-build success alone is insufficient; Windows storage remains unsupported.
 
-Hosted CI is recorded; draft-asset verification is still required before publication. The [changelog](../CHANGELOG.md#010-rc1) contains the owner-selected `0.1.0-rc.1` notes and retains an Unreleased section for subsequent changes. No tag or public release is created by local validation.
+Hosted CI and [draft-asset verification](releases.md#hosted-candidate-verification) are recorded. The owner-authorized `v0.1.0-rc.1` tag points to the verified source revision. The [changelog](../CHANGELOG.md#010-rc1) contains candidate notes and retains an Unreleased section for subsequent changes. The candidate remains a draft; a stable release is separate work.
 
 Completion evidence: all release acceptance criteria have recorded results, documented platform limits, and no unresolved integrity failure.
 

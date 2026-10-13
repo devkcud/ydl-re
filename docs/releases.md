@@ -10,7 +10,7 @@ Initial binary releases target Linux/amd64 through [GitHub Releases](https://git
 
 Both workflows pin [checkout v7.0.1](https://github.com/actions/checkout/releases/tag/v7.0.1) and [setup-go v7.0.0](https://github.com/actions/setup-go/releases/tag/v7.0.0) to full commit IDs. The Go version comes from `go.mod`; dependency caching is disabled because the project has no external Go modules or `go.sum`. Checkout does not persist credentials. CI has read-only repository permissions, time limits, and cancellation of superseded runs.
 
-[CI run 38294238535](https://github.com/devkcud/ydl-re/actions/runs/38294238535) passed on October 12, 2026, for commit `1ce24810b7b6a05607c30ab37ff725758e29ebb8`. Both jobs used Ubuntu 24.04.5 and Go 1.27.0 from `go.mod`; the native gate, uncached CGO-disabled tests, and six-target compilation passed. See [hosted platform evidence](platforms.md#hosted-ci-evidence) for settings and limits. The tag-triggered draft workflow has not run.
+[CI run 38294238535](https://github.com/devkcud/ydl-re/actions/runs/38294238535) passed on October 12, 2026, for commit `1ce24810b7b6a05607c30ab37ff725758e29ebb8`. Both jobs used Ubuntu 24.04.5 and Go 1.27.0 from `go.mod`; the native gate, uncached CGO-disabled tests, and six-target compilation passed. See [hosted platform evidence](platforms.md#hosted-ci-evidence) for settings and limits. The later [hosted candidate report](#hosted-candidate-verification) verifies tag-triggered packaging and uploaded assets.
 
 ## Build release assets locally
 
@@ -43,13 +43,29 @@ Local `0.1.0-rc.1` archives were built and verified on October 12, 2026, from cl
 
 An isolated installation using `install -m 0755` passed version/help checks and downloaded a deterministic 9,437,201-byte local fixture with one and four connections. The four-connection run made a one-byte probe and three whole-chunk requests. Both outputs matched SHA-256 `81e04b567859b9852a829e4f54b677634ee7fcda678a2ddb90012b4c632c62a2`, reported completed/published JSON results with exit zero, and removed their partial/manifest files.
 
-The maintainer can tag `5fae374cd31429f5d8653c6c497dcf0d21865c7e` as `v0.1.0-rc.1` after pushing the prepared commits. Later evidence-only documentation commits are outside these source archives. If the release revision changes, rebuild and verify that revision in a separate clean checkout; preserve existing candidate output. The hosted draft will build with Go 1.27.0, so verify its own checksums and installation rather than expecting binary equality with this local build. No tag, draft, or public release was created during local preparation.
+The annotated tag `v0.1.0-rc.1` now points to `5fae374cd31429f5d8653c6c497dcf0d21865c7e`. Later evidence-only documentation commits are outside these source archives. Preserve existing candidate output and the published tag identity. The hosted candidate below uses the same sources with Go 1.27.0 and has its own binary checksum.
+
+## Hosted candidate verification
+
+After explicit owner authorization, an atomic push advanced main to `8a6d5b95de472f42a2f043e628fc5f8788470e89` and created `v0.1.0-rc.1` at the verified revision. [Draft run 38335647469](https://github.com/devkcud/ydl-re/actions/runs/38335647469) passed on October 13, 2026 UTC (October 12 in America/Sao_Paulo), using Ubuntu 24.04.5, runner image `20261004.327.1`, and Go 1.27.0 without Go experiments. The full gate, ordinary/race packaging tests, tag/changelog guard, packaging, and all uploads passed. [CI run 38335647491](https://github.com/devkcud/ydl-re/actions/runs/38335647491) also passed the native gate, uncached CGO-disabled tests, and six-target compilation for the pushed main revision.
+
+The [YoinkDL 0.1.0-rc.1 draft](https://github.com/devkcud/ydl-re/releases/tag/untagged-62d19276c4de45dd188a) is marked as a prerelease and remains unpublished. Its body exactly matches the tagged changelog section. All three assets report uploaded status; their downloaded sizes and SHA-256 values match GitHub metadata. Authenticated downloads are retained separately under `bin/releases/0.1.0-rc.1-hosted/`.
+
+| Hosted asset | SHA-256 |
+|---|---|
+| `yoinkdl_0.1.0-rc.1_linux_amd64.tar.gz` | `89cd886bd10d11e2645e0c3b6a3bc920c544bbc0dce992acc15d9674553de835` |
+| `yoinkdl_0.1.0-rc.1_source.tar.gz` | `dfedc17494a08ca91280e844249f1cafd2c66f5c0fd83c78d51aaa1df336e304` |
+| `SHA256SUMS` | `eae8848c7bfadf3aa35a229b5a74746b0ae044f697a9f5b80876819b1f747c1c` |
+
+`sha256sum -c SHA256SUMS` passed for the downloaded assets. The source archive matches the local candidate archive and its uncompressed contents match `git archive` at `5fae374cd31429f5d8653c6c497dcf0d21865c7e` exactly. Packaged licenses, changelog, security policy, and `SOURCE.txt` match that revision. Binary metadata confirms Go 1.27.0, CGO disabled, Linux/amd64, and `GOAMD64=v1`.
+
+An isolated `install -m 0755` passed version/help and the same 9,437,201-byte one-/four-connection fixture downloads described above, including exact hashes, completed/published JSON, and partial-state cleanup. No application or workflow change was needed. Public download availability remains unverified until publication; these checks used authenticated access to the draft. Interrupted upload/retry behavior and platforms beyond Linux/amd64 remain unqualified.
 
 ## Draft-release workflow
 
 [Draft release](../.github/workflows/release.yml) runs for pushed `v*` tags. It validates the tag, requires nonempty notes beneath the exact `## [<version>]` heading in [CHANGELOG.md](../CHANGELOG.md), runs `make release`, and creates a GitHub draft with both archives and checksums. A prerelease version produces a prerelease draft. Missing notes or failed validation stop before any draft is created. Existing releases are not overwritten.
 
-Before creating a tag, move the relevant Unreleased entries into a matching version section, review the changes, and commit them. Review the generated draft and its assets before publishing. The workflow needs `contents: write` only for its release job; it does not use a personal token or create tags. This implementation does not push commits/tags, dispatch Actions, or create a remote release itself.
+Before creating a tag, move the relevant Unreleased entries into a matching version section, review the changes, and commit them. Review the generated draft and its assets before publishing. The workflow needs `contents: write` only for its release job; it does not use a personal token or create tags. Local packaging does not push commits/tags, dispatch Actions, or create a remote release.
 
 An interrupted upload can leave an incomplete draft. Inspect it before retrying; the workflow will not overwrite an existing release.
 

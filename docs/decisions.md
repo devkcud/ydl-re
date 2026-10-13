@@ -88,7 +88,7 @@ The safe fallback is a sequential transfer when parallel ranges cannot be truste
 
 ## Release and compatibility decisions
 
-The owner selected MPL 2.0 with no named copyright-holder notice, GitHub Releases for initial Linux/amd64 binaries, and public GitHub Issues for security reports. [LICENSE](../LICENSE) and [SECURITY.md](../SECURITY.md) record these choices. R01/R05 are settled locally: [the release contract](releases.md) defines version/tag syntax, binary/source archives, checksums, changelog sections, and draft creation. No remote settings or releases were changed.
+The owner selected MPL 2.0 with no named copyright-holder notice, GitHub Releases for initial Linux/amd64 binaries, and public GitHub Issues for security reports. [LICENSE](../LICENSE) and [SECURITY.md](../SECURITY.md) record these choices. R01/R05 are settled: [the release contract](releases.md) defines version/tag syntax, binary/source archives, checksums, changelog sections, and draft creation. The owner authorized pushing the `0.1.0-rc.1` candidate; its hosted draft and downloaded assets are verified. Publication remains pending, and remote repository settings were not changed.
 
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
