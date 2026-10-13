@@ -145,6 +145,8 @@ The [CI/release workflows](releases.md) passed local actionlint v1.7.12 checks a
 
 ## Release evidence
 
+The [first candidate report](releases.md#first-candidate-verification) records `0.1.0-rc.1` at `5fae374cd31429f5d8653c6c497dcf0d21865c7e`: the full local packaging gate, archive checksums and exact source identity, isolated installation, and sequential/parallel fixture downloads passed. The hosted draft and its uploaded assets remain unverified.
+
 Before v0.1, record the revision, toolchain, native platform/filesystem, commands run, results, and any skipped cases. The evidence must cover direct download, safe resume, representation consistency, wrong-length detection, atomic publication, exclusive ownership, integration tests, and race checks.
 
 A test report should distinguish a build from a runtime test and a normal interruption from a crash-recovery exercise. Cross-platform builds alone are insufficient evidence for all filesystem guarantees.

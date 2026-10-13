@@ -30,6 +30,21 @@ The output directory `bin/releases/<version>/` contains:
 
 Archive ownership, modes, ordering, and timestamps are normalized. Tests verify identical archives when the same snapshot is rebuilt with the same toolchain. This does not promise identical binaries across Go versions or toolchain configurations. Artifacts are unsigned; the checksum file detects corruption and is not a separate publisher-authentication mechanism.
 
+## First candidate verification
+
+Local `0.1.0-rc.1` archives were built and verified on October 12, 2026, from clean commit `5fae374cd31429f5d8653c6c497dcf0d21865c7e`. `make release VERSION=0.1.0-rc.1` passed the full gate and produced the three assets under `bin/releases/0.1.0-rc.1/` using `go1.27.2-X:nodwarf5` on Linux/amd64. Core ordinary/race suites reused matching cached results; packaging tests reran. An initial sandboxed attempt stopped at the packaging test's blocked localhost listener; the complete command passed outside that sandbox.
+
+| Archive | SHA-256 |
+|---|---|
+| `yoinkdl_0.1.0-rc.1_linux_amd64.tar.gz` | `2a7dfc818b8e4da510fb00e6ba5bfa8b8d7df1445c099084fd8ac570b9c75027` |
+| `yoinkdl_0.1.0-rc.1_source.tar.gz` | `dfedc17494a08ca91280e844249f1cafd2c66f5c0fd83c78d51aaa1df336e304` |
+
+`sha256sum -c SHA256SUMS` passed. The uncompressed source archive matched `git archive` for that revision byte for byte. Packaged license/changelog/security files matched the commit, and `SOURCE.txt` identified the same revision and toolchain. Build metadata confirmed CGO disabled, Linux/amd64, and `GOAMD64=v1`.
+
+An isolated installation using `install -m 0755` passed version/help checks and downloaded a deterministic 9,437,201-byte local fixture with one and four connections. The four-connection run made a one-byte probe and three whole-chunk requests. Both outputs matched SHA-256 `81e04b567859b9852a829e4f54b677634ee7fcda678a2ddb90012b4c632c62a2`, reported completed/published JSON results with exit zero, and removed their partial/manifest files.
+
+The maintainer can tag `5fae374cd31429f5d8653c6c497dcf0d21865c7e` as `v0.1.0-rc.1` after pushing the prepared commits. Later evidence-only documentation commits are outside these source archives. If the release revision changes, rebuild and verify that revision in a separate clean checkout; preserve existing candidate output. The hosted draft will build with Go 1.27.0, so verify its own checksums and installation rather than expecting binary equality with this local build. No tag, draft, or public release was created during local preparation.
+
 ## Draft-release workflow
 
 [Draft release](../.github/workflows/release.yml) runs for pushed `v*` tags. It validates the tag, requires nonempty notes beneath the exact `## [<version>]` heading in [CHANGELOG.md](../CHANGELOG.md), runs `make release`, and creates a GitHub draft with both archives and checksums. A prerelease version produces a prerelease draft. Missing notes or failed validation stop before any draft is created. Existing releases are not overwritten.
