@@ -2,20 +2,20 @@
 
 [Documentation index](README.md)
 
-The current native evidence is for Linux/amd64 development builds. It does not establish a v0.1 release, other native platforms, or power-loss guarantees. The results below were recorded on October 12, 2026, against runtime and test sources at `ee2f29558b3b162f4ad39fc6682ba7edf878f240`.
+The current native evidence is for Linux/amd64 development builds. It does not establish a v0.1 release, other native platforms, or power-loss guarantees. The local results were recorded on October 12, 2026, against runtime and test sources at `ee2f29558b3b162f4ad39fc6682ba7edf878f240`. The later [hosted CI run](#hosted-ci-evidence) also covers packaging tests at `1ce24810b7b6a05607c30ab37ff725758e29ebb8`.
 
 ## Build and runtime matrix
 
 | Target | CLI build | Test programs | Native runtime evidence | Current status |
 |---|---|---|---|---|
-| `linux/amd64` | Pass | Compiled and run | Full ext4 gate with race tests; uncached CGO-disabled tests on tmpfs | Locally qualified development platform |
+| `linux/amd64` | Pass | Compiled and run | Local ext4/tmpfs checks; hosted Ubuntu 24.04.5 gate, race, and CGO-disabled tests | Locally and CI-qualified development platform |
 | `linux/arm64` | Pass | Compile only | Unavailable on this host | Storage enabled; native behavior unqualified |
 | `darwin/amd64` | Pass | Compile only | Unavailable on this host | Storage enabled; native behavior unqualified |
 | `darwin/arm64` | Pass | Compile only | Unavailable on this host | Storage enabled; native behavior unqualified |
 | `windows/amd64` | Pass | Compile only | Unavailable on this host | Download/inspection storage unsupported by design |
 | `windows/arm64` | Pass | Compile only | Unavailable on this host | Download/inspection storage unsupported by design |
 
-All six matrix CLI builds used `CGO_ENABLED=0`, `-trimpath`, and the default `dev` label. `file` identified the intended ELF, Mach-O, and PE architectures. All five Go test packages compiled for each foreign target; no foreign binary or test program was executed. The separate native full gate used CGO for race testing. No cross-C compiler was needed.
+All six local matrix CLI builds used `CGO_ENABLED=0`, `-trimpath`, and the default `dev` label. `file` identified the intended ELF, Mach-O, and PE architectures. The original local run compiled five Go test packages for each foreign target; the hosted run also includes the later `tools` package. No foreign binary or test program was executed. The separate native full gate used CGO for race testing. No cross-C compiler was needed.
 
 Linux/amd64 is the only platform with native qualification in this report. The code enables Linux and macOS storage; compilation alone does not qualify another architecture, locking, signals, terminal handling, filesystem semantics, or an OS version. Windows builds retain explicit storage refusal and are not usable downloader releases. Other targets have not been checked. The temporary build outputs are validation artifacts, with no installer, signing, packaging, or distribution contract.
 
@@ -36,6 +36,21 @@ Linux/amd64 is the only platform with native qualification in this report. The c
 `CGO_ENABLED=0 go test -count=1 ./...` also passed on Linux/amd64 with the default tmpfs temporary directory. This run was uncached and did not use the race detector. The separate CGO-disabled CLI build was identified as a statically linked ELF executable, and its `version` command returned `yoinkdl dev`. This does not assert equivalent DNS behavior between Go's native and cgo resolvers.
 
 The existing suites exercise prefix/chunk resume, forced process termination, stable advisory locks, hard-link and rename recovery, private partial permissions, symlink/collision refusal, stored-byte verification, cancellation, SIGINT/SIGTERM, terminal geometry, and blocked/broken output. See [testing coverage](testing.md#current-evidence).
+
+## Hosted CI evidence
+
+[CI run 38294238535](https://github.com/devkcud/ydl-re/actions/runs/38294238535) passed on October 12, 2026, for main-branch commit `1ce24810b7b6a05607c30ab37ff725758e29ebb8`. Both jobs completed successfully; their logs confirm these values:
+
+| Item | Observed value |
+|---|---|
+| Runner | Ubuntu 24.04.5 LTS, image `ubuntu-24.04` version `20261004.327.1` |
+| Go | `go1.27.0 linux/amd64`, selected from `go.mod` |
+| Toolchain settings | `GOTOOLCHAIN=local`, `GOAMD64=v1`, no `GOEXPERIMENT` |
+| Native gate | `make check`: formatting, vet, tests, race tests, and build passed with CGO enabled |
+| CGO-disabled runtime | `CGO_ENABLED=0 go test -count=1 ./...` passed for all six packages, including packaging tests |
+| Compilation | CGO-disabled CLI and test compilation passed for all six matrix targets |
+
+This verifies the project's minimum Go patch on the hosted runner. The job does not record filesystem or mount details, so it adds no filesystem-specific or power-loss guarantee. Packaging tests build and exercise temporary fixture archives; this CI run did not execute the tag-triggered draft workflow or upload release assets.
 
 ## Reproduce native checks
 
@@ -83,6 +98,6 @@ Use `go version -m` and `file` on the generated CLI files to inspect the recorde
 
 ## Qualification limits
 
-These are ordinary filesystem and forced-process-termination results on one host. They do not simulate loss of power, a failing disk/controller, full disks, network filesystems, or all mount configurations. Directory sync and atomic visibility still need qualification wherever storage support is claimed. Broader sync/cleanup fault injection remains open.
+These are ordinary filesystem and forced-process-termination results on the local host and hosted CI runner. They do not simulate loss of power, a failing disk/controller, full disks, network filesystems, or all mount configurations. Directory sync and atomic visibility still need qualification wherever storage support is claimed. Broader sync/cleanup fault injection remains open.
 
-Native Linux/arm64 and macOS execution have not been performed here. Windows storage remains deliberately unsupported. The later [CI/release tooling](releases.md) selects Linux/amd64 for initial binary releases and adds packaging tests to local validation; hosted execution still needs evidence. The [decision register](decisions.md#release-and-compatibility-decisions) tracks remaining qualification.
+Native Linux/arm64 and macOS execution have not been performed here. Windows storage remains deliberately unsupported. The [CI/release tooling](releases.md) selects Linux/amd64 for initial binary releases. Hosted CI passed; draft-release execution and asset verification remain pending. The [decision register](decisions.md#release-and-compatibility-decisions) tracks remaining qualification.

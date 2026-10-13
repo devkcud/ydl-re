@@ -92,7 +92,7 @@ The owner selected MPL 2.0 with no named copyright-holder notice, GitHub Release
 
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
-| R02 | Hosted CI evidence and native qualification beyond Linux/amd64 | Local workflow replay and cross-compilation do not prove hosted or foreign runtime behavior | [Platforms](platforms.md) |
+| R02 | Native qualification beyond Linux/amd64 | Hosted Linux/amd64 CI passed; cross-compilation does not prove foreign runtime behavior | [Platforms](platforms.md) |
 | R03 | Future daemon-wide bandwidth allocation | The v0.1 cap applies to one standalone transfer; separate processes do not share it | [Roadmap](roadmap.md) |
 | R04 | Local IPC, daemon permissions, persistence, and queue scheduling | Required before v0.2, not a blocker for standalone transfers | [Architecture](architecture.md#future-front-ends) |
 

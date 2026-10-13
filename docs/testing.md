@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A, B, and C plus Milestone D rate, JSON, text-output, and security regression work pass the local full gate on Go 1.27.2, Linux/amd64. The matrix below also covers remaining platform/release work and must not be read as fully implemented.
+Milestones A, B, and C plus Milestone D rate, JSON, text-output, security regression, and packaging work pass the local full gate on Go 1.27.2 and hosted Ubuntu 24.04.5 CI on Go 1.27.0, Linux/amd64. The matrix below also covers remaining platform/release work and must not be read as fully implemented.
 
 ## Current evidence
 
@@ -141,7 +141,7 @@ These checks pass locally on Linux. Use the toolchain selected by the project; r
 
 The [platform report](platforms.md) records the October 12 native Linux toolchain, ext4/tmpfs evidence, CGO-disabled run, exact source revision, and reproduction commands. The six CLI targets build, and all test packages compile for foreign targets, with CGO disabled. Foreign binaries were not executed; native runtime evidence remains separate from compilation results.
 
-The [CI/release workflows](releases.md) passed local actionlint v1.7.12 checks and Bash syntax checks. Native CI commands and the six-target compilation loop were replayed locally. The final packaging gate passed, including race checks; separate shell fixtures reject malformed tags and missing notes and select only the intended changelog section. Optional ShellCheck/Pyflakes integrations were disabled because those tools were not installed. No hosted workflow or remote release creation was run.
+The [CI/release workflows](releases.md) passed local actionlint v1.7.12 checks and Bash syntax checks. Native CI commands and the six-target compilation loop were replayed locally. The final packaging gate passed, including race checks; separate shell fixtures reject malformed tags and missing notes and select only the intended changelog section. Optional ShellCheck/Pyflakes integrations were disabled because those tools were not installed. [Hosted CI](platforms.md#hosted-ci-evidence) subsequently passed the full gate, uncached CGO-disabled tests, and six-target compilation at `1ce24810b7b6a05607c30ab37ff725758e29ebb8`. Remote draft creation has not run.
 
 ## Release evidence
 

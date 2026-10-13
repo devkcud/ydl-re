@@ -10,7 +10,7 @@ As of October 12, 2026, the transfer, resume, and retry engine has native Linux/
 
 Use the root [README](../README.md) for an introduction, [STATUS.md](../STATUS.md) for the current handoff and next steps, and [AGENTS.md](../AGENTS.md) for implementation instructions.
 
-The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, aggregate rate caps, JSON events, resume, and local inspection. Milestone D includes body-rate pacing, JSON, text-output handling, a local [security review](security.md), [platform evidence](platforms.md), and locally validated [CI/release tooling](releases.md). MPL 2.0, Linux/amd64 GitHub Releases, and public issue reporting are selected. Hosted execution and other native platforms remain unverified; a full v0.1 release is not complete.
+The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, aggregate rate caps, JSON events, resume, and local inspection. Milestone D includes body-rate pacing, JSON, text-output handling, a local [security review](security.md), [platform evidence](platforms.md), passing hosted CI, and locally validated [release tooling](releases.md). MPL 2.0, Linux/amd64 GitHub Releases, and public issue reporting are selected. Draft-release execution and other native platforms remain unverified; a full v0.1 release is not complete.
 
 These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions.
 

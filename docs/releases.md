@@ -10,7 +10,7 @@ Initial binary releases target Linux/amd64 through [GitHub Releases](https://git
 
 Both workflows pin [checkout v7.0.1](https://github.com/actions/checkout/releases/tag/v7.0.1) and [setup-go v7.0.0](https://github.com/actions/setup-go/releases/tag/v7.0.0) to full commit IDs. The Go version comes from `go.mod`; dependency caching is disabled because the project has no external Go modules or `go.sum`. Checkout does not persist credentials. CI has read-only repository permissions, time limits, and cancellation of superseded runs.
 
-Local replay validates the commands using the installed Go toolchain. It does not prove a GitHub-hosted run or the exact minimum Go patch selected by setup-go. Hosted evidence must be recorded after these local commits are pushed by the maintainer.
+[CI run 38294238535](https://github.com/devkcud/ydl-re/actions/runs/38294238535) passed on October 12, 2026, for commit `1ce24810b7b6a05607c30ab37ff725758e29ebb8`. Both jobs used Ubuntu 24.04.5 and Go 1.27.0 from `go.mod`; the native gate, uncached CGO-disabled tests, and six-target compilation passed. See [hosted platform evidence](platforms.md#hosted-ci-evidence) for settings and limits. The tag-triggered draft workflow has not run.
 
 ## Build release assets locally
 
@@ -52,4 +52,4 @@ mkdir -p "$HOME/.local/bin"
 install -m 0755 yoinkdl "$HOME/.local/bin/yoinkdl"
 ```
 
-Ensure `$HOME/.local/bin` is on PATH. The archive's `SOURCE.txt` identifies the corresponding source archive. Other native platforms, native hosted CI results, broader filesystem durability, signing, and package-manager distribution remain outside the current release evidence; see [platform qualification](platforms.md).
+Ensure `$HOME/.local/bin` is on PATH. The archive's `SOURCE.txt` identifies the corresponding source archive. Other native platforms, broader filesystem durability, signing, and package-manager distribution remain outside the current release evidence; see [platform qualification](platforms.md).

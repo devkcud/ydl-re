@@ -49,7 +49,7 @@ Completion evidence: parallel, resumed, and retried outputs match exact fixtures
 
 ## Milestone D — v0.1 hardening
 
-**Status:** rate caps, JSON/text output, security regression fixes, native Linux/amd64 evidence, and six-target compilation are recorded. [CI and release tooling](releases.md) are locally validated: MPL 2.0, public issue reporting, Linux/amd64 binary/source archives with checksums, and tag-triggered GitHub drafts. Hosted CI/draft execution and publication remain unverified; native qualification beyond Linux/amd64 is still open.
+**Status:** rate caps, JSON/text output, security regression fixes, native Linux/amd64 evidence, and six-target compilation are recorded. Hosted Ubuntu 24.04.5 CI passed with Go 1.27.0. [Release tooling](releases.md) is locally validated: MPL 2.0, public issue reporting, Linux/amd64 binary/source archives with checksums, and tag-triggered GitHub drafts. Draft execution and publication remain unverified; native qualification beyond Linux/amd64 is still open.
 
 Qualify native behavior and CI for any additional platform before claiming support, preserving the reviewed security contracts and documented trust boundaries. Cross-build success alone is insufficient; Windows storage remains unsupported.
 

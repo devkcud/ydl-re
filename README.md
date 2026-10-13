@@ -8,7 +8,7 @@ YoinkDL is a local-first HTTP(S) download manager written in Go. The first imple
 
 Milestones A, B, and C are implemented and tested on Linux. `download`, `inspect`, `version`, safe resume, bounded retries, progress, cancellation, overwrite protection, and inactivity timeouts work. Saved progress is synced and checksummed before reuse.
 
-Milestone D includes aggregate rate caps, versioned JSON output, checked text/terminal output, a completed local [security review](docs/security.md), and locally validated CI/release tooling. Initial binary releases target Linux/amd64 through GitHub Releases. Hosted CI/draft-release execution and native qualification beyond Linux/amd64 remain unverified. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
+Milestone D includes aggregate rate caps, versioned JSON output, checked text/terminal output, a completed local [security review](docs/security.md), passing hosted CI, and locally validated release tooling. Initial binary releases target Linux/amd64 through GitHub Releases. Draft-release execution and native qualification beyond Linux/amd64 remain unverified. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
 
 ## Build and test
 
@@ -69,7 +69,7 @@ Partial reuse requires a known size, identity encoding, and a matching strong ET
 
 ## Platforms
 
-Linux/amd64 has local runtime evidence on ext4 and tmpfs, including race tests on ext4. CLI builds and test compilation pass for Linux, macOS, and Windows on amd64/arm64. Linux/arm64 and macOS still need native qualification; Windows storage remains explicitly unsupported. See the [platform matrix and reproduction commands](docs/platforms.md).
+Linux/amd64 has local runtime evidence on ext4 and tmpfs, including race tests on ext4, plus passing hosted Ubuntu 24.04.5 checks with Go 1.27.0. CLI builds and test compilation pass for Linux, macOS, and Windows on amd64/arm64. Linux/arm64 and macOS still need native qualification; Windows storage remains explicitly unsupported. See the [platform matrix and reproduction commands](docs/platforms.md).
 
 The output filesystem must support advisory locking, hard links, and directory sync. Network filesystems and power-loss durability remain unqualified.
 

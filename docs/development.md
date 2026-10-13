@@ -44,7 +44,7 @@ The ignored `bin/` directory contains build output. The default version label is
 | `make test` | Run `go test ./...` |
 | `make vet` | Run `go vet ./...` |
 | `make race` | Run `go test -race ./...` |
-| `make fmt` | Run `gofmt -w cmd internal` |
+| `make fmt` | Run `gofmt -w cmd internal tools` |
 | `make fmt-check` | Fail if Go source needs formatting |
 | `make check` | Formatting check, vet, tests, race tests, then build |
 | `make release VERSION=X.Y.Z` | Full gate, then Linux/amd64 binary/source archives and checksums from a clean committed tree |
@@ -56,7 +56,7 @@ Go's build and test caches are used normally. The Makefile does not clear them. 
 go build -o ./bin/yoinkdl ./cmd/yoinkdl
 ```
 
-[GitHub CI](../.github/workflows/ci.yml) runs the native gate and uncached CGO-disabled tests on Ubuntu 24.04, plus CLI/test compilation for all six recorded targets. Actions are pinned to full commits, checkout credentials are not persisted, and CI uses read-only permissions. Go is selected from `go.mod`, with dependency caching disabled for this standard-library-only module. Local command replay and workflow linting do not constitute a hosted CI run.
+[GitHub CI](../.github/workflows/ci.yml) runs the native gate and uncached CGO-disabled tests on Ubuntu 24.04, plus CLI/test compilation for all six recorded targets. Actions are pinned to full commits, checkout credentials are not persisted, and CI uses read-only permissions. Go is selected from `go.mod`, with dependency caching disabled for this standard-library-only module. The first [hosted run](platforms.md#hosted-ci-evidence) passed on Ubuntu 24.04.5 with Go 1.27.0.
 
 ## Test environment
 
@@ -64,7 +64,7 @@ Tests use localhost HTTP servers, temporary directories, and subprocesses. Sandb
 
 On native Linux/amd64, `tools/release_test.go` also uses Bash, Git, GNU tar/coreutils, and gzip. It builds real archives from temporary Git fixtures, verifies checksums and source identity, executes an extracted binary against a local HTTP server, and checks reproducibility, refusal, and failure cleanup. These packaging tests skip on other native platforms. `make fmt` and `make fmt-check` include the Go tooling tests.
 
-The implementation was checked with Go 1.27.2 on Linux/amd64. Initial sandboxed Go checks could not resolve standard packages, and HTTP tests could not open sockets; equivalent checks outside the sandbox passed. These are environment restrictions, not skipped correctness cases.
+The implementation was checked locally with Go 1.27.2 and in hosted CI with Go 1.27.0 on Linux/amd64. Initial sandboxed Go checks could not resolve standard packages, and HTTP tests could not open sockets; equivalent checks outside the sandbox passed. These are environment restrictions, not skipped correctness cases.
 
 The [platform report](platforms.md) records native Linux/amd64 checks on ext4/tmpfs and CLI/test compilation for Linux, macOS, and Windows on amd64/arm64. Linux/arm64 and macOS code paths remain unqualified natively; Windows storage remains unsupported. Cross-compilation does not establish filesystem, signal, or terminal guarantees. The report includes commands for repeating both native and compilation checks without adding runtime dependencies.
 
@@ -96,6 +96,6 @@ Check local links, anchors, code fences, structured examples, shell syntax, and 
 
 ## Release preparation
 
-Milestone D includes locally validated CI and Linux/amd64 packaging under MPL 2.0. The [release guide](releases.md) defines version/tag grammar, source/checksum assets, changelog requirements, draft creation, and installation. Hosted Actions/draft-release execution remains unverified because the work was not pushed. Native qualification beyond Linux/amd64 remains open. Validate every claimed platform before distribution.
+Milestone D includes passing hosted CI and locally validated Linux/amd64 packaging under MPL 2.0. The [release guide](releases.md) defines version/tag grammar, source/checksum assets, changelog requirements, draft creation, and installation. Draft-release execution remains unverified. Native qualification beyond Linux/amd64 remains open. Validate every claimed platform before distribution.
 
 Tag v0.1.0 only when the [release acceptance criteria](roadmap.md#v010-acceptance) have actual evidence. Milestone B success does not qualify parallel ranges, retry policies, other platforms, or the full v0.1 feature set.
