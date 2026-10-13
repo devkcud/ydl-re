@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-This is the accepted v0.2 contract. E1 is complete, and E2's pure lifecycle rules are implemented. Scheduling and durable application of those rules, IPC, and daemon commands remain pending. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
+This is the accepted v0.2 contract. E1 and E2's coordinator core are implemented: recovery, FIFO dispatch, safe polling, and draining shutdown. Individual job controls and live concurrency changes remain next, followed by shared budgets, IPC, and daemon commands. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
 
 ## Scope and ownership
 
@@ -89,7 +89,7 @@ Before-rename failure preserves the committed state. Rename-success/directory-sy
 
 The implemented `queue.Open` accepts an explicit absolute clean directory with an existing parent, creates the final directory if needed, acquires `queue.lock`, and durably initializes or strictly loads `queue.json`. `Store.Snapshot` returns a deep copy of the last committed state; `Store.Save` owns its candidate, enforces immutable retained requests and monotonic admission orders, and follows the sync sequence above. Before replacement, it rechecks lock identity, file safety, and the canonical snapshot's inode and content digest. These checks operate within the same-user/trusted-parent boundary; callers must honor the advisory lock.
 
-`ErrLocked` means another store holds ownership. `ErrChanged` disables the store after detected artifact changes; `ErrUncertain` does so after uncertain replacement/durability. Both prevent further snapshots and mutations until close/reopen, and ownership remains held until `Close`. Close releases descriptors without unlinking the lock. Only the store's own unchanged temporary inode may be cleaned up; stale or replaced artifacts are preserved. Non-Linux storage returns `ErrUnsupported`. State reconciliation and safe public views remain E2 work: loading a saved running job alone does not change its state or start a transfer.
+`ErrLocked` means another store holds ownership. `ErrChanged` disables the store after detected artifact changes; `ErrUncertain` does so after uncertain replacement/durability. Both prevent further snapshots and mutations until close/reopen, and ownership remains held until `Close`. Close releases descriptors without unlinking the lock. Only the store's own unchanged temporary inode may be cleaned up; stale or replaced artifacts are preserved. Non-Linux storage returns `ErrUnsupported`. Loading the store alone does not change a saved running job or start a transfer; coordinator preparation owns reconciliation.
 
 ## States and operations
 
@@ -111,7 +111,11 @@ A scheduling decision first persists `running` with an unknown new-attempt resul
 
 On daemon restart, queued jobs remain eligible, running becomes interrupted, pausing becomes paused, and canceling becomes canceled. Recovered active states get `published: null`; persist these changes before dispatch and clear canceled URLs. Do not automatically replay interrupted attempts. A crash can occur after file publication but before the queue commit, so file presence/length never proves completion. Explicit retry still uses the engine's checkpoint checks and no-overwrite policy; a pre-existing final file without recoverable metadata is preserved and refused.
 
-`internal/queue/lifecycle.go` implements the pure recovery, pause/resume/cancel, and final-result rules. Resume alone consumes a fresh FIFO order when it actually changes state. Engine failures map to fixed messages for cancellation, timeout, file access, missing publication, published-with-error, or generic failure; arbitrary error text never reaches saved diagnostics. Public error projection also replaces unrecognized stored messages. These helpers do not yet run transfers or commit mutations.
+`internal/queue/lifecycle.go` implements the pure recovery, pause/resume/cancel, and final-result rules. Resume alone consumes a fresh FIFO order when it actually changes state. Engine failures map to fixed messages for cancellation, timeout, file access, missing publication, published-with-error, or generic failure; arbitrary error text never reaches saved diagnostics. Public error projection also replaces unrecognized stored messages.
+
+`NewCoordinator(store, runner, parallel)` prepares recovery and an optional startup override durably without dispatching; zero preserves the saved setting and a nil runner selects `transfer.Download`. Call `Run(ctx)` once after startup prerequisites are ready. The caller owns the store, must give the coordinator exclusive mutation access, and closes it only after Run returns. Runners must return after all transfer work and progress callbacks finish. `List` returns owned safe views; `Stop` acknowledges durable stopping intent while `Done`/Run signal completed cleanup.
+
+The coordinator owns at most eight attempts, a 16-entry control mailbox, and one latest progress value per attempt. Progress callbacks never wait on disk or control replies. Caller cancellation after enqueue reports `ErrOutcomeUnknown` for mutations and does not undo the queued operation. Abandoned replies cannot block the coordinator. Every persistence failure stops admission, cancels and joins runners, and prevents further saves or authoritative views. If durable pause intent cannot be written, the previous running record remains for conservative restart recovery. Persistence errors preserve their causes for internal classification while exposing a fixed safe message.
 
 ## Local control protocol
 

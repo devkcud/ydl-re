@@ -13,13 +13,15 @@ Milestones A through D and the first v0.2 storage slice implement the packages b
 | `internal/transfer` | Sequential/ranged HTTP, probing, immutable identity, response validation, retries, timeouts, aggregate rate budgets, byte checks, snapshots |
 | `internal/ranges` | Bounded fixed-chunk planning, validated coverage, missing work, HTTP endpoint conversion |
 | `internal/storage` | Stable OS locks, prefix/chunk manifests and checksums, durable checkpoints, preservation, publication recovery |
-| `internal/queue` | E1 job/snapshot model, strict codec, private Linux atomic storage and ownership; scheduling pending |
+| `internal/queue` | Private atomic state, lifecycle rules, FIFO coordinator, safe polling and shutdown; individual controls pending |
 
 `transfer.Download` is the current application entry point. Storage verifies local bytes before transfer validates remote identity; only then may it truncate uncertain tails. `storage.Inspect` reads metadata without acquiring writer ownership or contacting the server. No separate app, scheduler, configuration, or progress package is needed for this slice. Tests live beside the code, including interruption and forced-process-crash checks in `cmd/yoinkdl`.
 
 `transfer.Normalize` shares the engine's pure URL/option validation, defaults, and automatic filename rules with future queue callers. It removes fragments, owns the resolved retry value, preserves explicit output strings, and performs no file/network work. `Download` uses the same normalization internally; filesystem ownership and absolute output resolution still belong to their existing boundaries.
 
-`queue.Open` owns a private state directory and persistent Linux file lock. `Store.Save` validates copied candidates and retained request identities, writes and syncs a temporary snapshot, renames it, and syncs the directory before replacing its committed cache. `Snapshot` returns a deep copy. Lost artifact ownership or uncertain commits disable the store until close/reopen. This layer never calls the engine, reconciles job states, or chooses XDG paths; those are subsequent coordinator/lifecycle responsibilities.
+`queue.Open` owns a private state directory and persistent Linux file lock. `Store.Save` validates copied candidates and retained request identities, writes and syncs a temporary snapshot, renames it, and syncs the directory before replacing its committed cache. `Snapshot` returns a deep copy. Lost artifact ownership or uncertain commits disable the store until close/reopen. This layer never calls the engine, reconciles job states, or chooses XDG paths.
+
+`queue.NewCoordinator` durably prepares recovery and startup settings; `Run` then owns FIFO admission, attempt contexts, result commits, and shutdown. It calls a narrow runner (the existing downloader by default), exposes safe polling views, and samples coalesced progress without blocking the engine on disk or readers. Any persistence failure stops admission and joins active runners without further saves. The caller retains store ownership until Run returns. Individual job controls and live settings are the remaining E2 work.
 
 The chunk storage API provides exclusive `ClaimRange` writers with bounded offset writes and serialized `Commit`. Workers validate each completed HTTP response before committing; closing a writer releases an incomplete attempt without acknowledging it. `FinalizeContext` checks coverage and hashes with cancellation. File closure and publication require all writers to release their claims.
 
@@ -146,7 +148,7 @@ flowchart TD
     App --> Engine[Download engine]
 ```
 
-The [accepted v0.2 contract](daemon-and-queue.md) uses `internal/queue` for durable state and scheduling and plans `internal/daemon` for Linux local control/lifecycle. The queue model and store are implemented; scheduling and local control remain pending. Both front ends use `transfer.Download`; shared pure validation and budget handling belong to the transfer package. The engine never imports daemon or CLI code.
+The [accepted v0.2 contract](daemon-and-queue.md) uses `internal/queue` for durable state and scheduling and plans `internal/daemon` for Linux local control/lifecycle. The queue coordinator core is implemented; individual controls and local IPC remain pending. Both front ends use `transfer.Download`; shared pure validation and budget handling belong to the transfer package. The engine never imports daemon or CLI code.
 
 The queue coordinator serializes durable mutations and owns transfer contexts. Persist running intent before engine calls, and record outcomes after the engine joins workers and releases storage. Safe status records omit stored source URLs; progress is coalesced and never blocks the engine on a control client. Polling is sufficient for v0.2; TUI subscriptions remain later work.
 

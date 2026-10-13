@@ -53,6 +53,8 @@ Milestones A, B, and C plus Milestone D rate, JSON, text-output, security regres
 | [Queue commit failures](../internal/queue/store_faults_linux_test.go) | Partial/short writes, file sync, rename, directory sync, acknowledgment ordering, uncertain-commit refusal, retryable pre-rename failures, and safe temporary cleanup |
 | [Queue ownership](../internal/queue/store_lock_linux_test.go) | Concurrent opens, real competing processes, forced owner death, persistent lock inode, and unchanged saved running intent on load |
 | [Queue lifecycle](../internal/queue/lifecycle_test.go) | Every pause/resume/cancel state, recovery, FIFO-tail resume and overflow, publication precedence, and fixed safe error messages |
+| [Queue coordinator](../internal/queue/coordinator_linux_test.go) | FIFO dispatch, persisted recovery and startup settings, running intent before engine calls, safe owned views, draining slots, signal shutdown, and no automatic replay |
+| [Coordinator failures](../internal/queue/coordinator_faults_linux_test.go) | Failed preparation/admission/results/stop, uncertain commits, joined cancellation without stale saves, bounded mailboxes, disconnected callers, and progress during blocked persistence |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
