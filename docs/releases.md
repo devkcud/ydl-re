@@ -83,11 +83,34 @@ The [seven acceptance criteria](roadmap.md#v010-acceptance) have the following e
 | Wrong/incomplete lengths detected | The HTTP short-body and worker short/oversized/broken-body cases preserve incomplete state and refuse final publication. |
 | Verified atomic publication | [Storage publication](../internal/storage/file_test.go) and [range recovery](../internal/storage/range_checkpoint_test.go) cover no-overwrite links, deliberate replacement, conflicts, ready-state recovery, and coverage/byte checks under the qualified Unix policy. |
 | Simultaneous writers excluded | Storage ownership tests admit one file owner; [range writer tests](../internal/storage/range_writer_test.go) admit one claimant per chunk and verify exact concurrent output. |
-| Integration/race gates pass | Hosted Go 1.27.0 native/race and CGO-disabled runs passed. The new TLS fixture passed focused ordinary, CGO-disabled, and race runs plus local `make check` on Go 1.27.2. |
+| Integration/race gates pass | Hosted Go 1.27.0 native/race and CGO-disabled runs passed, including the new TLS fixture. Focused ordinary, CGO-disabled, race, and full-gate checks also passed locally on Go 1.27.2. |
 
 The HTTPS test was added in `a17767a`; it uses isolated per-process CA files without changing the host trust store or product transport settings. Native Linux/arm64/macOS, Windows storage, network filesystems, full-disk/power-loss behavior, and interrupted remote uploads remain outside these claims. No unresolved integrity failure was found on the reviewed paths. Lack of issue reports alone was not used as an acceptance result.
 
-The exact `## [0.1.0]` section in [CHANGELOG.md](../CHANGELOG.md#010) is prepared. Build and verify its archives from a clean committed revision with `make release VERSION=0.1.0`, then validate the stable draft and new TLS tests on hosted Go 1.27.0 before publication. Preserve the published prerelease and its tag/assets. Stable `0.1.0` has not been tagged or published.
+The exact `## [0.1.0]` section in [CHANGELOG.md](../CHANGELOG.md#010) is prepared, preserving the prerelease notes. Annotated tag `v0.1.0` points to `31330c6b07d33af148341bdfb346c0e139082fdb`. The same revision and tag were pushed atomically for hosted CI and draft creation; publication remains pending. Preserve the published prerelease and its tag/assets.
+
+## Stable archive verification
+
+`make release VERSION=0.1.0` passed the full gate and built local archives from clean revision `31330c6b07d33af148341bdfb346c0e139082fdb`. The files under `bin/releases/0.1.0/` use Go 1.27.2 with `nodwarf5`; matching core test results were cached, and packaging tests reran.
+
+| Local stable archive | SHA-256 |
+|---|---|
+| `yoinkdl_0.1.0_linux_amd64.tar.gz` | `98c2c1b738333f320738ff5524024a4889651a309a329a4ba0421a5acb3713e7` |
+| `yoinkdl_0.1.0_source.tar.gz` | `756afe74e9488e8bfb06e3a07093a45429d1683fe3bd4f4d303a78ba9f7c99d0` |
+
+Checksums, exact `git archive` source identity, packaged licenses/metadata, CGO-disabled Linux/amd64 settings, and an isolated `install -m 0755` passed. The installed `yoinkdl 0.1.0` passed version/help and 9,437,201-byte fixture downloads over HTTP and HTTPS with one and four connections, matching the earlier fixture hash. Untrusted TLS was rejected without an HTTP request, output/partial data, or manifest. The local HTTPS smoke fixture used a temporary OpenSSL certificate and per-process CA paths; no host trust settings changed.
+
+[Stable draft run 38338657349](https://github.com/devkcud/ydl-re/actions/runs/38338657349) passed the full gate, packaging, and uploads with Go 1.27.0 on Ubuntu 24.04.5. [CI run 38338657280](https://github.com/devkcud/ydl-re/actions/runs/38338657280) passed native/race tests, uncached CGO-disabled tests, and six-target compilation at the same revision. These runs include the new Linux HTTPS fixture.
+
+The [YoinkDL 0.1.0 draft](https://github.com/devkcud/ydl-re/releases/tag/untagged-cc8f1c4b4de60a1b50f4) has `isDraft: true`, `isPrerelease: false`, no publication time, and notes exactly matching its tagged changelog section. All three assets are uploaded; downloaded sizes and SHA-256 digests match GitHub metadata. The files are retained separately under `bin/releases/0.1.0-hosted/`.
+
+| Hosted stable asset | SHA-256 |
+|---|---|
+| `yoinkdl_0.1.0_linux_amd64.tar.gz` | `bdf0deb8d5a52d8d7c3a31785b658d029e52e75a0f3aa6b344e9cec464c9b6d8` |
+| `yoinkdl_0.1.0_source.tar.gz` | `756afe74e9488e8bfb06e3a07093a45429d1683fe3bd4f4d303a78ba9f7c99d0` |
+| `SHA256SUMS` | `48ed2cf34506be56d08e238605e889526deb16df728fd0d902e634b17ab7f68b` |
+
+The downloaded source archive matches the local source archive and exact Git snapshot. The hosted binary identifies Go 1.27.0, CGO disabled, Linux/amd64, and `GOAMD64=v1`; installed version/help, all four HTTP/HTTPS fixture downloads, exact hashes, successful JSON, partial-state cleanup, and untrusted TLS refusal passed again. The stable draft is verified but unpublished. Publish its existing assets and verify public access before claiming stable distribution is complete; preserve `0.1.0-rc.1` unchanged.
 
 ## Draft-release workflow
 

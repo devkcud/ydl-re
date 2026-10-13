@@ -148,6 +148,8 @@ The [CI/release workflows](releases.md) passed local actionlint v1.7.12 checks a
 
 The [first candidate report](releases.md#first-candidate-verification) records `0.1.0-rc.1` at `5fae374cd31429f5d8653c6c497dcf0d21865c7e`: the full local packaging gate, archive checksums and exact source identity, isolated installation, and sequential/parallel fixture downloads passed. The hosted candidate passed the same downloaded-archive and installed-binary checks with Go 1.27.0; its source archive matches the local archive exactly. After publication, [unauthenticated public access and installation](releases.md#publication-and-public-downloads) passed with all three assets byte-identical to the verified draft.
 
+The [stable review and archives](releases.md#stable-archive-verification) add real Linux HTTPS subprocess tests with isolated trust, then verify `0.1.0` at `31330c6b07d33af148341bdfb346c0e139082fdb`. Ordinary, race, and CGO-disabled HTTPS checks passed locally and in hosted Go 1.27.0 gates. Both local and downloaded stable binaries passed HTTP/HTTPS one-/four-connection fixture downloads and untrusted-certificate refusal. Stable publication and its public download checks remain pending.
+
 Before v0.1, record the revision, toolchain, native platform/filesystem, commands run, results, and any skipped cases. The evidence must cover direct download, safe resume, representation consistency, wrong-length detection, atomic publication, exclusive ownership, integration tests, and race checks.
 
 A test report should distinguish a build from a runtime test and a normal interruption from a crash-recovery exercise. Cross-platform builds alone are insufficient evidence for all filesystem guarantees.
