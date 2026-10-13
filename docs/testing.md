@@ -16,6 +16,7 @@ Milestones A, B, and C plus Milestone D rate, JSON, text-output, security regres
 | [Range manifests](../internal/storage/range_manifest_test.go) | Distinct version-1/version-2 formats, strict nested JSON, chunk bounds, identity requirements, 256-chunk metadata capacity |
 | [Range-state compatibility](../internal/transfer/range_state_test.go) | Ignored-range refusal, unchanged artifacts, offline ready recovery |
 | [Transfer](../internal/transfer/download_test.go) | Fixture hashes, known/unknown/encoded/empty bodies, bad statuses, truncation, cancellation, timeouts, redirects, publication failure |
+| [Request normalization](../internal/transfer/request_test.go) | Shared pure defaults, URL/filename identity, owned retry values, explicit-path preservation, and matching standalone validation order/redaction |
 | [HTTP policy](../internal/transfer/http_test.go) | Safe derived names, cross-origin credential stripping, downgrade and credential rejection |
 | [Representation identity](../internal/transfer/representation_test.go) | Immutable metadata snapshots, conditional requests, source/version/redirect consistency, exact range bounds, unknown totals, maximum offsets |
 | [Capability probe](../internal/transfer/probe_test.go) | Validated one-byte GETs, ignored ranges, safe full-stream fallback, ineligible validators/encoding/length, 416 re-probing, malformed bodies, subsequent version changes |

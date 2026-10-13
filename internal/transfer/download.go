@@ -43,44 +43,15 @@ type Result struct {
 }
 
 func Download(ctx context.Context, req Request, progress func(Snapshot)) (result Result, err error) {
-	u, err := parseURL(req.URL)
+	req, u, err := normalizeRequest(req)
 	if err != nil {
 		return result, err
 	}
 
-	if req.Timeout < 0 {
-		return result, errors.New("timeout must be positive")
-	}
-
-	if req.Timeout == 0 {
-		req.Timeout = DefaultTimeout
-	}
-
-	if req.Connections < 0 || req.Connections > MaxConnections {
-		return result, fmt.Errorf("connections must be between 1 and %d", MaxConnections)
-	}
-
-	if req.Connections == 0 {
-		req.Connections = DefaultConnections
-	}
-
-	retries := DefaultRetries
-	if req.Retries != nil {
-		retries = *req.Retries
-	}
-
-	if retries < 0 || retries > MaxRetries {
-		return result, fmt.Errorf("retries must be between 0 and %d", MaxRetries)
-	}
-
-	policy := retryPolicy{limit: retries}
+	policy := retryPolicy{limit: *req.Retries}
 	limit, err := newLimiter(req.Limit)
 	if err != nil {
 		return result, err
-	}
-
-	if req.Output == "" {
-		req.Output = filename(u)
 	}
 
 	if err := ctx.Err(); err != nil {
