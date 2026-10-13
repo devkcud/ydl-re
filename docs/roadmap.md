@@ -53,7 +53,7 @@ Completion evidence: parallel, resumed, and retried outputs match exact fixtures
 
 Qualify native behavior and CI for any additional platform before claiming support, preserving the reviewed security contracts and documented trust boundaries. Cross-build success alone is insufficient; Windows storage remains unsupported.
 
-Record successful hosted CI and draft-asset verification before publication. The [changelog](../CHANGELOG.md) remains Unreleased until the maintainer prepares version-specific notes. No tag or public release is created by local validation.
+Hosted CI is recorded; draft-asset verification is still required before publication. The [changelog](../CHANGELOG.md#010-rc1) contains the owner-selected `0.1.0-rc.1` notes and retains an Unreleased section for subsequent changes. No tag or public release is created by local validation.
 
 Completion evidence: all release acceptance criteria have recorded results, documented platform limits, and no unresolved integrity failure.
 

@@ -14,7 +14,7 @@ Both workflows pin [checkout v7.0.1](https://github.com/actions/checkout/release
 
 ## Build release assets locally
 
-Use native Linux/amd64 with Go, GNU Make, Git, Bash, GNU tar/coreutils, and gzip. Start from a clean committed tree. Stable versions use `X.Y.Z`; prereleases use `X.Y.Z-alpha.N`, `-beta.N`, or `-rc.N`, with N starting at 1. These are examples, not published versions:
+Use native Linux/amd64 with Go, GNU Make, Git, Bash, GNU tar/coreutils, and gzip. Start from a clean committed tree. Stable versions use `X.Y.Z`; prereleases use `X.Y.Z-alpha.N`, `-beta.N`, or `-rc.N`, with N starting at 1. The owner selected `0.1.0-rc.1` for the first candidate; its [changelog section](../CHANGELOG.md#010-rc1) is prepared, and publication is pending:
 
 ```sh
 make release VERSION=0.1.0-rc.1

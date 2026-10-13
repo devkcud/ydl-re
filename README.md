@@ -30,7 +30,7 @@ make check
 
 Other targets are `make vet`, `make race`, `make fmt`, `make fmt-check`, and `make help`. Set a build label with `make build VERSION=0.1.0-dev`.
 
-On native Linux/amd64, packaging tests also require Bash, Git, GNU tar/coreutils, and gzip. From a clean committed tree, `make release VERSION=0.1.0-rc.1` runs the gate and creates binary/source archives and checksums under `bin/releases/`. This example does not create a tag or publish a release. See [release and installation instructions](docs/releases.md).
+On native Linux/amd64, packaging tests also require Bash, Git, GNU tar/coreutils, and gzip. From a clean committed tree, `make release VERSION=0.1.0-rc.1` runs the gate and creates binary/source archives and checksums under `bin/releases/`. `0.1.0-rc.1` is the selected first candidate, with prepared [release notes](CHANGELOG.md#010-rc1); publication is pending. Packaging does not create a tag or publish a release. See [release and installation instructions](docs/releases.md).
 
 ## Download
 
