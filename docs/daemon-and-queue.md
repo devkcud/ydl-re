@@ -45,6 +45,8 @@ Require matching effective user IDs from kernel peer credentials on both client 
 
 A stale socket can be removed only while holding both locks, after verifying socket type, owner, and unchanged inode, and receiving connection-refused from a probe. A responding peer, timeout, permission error, symlink, or unrelated file is preserved and reported. Disable unconditional listener unlink-on-close; cleanup removes only the socket inode this daemon created. Overlong socket paths are errors, never truncated or redirected to a shared temporary path.
 
+E4's path/ownership foundation is implemented in `internal/daemon`. `Resolve` reads the XDG/home environment without IO and returns normalized paths plus `Fallback`; unsupported platforms return `ErrUnsupported`. Ownership creates missing state parents, reuses `queue.Open`, then acquires the separate private runtime lock. Socket probing/binding uses the opened directory through Linux `/proc/self/fd`; a socket `O_PATH` handle anchors its initial permission change. `/proc/self/fd` must be available; there is no unanchored fallback. Peer checks use kernel credentials on both connection ends. IPC framing, request dispatch, and daemon lifecycle wiring remain pending.
+
 ## Source URLs and immutable requests
 
 The owner selected persistence of full source URLs, including query tokens, in private local files. `queue.json` deliberately stores that information so queued/paused jobs survive restarts. It is permission-protected plaintext, not an encrypted credential vault. Transfer manifests remain unchanged and continue storing URL fingerprints only.
