@@ -8,7 +8,7 @@ YoinkDL is a local-first HTTP(S) download manager written in Go. The first imple
 
 Milestones A, B, and C are implemented and tested on Linux. `download`, `inspect`, `version`, safe resume, bounded retries, progress, cancellation, overwrite protection, and inactivity timeouts work. Saved progress is synced and checksummed before reuse.
 
-Milestone D includes aggregate rate caps, versioned JSON output, checked text/terminal output, a completed local [security review](docs/security.md), passing hosted CI, and a verified GitHub release draft for `0.1.0-rc.1`. Initial binary releases target Linux/amd64. Publication and native qualification beyond Linux/amd64 remain pending. This is a development build, not the complete v0.1 release. Read [STATUS.md](STATUS.md) for the handoff and next steps.
+Milestone D includes aggregate rate caps, versioned JSON output, checked text/terminal output, a completed local [security review](docs/security.md), passing hosted CI, and the published [0.1.0-rc.1 prerelease](https://github.com/devkcud/ydl-re/releases/tag/v0.1.0-rc.1) for Linux/amd64. Public downloads, checksums, and installation are verified. Native qualification beyond Linux/amd64 and a stable v0.1 release remain pending. Read [STATUS.md](STATUS.md) for the handoff and next steps.
 
 ## Build and test
 
@@ -30,7 +30,7 @@ make check
 
 Other targets are `make vet`, `make race`, `make fmt`, `make fmt-check`, and `make help`. Set a build label with `make build VERSION=0.1.0-dev`.
 
-On native Linux/amd64, packaging tests also require Bash, Git, GNU tar/coreutils, and gzip. From a clean committed tree, `make release VERSION=0.1.0-rc.1` runs the gate and creates binary/source archives and checksums under `bin/releases/`. `0.1.0-rc.1` is the selected first candidate, with prepared [release notes](CHANGELOG.md#010-rc1); publication is pending. Packaging does not create a tag or publish a release. See [release and installation instructions](docs/releases.md).
+On native Linux/amd64, packaging tests also require Bash, Git, GNU tar/coreutils, and gzip. From a clean committed tree, `make release VERSION=0.1.0-rc.1` runs the gate and creates binary/source archives and checksums under `bin/releases/`. Packaging does not create a tag or publish a release. To use the published candidate, follow the [binary installation instructions](docs/releases.md#install-a-published-binary) and its [release notes](CHANGELOG.md#010-rc1).
 
 ## Download
 

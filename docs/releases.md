@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Initial binary releases target Linux/amd64 through [GitHub Releases](https://github.com/devkcud/ydl-re/releases). Project sources use [MPL 2.0](../LICENSE); the binary also carries the Go runtime's [BSD notice](../LICENSES/Go-BSD-3-Clause.txt). Security reports use public [GitHub Issues](../SECURITY.md). No stable version has been published by this work.
+The [0.1.0-rc.1 prerelease](https://github.com/devkcud/ydl-re/releases/tag/v0.1.0-rc.1) provides Linux/amd64 binaries, matching sources, and checksums. Project sources use [MPL 2.0](../LICENSE); the binary also carries the Go runtime's [BSD notice](../LICENSES/Go-BSD-3-Clause.txt). Security reports use public [GitHub Issues](../SECURITY.md). No stable version has been published by this work.
 
 ## Continuous integration
 
@@ -14,7 +14,7 @@ Both workflows pin [checkout v7.0.1](https://github.com/actions/checkout/release
 
 ## Build release assets locally
 
-Use native Linux/amd64 with Go, GNU Make, Git, Bash, GNU tar/coreutils, and gzip. Start from a clean committed tree. Stable versions use `X.Y.Z`; prereleases use `X.Y.Z-alpha.N`, `-beta.N`, or `-rc.N`, with N starting at 1. The owner selected `0.1.0-rc.1` for the first candidate; its [changelog section](../CHANGELOG.md#010-rc1) is prepared, and publication is pending:
+Use native Linux/amd64 with Go, GNU Make, Git, Bash, GNU tar/coreutils, and gzip. Start from a clean committed tree. Stable versions use `X.Y.Z`; prereleases use `X.Y.Z-alpha.N`, `-beta.N`, or `-rc.N`, with N starting at 1. The first candidate is published as `0.1.0-rc.1`; this command demonstrates local packaging without modifying that release:
 
 ```sh
 make release VERSION=0.1.0-rc.1
@@ -49,7 +49,7 @@ The annotated tag `v0.1.0-rc.1` now points to `5fae374cd31429f5d8653c6c497dcf0d2
 
 After explicit owner authorization, an atomic push advanced main to `8a6d5b95de472f42a2f043e628fc5f8788470e89` and created `v0.1.0-rc.1` at the verified revision. [Draft run 38335647469](https://github.com/devkcud/ydl-re/actions/runs/38335647469) passed on October 13, 2026 UTC (October 12 in America/Sao_Paulo), using Ubuntu 24.04.5, runner image `20261004.327.1`, and Go 1.27.0 without Go experiments. The full gate, ordinary/race packaging tests, tag/changelog guard, packaging, and all uploads passed. [CI run 38335647491](https://github.com/devkcud/ydl-re/actions/runs/38335647491) also passed the native gate, uncached CGO-disabled tests, and six-target compilation for the pushed main revision.
 
-The [YoinkDL 0.1.0-rc.1 draft](https://github.com/devkcud/ydl-re/releases/tag/untagged-62d19276c4de45dd188a) is marked as a prerelease and remains unpublished. Its body exactly matches the tagged changelog section. All three assets report uploaded status; their downloaded sizes and SHA-256 values match GitHub metadata. Authenticated downloads are retained separately under `bin/releases/0.1.0-rc.1-hosted/`.
+The [YoinkDL 0.1.0-rc.1 release](https://github.com/devkcud/ydl-re/releases/tag/v0.1.0-rc.1) was first verified as a prerelease draft, then published after those checks. Its body exactly matches the tagged changelog section. All three assets report uploaded status; their downloaded sizes and SHA-256 values match GitHub metadata. Authenticated draft downloads are retained separately under `bin/releases/0.1.0-rc.1-hosted/`.
 
 | Hosted asset | SHA-256 |
 |---|---|
@@ -59,7 +59,15 @@ The [YoinkDL 0.1.0-rc.1 draft](https://github.com/devkcud/ydl-re/releases/tag/un
 
 `sha256sum -c SHA256SUMS` passed for the downloaded assets. The source archive matches the local candidate archive and its uncompressed contents match `git archive` at `5fae374cd31429f5d8653c6c497dcf0d21865c7e` exactly. Packaged licenses, changelog, security policy, and `SOURCE.txt` match that revision. Binary metadata confirms Go 1.27.0, CGO disabled, Linux/amd64, and `GOAMD64=v1`.
 
-An isolated `install -m 0755` passed version/help and the same 9,437,201-byte one-/four-connection fixture downloads described above, including exact hashes, completed/published JSON, and partial-state cleanup. No application or workflow change was needed. Public download availability remains unverified until publication; these checks used authenticated access to the draft. Interrupted upload/retry behavior and platforms beyond Linux/amd64 remain unqualified.
+An isolated `install -m 0755` passed version/help and the same 9,437,201-byte one-/four-connection fixture downloads described above, including exact hashes, completed/published JSON, and partial-state cleanup. No application or workflow change was needed. These initial checks used authenticated access to the draft; public checks follow below. Interrupted upload/retry behavior and platforms beyond Linux/amd64 remain unqualified.
+
+## Publication and public downloads
+
+The verified candidate was published at `2026-10-13T02:24:50Z` (October 12 in America/Sao_Paulo) with `gh release edit v0.1.0-rc.1 --repo devkcud/ydl-re --draft=false --prerelease --latest=false --verify-tag`. It remains a prerelease. The tag, release notes, asset IDs, sizes, and SHA-256 digests were preserved.
+
+Unauthenticated HTTPS requests returned success for the release page, the public release API, and all three canonical asset URLs. Public downloads under `bin/releases/0.1.0-rc.1-public/` match the verified hosted files byte for byte, including SHA256SUMS. The checksums above therefore apply to the published release as well.
+
+The publicly downloaded archives passed checksum verification, exact source-snapshot comparison, packaged license/metadata checks, and isolated installation. Version/help and one-/four-connection downloads reproduced the same 9,437,201-byte fixture hash, successful JSON results, and partial-state cleanup. The public API reports `draft: false`, `prerelease: true`, and the publication time above. This qualifies the published Linux/amd64 candidate; stable promotion still requires candidate review.
 
 ## Draft-release workflow
 
@@ -71,7 +79,7 @@ An interrupted upload can leave an incomplete draft. Inspect it before retrying;
 
 ## Install a published binary
 
-After a maintainer publishes a release, download its binary archive, matching source archive, and checksum file from the same release. Replace this example version with that published version:
+For Linux/amd64, save the published [binary archive](https://github.com/devkcud/ydl-re/releases/download/v0.1.0-rc.1/yoinkdl_0.1.0-rc.1_linux_amd64.tar.gz), [source archive](https://github.com/devkcud/ydl-re/releases/download/v0.1.0-rc.1/yoinkdl_0.1.0-rc.1_source.tar.gz), and [SHA256SUMS](https://github.com/devkcud/ydl-re/releases/download/v0.1.0-rc.1/SHA256SUMS) in an empty directory, then run:
 
 ```sh
 version=0.1.0-rc.1

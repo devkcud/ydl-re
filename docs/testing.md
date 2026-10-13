@@ -145,7 +145,7 @@ The [CI/release workflows](releases.md) passed local actionlint v1.7.12 checks a
 
 ## Release evidence
 
-The [first candidate report](releases.md#first-candidate-verification) records `0.1.0-rc.1` at `5fae374cd31429f5d8653c6c497dcf0d21865c7e`: the full local packaging gate, archive checksums and exact source identity, isolated installation, and sequential/parallel fixture downloads passed. The hosted draft passed the same downloaded-archive and installed-binary checks with Go 1.27.0; its source archive matches the local archive exactly. Publication and public download verification remain pending.
+The [first candidate report](releases.md#first-candidate-verification) records `0.1.0-rc.1` at `5fae374cd31429f5d8653c6c497dcf0d21865c7e`: the full local packaging gate, archive checksums and exact source identity, isolated installation, and sequential/parallel fixture downloads passed. The hosted candidate passed the same downloaded-archive and installed-binary checks with Go 1.27.0; its source archive matches the local archive exactly. After publication, [unauthenticated public access and installation](releases.md#publication-and-public-downloads) passed with all three assets byte-identical to the verified draft.
 
 Before v0.1, record the revision, toolchain, native platform/filesystem, commands run, results, and any skipped cases. The evidence must cover direct download, safe resume, representation consistency, wrong-length detection, atomic publication, exclusive ownership, integration tests, and race checks.
 
