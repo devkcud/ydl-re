@@ -34,6 +34,7 @@ These pages distinguish the implementation from the original design. The [decisi
 | [HTTP handling](http.md) | Probing, ranges, validators, fallback, redirects |
 | [Resume and storage](resume-and-storage.md) | Sidecars, manifest, checkpoints, locks, crash recovery |
 | [Concurrency and retries](concurrency.md) | Range planning, workers, backoff, rate limits, progress |
+| [Daemon and queue](daemon-and-queue.md) | Accepted v0.2 queue, concurrency setting, private IPC, persistence, and recovery contracts; not implemented |
 | [Security](security.md) | File safety, credentials, network trust, future daemon risks |
 | [Development](development.md) | Current checkout, proposed build workflow, coding conventions |
 | [Testing](testing.md) | Deterministic tests, fault cases, release evidence |

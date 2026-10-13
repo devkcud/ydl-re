@@ -74,7 +74,7 @@ The default worker preference is four, the retry default is three additional att
 |---|---|---|---|
 | S03 | Windows path normalization, reserved names, reparse points, and artifact collisions | Extends the settled Unix path policy to an unsupported storage platform | [Security](security.md) |
 | S06 | Windows publication and wider durability qualification | Extends the implemented Linux publication and manifest-reconciliation policy safely | [Lifecycle](transfer-lifecycle.md#7-finalize) |
-| S08 | Platform config discovery and XDG handling | The suggested Unix path does not define a portable loader | [Configuration](configuration.md) |
+| S08 | Cross-platform configuration-file discovery | Linux daemon state/runtime paths are settled separately; the optional config loader remains undefined | [Configuration](configuration.md) |
 
 Version 1 uses a half-open sequential prefix. Version 2 uses explicit whole-chunk intervals with independent digests and a fixed chunk size. Neither accepts the original illustrative inclusive range-array format. See the [storage contracts](resume-and-storage.md).
 
@@ -94,9 +94,16 @@ The owner selected MPL 2.0 with no named copyright-holder notice, GitHub Release
 |---|---|---|---|
 | R02 | Native qualification beyond Linux/amd64 | Hosted Linux/amd64 CI passed; cross-compilation does not prove foreign runtime behavior | [Platforms](platforms.md) |
 | R03 | Future daemon-wide bandwidth allocation | The v0.1 cap applies to one standalone transfer; separate processes do not share it | [Roadmap](roadmap.md) |
-| R04 | Local IPC, daemon permissions, persistence, and queue scheduling | Required before v0.2, not a blocker for standalone transfers | [Architecture](architecture.md#future-front-ends) |
 
 For R03, the aggregate cap for one transfer is implemented for v0.1. Daemon-wide budget semantics remain uncommitted.
+
+## v0.2 decisions made
+
+R04 is settled by [Daemon and persistent queue](daemon-and-queue.md), with implementation still pending. Use a foreground Linux daemon, private pathname Unix IPC with kernel peer-UID checks, distinct state/runtime locks, and an atomic bounded JSON queue. Keep standalone downloads independent and the existing transfer engine authoritative for byte validation/publication.
+
+The owner selected full URL/query-token storage in private local queue files and requested configurable concurrent downloads. The durable `parallel` setting defaults to `1`, accepts `1..8`, and can change live. It governs whole-job admission; per-download worker counts remain separate. Lowering it lets active jobs finish while withholding new work. Crash-interrupted jobs require explicit resume; no-overwrite queued transfers preserve ambiguous publication outcomes. Terminal records can be forgotten without deleting files.
+
+Linux XDG state/runtime selection is settled for the daemon; this does not implement a general configuration loader or qualify other native platforms. R03's shared bandwidth policy and the implementation plan are the next design slice.
 
 ## Already established direction
 

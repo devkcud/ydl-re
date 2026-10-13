@@ -48,11 +48,13 @@ Never execute downloaded files or scripts automatically. Automatic unpacking and
 
 Length and range checks establish transfer consistency under the protocol assumptions. They are not malware scanning, publisher authentication, or a user-supplied cryptographic checksum. User checksum verification is deferred; fixture hashes remain useful in tests.
 
-## Future daemon and hooks
+## Planned daemon and hooks
 
-Before any daemon accepts remote URLs from other clients, define authentication, permissions, request ownership, and handling of loopback/private destinations and redirects. A network-exposed API would let remote callers initiate requests from the daemon's network and needs explicit SSRF defenses.
+The [v0.2 daemon contract](daemon-and-queue.md) is accepted but not implemented. It uses a private Linux pathname socket, owner-only directories/files, peer-UID checks in both directions, and separate locks for state and endpoint ownership. There is no TCP listener, public HTTP API, remote control, or automatic startup. Same-user processes are trusted to request the same network destinations and output paths as the standalone CLI, including private/loopback URLs; this is not a multi-user service. Network exposure would require a separate authentication and SSRF design.
 
-No fixed listening port or public HTTP API is committed. A local IPC transport still needs appropriate access controls.
+The owner explicitly selected full source-URL persistence, including query tokens, in private queue files. This is a new daemon-only source store, not a change to the fingerprint-only transfer manifests. It is permission-protected plaintext, not encryption. Clear URLs on completion/cancellation, omit them from all public views/diagnostics, and let explicit forget remove idle queue records without deleting data files. Use safe response types that cannot accidentally serialize the stored request.
+
+Queue corruption and uncertain storage commits stop dispatch rather than resetting state. After a process crash, interrupted work requires explicit resume; output presence never proves completion. Initial queue transfers do not permit overwrite. Existing transfer identity, locking, TLS, redirect, private-partial, and publication rules remain authoritative.
 
 Optional v0.3 hooks require explicit enablement and a separate execution/security design. They must not make arbitrary downloaded content executable by default. Scripting runtimes and sandboxed workflows remain unscheduled.
 

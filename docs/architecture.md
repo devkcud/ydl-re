@@ -141,6 +141,8 @@ flowchart TD
     App --> Engine[Download engine]
 ```
 
-The daemon should reuse the same application service. The standalone command must remain useful without it. A TUI consumes snapshots and events rather than reaching into workers.
+The [accepted v0.2 contract](daemon-and-queue.md) adds `internal/queue` for durable state and scheduling and `internal/daemon` for Linux local control/lifecycle. They remain unimplemented. Both front ends use `transfer.Download`; shared pure validation and budget handling belong to the transfer package. The engine never imports daemon or CLI code.
 
-Unix domain sockets are a suggested local transport on Linux/macOS; Windows needs an appropriate equivalent. No fixed port, IPC schema, REST endpoints, or authentication protocol is committed. Those decisions belong to v0.2 design work.
+The queue coordinator serializes durable mutations and owns transfer contexts. Persist running intent before engine calls, and record outcomes after the engine joins workers and releases storage. Safe status records omit stored source URLs; progress is coalesced and never blocks the engine on a control client. Polling is sufficient for v0.2; TUI subscriptions remain later work.
+
+Initial control uses a private Linux Unix stream socket with peer-UID checks and separate state/runtime locks. `daemon start` runs in the foreground without automatic startup or service installation. The standalone commands remain independent. Other native daemon transports require their own qualification.

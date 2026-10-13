@@ -60,7 +60,7 @@ The proposed organization is:
 | `logs/` | Persistent logs | Reserved for later |
 | `profiles/` | Named configuration profiles | Reserved for later |
 
-Do not create or depend on the reserved directories until a feature needs them. The design's Unix-style path is not a settled Windows/macOS discovery policy; platform paths and XDG handling remain [open](decisions.md#storage-and-recovery-decisions).
+Do not create or depend on the reserved directories until a feature needs them. This original layout remains illustrative. The [v0.2 daemon contract](daemon-and-queue.md#paths-and-access) instead selects XDG state and runtime roots for Linux; cross-platform configuration-file discovery remains open.
 
 Transfer sidecars are stored beside the destination, outside this configuration root:
 
@@ -71,6 +71,14 @@ archive.zip.yoinkdl.lock
 ```
 
 That exception makes interrupted CLI transfers discoverable without a central service. Deleting the configuration folder must not be described as deleting every transfer artifact.
+
+## Planned daemon settings
+
+These settings are accepted for v0.2 but are not implemented. No TOML loader is required. The daemon alone creates its private state/runtime roots; standalone commands retain the current no-config-directory behavior.
+
+Queue `parallel` is durable, defaults to `1`, and accepts `1..8`. One means sequential downloads; larger values admit concurrent transfers. It is independent of per-transfer `--connections`. An optional `daemon start --parallel N` overrides the saved setting; omission keeps it. `daemon set --parallel N` changes it live and acknowledges only after persistence. Reducing the limit does not stop current downloads; it gates new admissions until the active count fits.
+
+Each queued request stores resolved connection/retry/timeout/per-transfer-limit values and an absolute destination. The daemon never resolves a client's relative destination against its own working directory. Full source URLs, including query tokens, are retained in permission-protected queue files by the owner's selected policy; display responses omit them. See [queue requests and persistence](daemon-and-queue.md#source-urls-and-immutable-requests).
 
 ## Units
 
