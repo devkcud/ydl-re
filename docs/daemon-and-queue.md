@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-This is the accepted v0.2 contract. E1's shared request normalization, strict queue model/codec, and private Linux atomic store are implemented. Scheduling, restart transitions, IPC, and daemon commands remain pending. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
+This is the accepted v0.2 contract. E1 is complete, and E2's pure lifecycle rules are implemented. Scheduling and durable application of those rules, IPC, and daemon commands remain pending. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
 
 ## Scope and ownership
 
@@ -110,6 +110,8 @@ The implemented `queue.Open` accepts an explicit absolute clean directory with a
 A scheduling decision first persists `running` with an unknown new-attempt result, then calls the engine. Pause/cancel acknowledgment confirms durable intent, not that workers have already exited. Only the final engine result resolves a live attempt: success plus `Published` means completed even if pause/cancel arrived too late; an error with published output means failed with `published: true`; cancellation without publication settles the requested paused/canceled state. No result deletes verified output.
 
 On daemon restart, queued jobs remain eligible, running becomes interrupted, pausing becomes paused, and canceling becomes canceled. Recovered active states get `published: null`; persist these changes before dispatch and clear canceled URLs. Do not automatically replay interrupted attempts. A crash can occur after file publication but before the queue commit, so file presence/length never proves completion. Explicit retry still uses the engine's checkpoint checks and no-overwrite policy; a pre-existing final file without recoverable metadata is preserved and refused.
+
+`internal/queue/lifecycle.go` implements the pure recovery, pause/resume/cancel, and final-result rules. Resume alone consumes a fresh FIFO order when it actually changes state. Engine failures map to fixed messages for cancellation, timeout, file access, missing publication, published-with-error, or generic failure; arbitrary error text never reaches saved diagnostics. Public error projection also replaces unrecognized stored messages. These helpers do not yet run transfers or commit mutations.
 
 ## Local control protocol
 
