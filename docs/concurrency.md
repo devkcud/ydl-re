@@ -72,7 +72,9 @@ The v0.1 cap does not coordinate separate CLI processes. The following v0.2 cont
 
 ## Daemon-wide rate cap
 
-This is accepted v0.2 design, not implemented behavior. `daemon start --limit R` creates one shared body budget for that process; omission means unlimited. Use the existing positive-integer rate grammar and bounds. The cap is fixed until restart and is not a persistent queue setting. `daemon set --parallel N` changes admissions without replacing or refilling the budget.
+The engine implements optional shared budgets; daemon startup and CLI wiring remain pending. `transfer.NewBudget(rate)` creates a concurrency-safe handle at a fixed byte rate; zero returns a nil unlimited handle, and negative rates are refused. Pass `budget.Download` as the queue runner and retain the same pointer for the owner's entire lifetime. Do not copy an initialized budget. Nil and zero-value handles impose no shared cap, while each request's private cap still applies. The standalone `transfer.Download` uses that same path with no shared cap.
+
+The planned `daemon start --limit R` creates one such budget for that process; omission means unlimited. Use the existing positive-integer rate grammar and bounds. The cap is fixed until restart and is not a persistent queue setting. `daemon set --parallel N` changes admissions without replacing or refilling the budget.
 
 Each job retains its own optional `add --limit` setting. A read must satisfy both its transfer budget and the daemon budget; setting either to unlimited does not bypass the other. Reuse the transfer package's limiter/body integration through an optional shared budget handle; do not import daemon code into the engine or add a second HTTP implementation.
 

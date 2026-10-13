@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type limiter struct {
+type Budget struct {
 	mu     sync.Mutex
 	rate   float64
 	burst  int
@@ -49,7 +49,7 @@ func ParseLimit(value string) (int64, error) {
 	return n * unit, nil
 }
 
-func newLimiter(rate int64) (*limiter, error) {
+func NewBudget(rate int64) (*Budget, error) {
 	if rate < 0 {
 		return nil, errors.New("limit must not be negative")
 	}
@@ -58,25 +58,40 @@ func newLimiter(rate int64) (*limiter, error) {
 	}
 
 	burst := min(int64(bufferSize), (rate-1)/10+1)
-	return &limiter{rate: float64(rate), burst: int(burst), tokens: float64(burst), last: time.Now()}, nil
+	return &Budget{rate: float64(rate), burst: int(burst), tokens: float64(burst), last: time.Now()}, nil
 }
 
-func (l *limiter) wait(ctx context.Context, n int) error {
-	if l == nil || n == 0 {
-		return context.Cause(ctx)
+func (b *Budget) reserve(n int) (time.Time, error) {
+	if b == nil || b.rate == 0 || n == 0 {
+		return time.Time{}, nil
 	}
-	if n < 0 || n > l.burst {
-		return errors.New("body read exceeds the rate budget's burst")
+	if n < 0 || n > b.burst {
+		return time.Time{}, errors.New("body read exceeds the rate budget's burst")
 	}
 
-	l.mu.Lock()
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	now := time.Now()
-	l.tokens = min(float64(l.burst), l.tokens+now.Sub(l.last).Seconds()*l.rate) - float64(n)
-	l.last = now
-	delay := time.Duration(math.Ceil(max(0, -l.tokens) / l.rate * float64(time.Second)))
-	l.mu.Unlock()
+	b.tokens = min(float64(b.burst), b.tokens+now.Sub(b.last).Seconds()*b.rate) - float64(n)
+	b.last = now
+	delay := time.Duration(math.Ceil(max(0, -b.tokens) / b.rate * float64(time.Second)))
+	return now.Add(delay), nil
+}
 
-	if cause := context.Cause(ctx); cause != nil || delay == 0 {
+func waitBudgets(ctx context.Context, n int, budgets ...*Budget) error {
+	var ready time.Time
+	for _, b := range budgets {
+		at, err := b.reserve(n)
+		if err != nil {
+			return err
+		}
+		if at.After(ready) {
+			ready = at
+		}
+	}
+
+	delay := time.Until(ready)
+	if cause := context.Cause(ctx); cause != nil || delay <= 0 {
 		return cause
 	}
 

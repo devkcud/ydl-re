@@ -44,7 +44,7 @@ func TestLimiterAggregateBudget(t *testing.T) {
 	for _, workers := range []int{1, 4, MaxConnections} {
 		t.Run(strconv.Itoa(workers), func(t *testing.T) {
 			synctest.Test(t, func(t *testing.T) {
-				l, err := newLimiter(1000)
+				l, err := NewBudget(1000)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -55,7 +55,7 @@ func TestLimiterAggregateBudget(t *testing.T) {
 				for range workers {
 					group.Go(func() {
 						for range 5 {
-							if err := l.wait(context.Background(), 100); err != nil {
+							if err := waitBudgets(context.Background(), 100, l); err != nil {
 								t.Error(err)
 								return
 							}
@@ -81,14 +81,14 @@ func TestLimiterAggregateBudget(t *testing.T) {
 
 func TestLimiterIdleCreditIsBounded(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		l, err := newLimiter(1000)
+		l, err := NewBudget(1000)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for range 2 {
 			start := time.Now()
 			for range 2 {
-				if err := l.wait(context.Background(), 100); err != nil {
+				if err := waitBudgets(context.Background(), 100, l); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -102,17 +102,17 @@ func TestLimiterIdleCreditIsBounded(t *testing.T) {
 
 func TestLimiterCanceledReadsKeepTheirCharge(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		l, err := newLimiter(100)
+		l, err := NewBudget(100)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := l.wait(context.Background(), 10); err != nil {
+		if err := waitBudgets(context.Background(), 10, l); err != nil {
 			t.Fatal(err)
 		}
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		done := make(chan error, 1)
-		go func() { done <- l.wait(ctx, 10) }()
+		go func() { done <- waitBudgets(ctx, 10, l) }()
 		synctest.Wait()
 		select {
 		case err := <-done:
@@ -124,7 +124,7 @@ func TestLimiterCanceledReadsKeepTheirCharge(t *testing.T) {
 			t.Fatalf("cancellation = %v", err)
 		}
 		start := time.Now()
-		if err := l.wait(context.Background(), 10); err != nil {
+		if err := waitBudgets(context.Background(), 10, l); err != nil {
 			t.Fatal(err)
 		}
 		if elapsed := time.Since(start); elapsed < 200*time.Millisecond || elapsed > 200*time.Millisecond+time.Nanosecond {
@@ -136,12 +136,12 @@ func TestLimiterCanceledReadsKeepTheirCharge(t *testing.T) {
 func TestLimiterRateBounds(t *testing.T) {
 	for _, rate := range []int64{0, 1, 11, math.MaxInt64} {
 		synctest.Test(t, func(t *testing.T) {
-			l, err := newLimiter(rate)
+			l, err := NewBudget(rate)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if rate == 0 {
-				if l != nil || l.wait(context.Background(), bufferSize) != nil {
+				if l != nil || waitBudgets(context.Background(), bufferSize, l) != nil {
 					t.Fatal("zero did not disable the budget")
 				}
 				return
@@ -152,7 +152,7 @@ func TestLimiterRateBounds(t *testing.T) {
 			}
 			start := time.Now()
 			for range 2 {
-				if err := l.wait(context.Background(), l.burst); err != nil {
+				if err := waitBudgets(context.Background(), l.burst, l); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -162,7 +162,7 @@ func TestLimiterRateBounds(t *testing.T) {
 			}
 		})
 	}
-	if _, err := newLimiter(-1); err == nil {
+	if _, err := NewBudget(-1); err == nil {
 		t.Fatal("negative rate accepted")
 	}
 }

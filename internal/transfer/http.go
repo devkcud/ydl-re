@@ -15,7 +15,7 @@ var errRedirectLimit = errors.New("redirect limit exceeded")
 var errRedirectTarget = errors.New("redirect target must be HTTP(S) without URL credentials")
 var errDowngrade = errors.New("refusing an HTTPS to HTTP redirect")
 
-func newClient(timeout time.Duration, limit *limiter) *http.Client {
+func newClient(timeout time.Duration, budgets ...*Budget) *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.DisableCompression = true
 	transport.DisableKeepAlives = true
@@ -24,7 +24,7 @@ func newClient(timeout time.Duration, limit *limiter) *http.Client {
 	transport.ResponseHeaderTimeout = timeout
 	transport.MaxResponseHeaderBytes = 1 << 20
 	return &http.Client{
-		Transport:     &bodyTransport{next: transport, timeout: timeout, limit: limit},
+		Transport:     &bodyTransport{next: transport, timeout: timeout, budgets: budgets},
 		CheckRedirect: checkRedirect,
 	}
 }

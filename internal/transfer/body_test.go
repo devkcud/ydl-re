@@ -137,13 +137,13 @@ func TestBodyBudgetIncludesRedirectReads(t *testing.T) {
 	})
 }
 
-func rateClient(t *testing.T, rate int64, timeout time.Duration, next probeTransport) *http.Client {
+func rateClient(t *testing.T, rate int64, timeout time.Duration, next probeTransport, shared ...*Budget) *http.Client {
 	t.Helper()
-	limit, err := newLimiter(rate)
+	limit, err := NewBudget(rate)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &http.Client{Transport: &bodyTransport{next: next, timeout: timeout, limit: limit}, CheckRedirect: checkRedirect}
+	return &http.Client{Transport: &bodyTransport{next: next, timeout: timeout, budgets: append([]*Budget{limit}, shared...)}, CheckRedirect: checkRedirect}
 }
 
 type readFunc func([]byte) (int, error)

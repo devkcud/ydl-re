@@ -11,7 +11,7 @@ import (
 type bodyTransport struct {
 	next    http.RoundTripper
 	timeout time.Duration
-	limit   *limiter
+	budgets []*Budget
 }
 
 func (t *bodyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -22,7 +22,7 @@ func (t *bodyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return resp, err
 	}
 
-	resp.Body = &responseBody{ReadCloser: resp.Body, ctx: ctx, cancel: cancel, timeout: t.timeout, limit: t.limit}
+	resp.Body = &responseBody{ReadCloser: resp.Body, ctx: ctx, cancel: cancel, timeout: t.timeout, budgets: t.budgets}
 	return resp, nil
 }
 
@@ -37,15 +37,17 @@ type responseBody struct {
 	ctx     context.Context
 	cancel  context.CancelCauseFunc
 	timeout time.Duration
-	limit   *limiter
+	budgets []*Budget
 }
 
 func (b *responseBody) Read(data []byte) (int, error) {
 	if cause := context.Cause(b.ctx); cause != nil {
 		return 0, cause
 	}
-	if b.limit != nil {
-		data = data[:min(len(data), b.limit.burst)]
+	for _, budget := range b.budgets {
+		if budget != nil && budget.burst > 0 {
+			data = data[:min(len(data), budget.burst)]
+		}
 	}
 
 	timer := time.AfterFunc(b.timeout, func() {
@@ -54,7 +56,7 @@ func (b *responseBody) Read(data []byte) (int, error) {
 	n, err := b.ReadCloser.Read(data)
 	timer.Stop()
 
-	if waitErr := b.limit.wait(b.ctx, n); waitErr != nil {
+	if waitErr := waitBudgets(b.ctx, n, b.budgets...); waitErr != nil {
 		return 0, waitErr
 	}
 

@@ -42,14 +42,18 @@ type Result struct {
 	Published bool
 }
 
-func Download(ctx context.Context, req Request, progress func(Snapshot)) (result Result, err error) {
+func Download(ctx context.Context, req Request, progress func(Snapshot)) (Result, error) {
+	return (*Budget)(nil).Download(ctx, req, progress)
+}
+
+func (b *Budget) Download(ctx context.Context, req Request, progress func(Snapshot)) (result Result, err error) {
 	req, u, err := normalizeRequest(req)
 	if err != nil {
 		return result, err
 	}
 
 	policy := retryPolicy{limit: *req.Retries}
-	limit, err := newLimiter(req.Limit)
+	limit, err := NewBudget(req.Limit)
 	if err != nil {
 		return result, err
 	}
@@ -98,7 +102,7 @@ func Download(ctx context.Context, req Request, progress func(Snapshot)) (result
 
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
-	client := newClient(req.Timeout, limit)
+	client := newClient(req.Timeout, limit, b)
 	defer client.CloseIdleConnections()
 
 	if saved && m.Version == storage.RangeManifestVersion {
