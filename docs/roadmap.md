@@ -73,7 +73,7 @@ The [testing matrix](testing.md#required-scenarios) expands these into concrete 
 
 ## v0.2 — Daemon and persistent queue
 
-**Status:** E1 is in progress. Shared pure request normalization is implemented; queue storage and daemon commands remain unimplemented. [Daemon and persistent queue](daemon-and-queue.md) owns R04: foreground Linux daemon, private local IPC, durable queue/source records, conservative recovery, and configurable whole-transfer concurrency. [Daemon-wide rate caps](concurrency.md#daemon-wide-rate-cap) owns R03. Neither changes the released standalone CLI or its transfer manifests.
+**Status:** E1 is in progress. Shared request normalization and the strict queue model/codec are implemented; private persistence and daemon commands remain unimplemented. [Daemon and persistent queue](daemon-and-queue.md) owns R04: foreground Linux daemon, private local IPC, durable queue/source records, conservative recovery, and configurable whole-transfer concurrency. [Daemon-wide rate caps](concurrency.md#daemon-wide-rate-cap) owns R03. Neither changes the released standalone CLI or its transfer manifests.
 
 Queue concurrency defaults to one transfer and persists across restarts. `daemon set --parallel N` selects `1..8` live; reductions wait for active work to finish before admitting more. The owner's full-URL persistence choice uses private queue files and redacted public views. Foreground startup is explicit, and no network service, database, TOML loader, TUI, or automatic daemon launch is required.
 

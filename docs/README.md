@@ -12,7 +12,7 @@ Use the root [README](../README.md) for an introduction, [STATUS.md](../STATUS.m
 
 The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, aggregate rate caps, JSON events, resume, and local inspection. Milestones A through D are complete for the initial Linux/amd64 scope, with a local [security review](security.md), [platform evidence](platforms.md), and verified [stable public downloads and installation](releases.md#stable-publication). MPL 2.0, GitHub Releases, and public issue reporting remain the policies. Other native platforms and v0.2 daemon/queue work remain future work.
 
-These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions. The [v0.2 daemon/queue contract](daemon-and-queue.md) and [ordered plan](roadmap.md#v02-implementation-order) are accepted, including configurable queue concurrency. E1 has begun with shared pure request normalization; queue storage and daemon commands remain unimplemented.
+These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions. The [v0.2 daemon/queue contract](daemon-and-queue.md) and [ordered plan](roadmap.md#v02-implementation-order) are accepted, including configurable queue concurrency. E1 now includes shared request normalization and the strict queue model/codec; queue storage and daemon commands remain unimplemented.
 
 ## Start here
 

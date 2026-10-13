@@ -48,6 +48,7 @@ Milestones A, B, and C plus Milestone D rate, JSON, text-output, security regres
 | [HTTP security](../internal/transfer/security_test.go) and [transport process](../cmd/yoinkdl/security_test.go) | Malformed trailer redaction, rejected full-response range headers, unchanged zero-prefix artifacts, and no unsolicited server bytes in transport logs |
 | [Storage security](../internal/storage/security_test.go) | Refused hard-linked/shared-permission mutable partials, late-created aliases, no writes to other names, and exact stored-byte verification before sequential publication |
 | [Release packaging](../tools/release_test.go) | Real binary/source archives, checksum/source identity, extracted-binary downloads, byte reproducibility, dirty-tree/version/output refusal, and build/smoke-failure cleanup on native Linux/amd64 |
+| [Queue model](../internal/queue/model_test.go) and [codec](../internal/queue/codec_test.go) | E1 pure normalization, immutable hash encoding, state/source combinations, private errors, empty/full snapshots, limits, duplicate/null/unknown fields, and lossless Unicode |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 

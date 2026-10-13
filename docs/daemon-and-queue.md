@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-This is the accepted v0.2 design, not implemented behavior. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
+This is the accepted v0.2 contract. E1's shared request normalization and queue model/codec are implemented; private persistence and the rest of the daemon remain pending. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
 
 ## Scope and ownership
 
@@ -76,6 +76,8 @@ All fields are required. Each retained job has these fields:
 | `error` | Bounded sanitized failure/interruption description, otherwise null |
 
 The request hash uses compact Go JSON encoding of the request fields in the table's order before terminal URL removal. It is an identity check, not authentication or encryption. Validate it against the request while the URL is present; retain it after terminal URL removal. Only completed/canceled records may have a null URL. Completed requires `published: true`; nonterminal records keep their immutable request for retry.
+
+E1 implements this model in `internal/queue`: `NewSnapshot` defaults to sequential admission, `NewJob` uses `transfer.Normalize` and requires an already absolute clean output, and `Request.Transfer` creates owned engine options without overwrite. The codec requires terminal URLs to be null, active/interrupted outcomes to be unknown, and failed/completed outcomes to be known. Failed/interrupted jobs require nonempty errors; other states require null errors. Queued/paused/canceled records may retain a previous known or unknown publication result. Returned validation errors never echo source payloads. Strict decoding also rejects lone UTF-16 surrogate escapes instead of accepting lossy replacement characters.
 
 Use at most 256 retained jobs, 16 KiB per URL, 4096 bytes per output path, 4096 bytes per error, and 8 MiB per encoded snapshot. All bounds apply independently, including JSON escaping. Require valid UTF-8, absolute clean output paths without NUL, unique IDs/orders/output paths, supported versions, exact known fields, and correctly typed non-null values except the documented nullable fields. Reject duplicate keys, trailing JSON, invalid states, overflow, and incompatible combinations. Never reset a corrupt or unsupported queue to empty.
 
