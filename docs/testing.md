@@ -29,8 +29,9 @@ Milestones A, B, and C plus Milestone D rate, JSON, text-output, security regres
 | [Rate budget](../internal/transfer/limit_test.go) | Strict rate grammar/bounds, shared 1/4/32-reader allowance, bounded idle credit, cancellation without refunds, minimum/maximum rates |
 | [Shared budgets](../internal/transfer/budget_test.go) | Independent clients/workers, private/shared/both caps, minimum/maximum rates, smallest read burst, latest reservation, canceled/error bytes charged to both budgets, and bounded credit across new clients and idle time |
 | [Shared-budget HTTP](../internal/transfer/budget_http_test.go) | Concurrent downloads through the reusable runner, combined probe/body allowance, exact publication, private/shared cap composition, and nil/zero-value handles |
+| [Shared-budget recovery](../internal/transfer/budget_recovery_test.go) | Offline version-1/version-2 ready recovery neither consumes nor resets shared credit |
 | [Body pacing](../internal/transfer/body_test.go) | Bounded reads, throttle/timeout separation, later attempts after idle timeout, cancellation/cleanup, redirect-body accounting |
-| [Rate integration](../internal/transfer/limit_integration_test.go) | Fresh/saved probe and failed-chunk traffic, saved-byte exclusion, progress rollback, fallback budget continuity, canceled-worker joining, sequential/ranged resume and unknown-length streams |
+| [Rate integration](../internal/transfer/limit_integration_test.go) | Private and shared caps over fresh/saved probe and failed-chunk traffic, saved-byte exclusion, progress rollback, fallback continuity, canceled-worker joining, and real HTTP sequential/ranged resume, redirects, retries, and unknown-length streams |
 | [CLI](../internal/cli/cli_test.go) | Argument ordering, invalid options, help/version, progress, quiet output, overwrite, error codes |
 | [Text rendering](../internal/cli/render_test.go) and [Linux terminals](../internal/cli/terminal_linux_test.go) | Escaped paths/errors/build labels, unchanged actual filenames, redirected frames, nonterminal devices, final worker counts, real pseudo-terminal resizing and TERM=dumb |
 | [Text output](../internal/cli/text_test.go) | Failed/short help, version and inspection writes; read-only inspect; progress failure before/after publication; checkpoint ownership release; blocked reply/diagnostic cancellation; quiet mode with unavailable stderr; coalescing after backpressure |
@@ -61,6 +62,7 @@ Milestones A, B, and C plus Milestone D rate, JSON, text-output, security regres
 | [Queue capacity](../internal/queue/control_limits_linux_test.go) | Full retained queues, forget freeing capacity, admission-order exhaustion, and encoded-size refusal before IO without stopping the queue |
 | [Control commits](../internal/queue/control_commits_linux_test.go) | Admission only after a setting commit, disconnected add persistence/deduplication, and caller request isolation |
 | [Queue HTTP integration](../internal/queue/coordinator_http_linux_test.go) | Default engine runner, real pause/checkpoint/conditional resume, exact published bytes, terminal URL removal, and existing-output refusal |
+| [Queue shared-budget integration](../internal/queue/budget_http_linux_test.go) | One retained budget across real pause/resume, failure/retry, cancellation, completion, subsequent jobs, and live concurrency increases/reductions; exact output and retained partial data |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
@@ -75,6 +77,8 @@ The security review first reproduced option-value and HTTP-parser disclosure, ra
 Real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Fresh/resumed parallel transfers, bounded retries, aggregate body-rate caps, concurrent offset writers, and checkpoint serialization have executable tests. Retry unit/integration fixtures substitute controlled waits where timing itself is not under test; CLI process checks exercise real backoff. Process termination is not a real power-loss test; publication-boundary recovery also uses controlled ready/link/rename states.
 
 The October 13 E1/E2 queue tests pass on Linux/amd64 with ordinary, race, and CGO-disabled execution. `make check` passes, and the CI compilation recipe builds the CLI and all test programs for Linux/macOS/Windows on amd64/arm64 with CGO disabled. Queue storage is Linux-only; foreign binaries were not run. Controlled runners prove the coordinator's lifecycle, bounds, durability, and failure ordering; the real HTTP test exercises the existing downloader through pause/resume and no-overwrite refusal. The CGO-disabled run required an environment allowing localhost sockets after the sandbox refused its listener. These checks do not establish daemon IPC/process lifecycle or real power-loss behavior.
+
+E3 passed focused controlled-clock and local HTTP checks, `make check`, and `CGO_ENABLED=0 go test ./internal/transfer ./internal/queue -count=1` on Linux/amd64. Four independent clients with four readers each satisfy private/shared allowances at minimum, rounded, and maximum rates. Canceled/error bytes retain both charges; combined waits use the later reservation. Real downloads cover probes, redirects, fallback, retries, and saved network bytes; ready recovery consumes no credit. A real queue retains the same cap across job lifecycle and concurrency changes. No daemon process or new foreign-target runtime qualification is implied.
 
 ## Test layers
 
@@ -162,7 +166,7 @@ The [CI/release workflows](releases.md) passed local actionlint v1.7.12 checks a
 
 ## Planned v0.2 validation
 
-These are required checks for the [accepted daemon design](daemon-and-queue.md). E1 storage and E2 coordinator/control evidence is recorded above, including safe internal views. IPC/CLI privacy, shared budgets, and full daemon process checks remain pending. The [delivery order](roadmap.md#v02-implementation-order) determines when each group becomes executable.
+These are required checks for the [accepted daemon design](daemon-and-queue.md). E1 storage, E2 coordinator/controls, and E3 shared-budget tests are recorded above, including safe internal views. IPC/CLI privacy and full daemon process checks remain pending. The [delivery order](roadmap.md#v02-implementation-order) determines when each group becomes executable.
 
 | Group | Required evidence |
 |---|---|

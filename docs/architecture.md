@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A through D and the first v0.2 storage slice implement the packages below. The diagrams and proposed layout describe the larger target architecture.
+Milestones A through D and v0.2 E1 through E3 implement the packages below. The diagrams and proposed layout describe the larger target architecture.
 
 ## Current packages
 
@@ -10,7 +10,7 @@ Milestones A through D and the first v0.2 storage slice implement the packages b
 |---|---|
 | `cmd/yoinkdl` | Entry point, build version, SIGINT/SIGTERM cancellation |
 | `internal/cli` | Standard-library parsing, inspection, stdout/stderr, text progress, versioned JSON records and output backpressure |
-| `internal/transfer` | Sequential/ranged HTTP, probing, immutable identity, response validation, retries, timeouts, aggregate rate budgets, byte checks, snapshots |
+| `internal/transfer` | Sequential/ranged HTTP, probing, immutable identity, response validation, retries, timeouts, composed transfer/shared rate budgets, byte checks, snapshots |
 | `internal/ranges` | Bounded fixed-chunk planning, validated coverage, missing work, HTTP endpoint conversion |
 | `internal/storage` | Stable OS locks, prefix/chunk manifests and checksums, durable checkpoints, preservation, publication recovery |
 | `internal/queue` | Private atomic state, FIFO admission, durable controls, live concurrency, recovery, safe polling, and draining shutdown |

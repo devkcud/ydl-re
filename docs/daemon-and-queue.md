@@ -2,11 +2,11 @@
 
 [Documentation index](README.md)
 
-This is the accepted v0.2 contract. E1 storage and E2's coordinator are implemented: recovery, FIFO dispatch, durable job controls, live concurrency changes, safe polling, and draining shutdown. Shared budgets, IPC, and daemon CLI commands remain pending. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
+This is the accepted v0.2 contract. E1 storage, E2's coordinator, and E3 shared budgeting are implemented: recovery, FIFO dispatch, durable job controls, live concurrency changes, safe polling, draining shutdown, and composed body caps. Linux daemon paths/lifecycle, IPC, and daemon CLI commands remain pending. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
 
 ## Scope and ownership
 
-The daemon runs transfers through the existing `transfer.Download` entry point. Standalone `download`, `inspect`, and `version` keep their current behavior and never contact the daemon or create its directories.
+The daemon will run the existing transfer engine through a retained `transfer.Budget.Download` runner. Standalone `download`, `inspect`, and `version` keep their current behavior and never contact the daemon or create its directories.
 
 Add only `internal/queue` for durable jobs and scheduling, and `internal/daemon` for local control and process lifecycle. Keep CLI adapters in `internal/cli`. Reuse pure transfer request validation, filename rules, cancellation, checkpoints, and body-rate accounting; do not copy the downloader or make it import daemon code.
 
@@ -148,7 +148,9 @@ Job replies expose only `id`, `order`, `state`, `output`, `published`, `error`, 
 
 ## Shared bandwidth
 
-`daemon start --limit R` sets a process-wide body cap using the existing rate grammar; omission is unlimited and restart is required to change it. It is separate from persistent queue `parallel` and each job's own `--limit`. Every read must satisfy both applicable budgets, including probes, redirects, and retries. Changing the concurrency setting never resets shared credit. The full accounting contract is in [daemon-wide rate caps](concurrency.md#daemon-wide-rate-cap).
+The internal integration uses `transfer.NewBudget(rate)` once, then passes `budget.Download` to `NewCoordinator`. The coordinator retains the runner across controls and attempts; each attempt gets its own private cap while the shared budget survives pause, cancel, failure, completion, resume, and concurrency changes. Controlled-clock and real queue/HTTP tests cover accounting and retained credit/debt. No shared rate or budget is stored in the queue snapshot.
+
+The planned `daemon start --limit R` sets a process-wide body cap using the existing rate grammar; omission is unlimited and restart is required to change it. It is separate from persistent queue `parallel` and each job's own `--limit`. Every read must satisfy both applicable budgets, including probes, redirects, and retries. Changing the concurrency setting never resets shared credit. The full accounting contract is in [daemon-wide rate caps](concurrency.md#daemon-wide-rate-cap).
 
 ## Delivery and validation
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 	"testing/synctest"
@@ -110,31 +111,41 @@ func TestBodyCancellationInterruptsRateWait(t *testing.T) {
 }
 
 func TestBodyBudgetIncludesRedirectReads(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
-		calls := 0
-		client := rateClient(t, 10, time.Millisecond, func(req *http.Request) (*http.Response, error) {
-			calls++
-			resp := &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Request: req,
-				Body: io.NopCloser(strings.NewReader("de")), ContentLength: 2}
-			if req.URL.Path == "/start" {
-				resp.StatusCode = http.StatusFound
-				resp.Header.Set("Location", "/end")
-				resp.Body = io.NopCloser(strings.NewReader("abc"))
-				resp.ContentLength = 3
-			}
-			return resp, nil
+	for _, global := range []bool{false, true} {
+		t.Run(strconv.FormatBool(global), func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				rate := int64(10)
+				var shared *Budget
+				if global {
+					shared, _ = NewBudget(rate)
+					rate = 0
+				}
+				calls := 0
+				client := rateClient(t, rate, time.Millisecond, func(req *http.Request) (*http.Response, error) {
+					calls++
+					resp := &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Request: req,
+						Body: io.NopCloser(strings.NewReader("de")), ContentLength: 2}
+					if req.URL.Path == "/start" {
+						resp.StatusCode = http.StatusFound
+						resp.Header.Set("Location", "/end")
+						resp.Body = io.NopCloser(strings.NewReader("abc"))
+						resp.ContentLength = 3
+					}
+					return resp, nil
+				}, shared)
+				start := time.Now()
+				resp, err := client.Get("http://example.org/start")
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer resp.Body.Close()
+				data, err := io.ReadAll(resp.Body)
+				if err != nil || string(data) != "de" || calls != 2 || time.Since(start) != 400*time.Millisecond {
+					t.Fatalf("redirect body = %q, %v, requests=%d, elapsed=%s", data, err, calls, time.Since(start))
+				}
+			})
 		})
-		start := time.Now()
-		resp, err := client.Get("http://example.org/start")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-		data, err := io.ReadAll(resp.Body)
-		if err != nil || string(data) != "de" || calls != 2 || time.Since(start) != 400*time.Millisecond {
-			t.Fatalf("redirect body = %q, %v, requests=%d, elapsed=%s", data, err, calls, time.Since(start))
-		}
-	})
+	}
 }
 
 func rateClient(t *testing.T, rate int64, timeout time.Duration, next probeTransport, shared ...*Budget) *http.Client {
