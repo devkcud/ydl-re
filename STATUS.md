@@ -6,10 +6,12 @@ Updated: October 12, 2026 (America/Sao_Paulo).
 
 Milestones A, B, and C are implemented. Milestone D includes aggregate rate caps, versioned JSON/text output, the local security review, native Linux/amd64 evidence, and passing hosted CI/release tooling. The full gate, uncached CGO-disabled tests, and six-target compilation pass with the minimum Go 1.27.0 toolchain.
 
-[YoinkDL 0.1.0-rc.1](https://github.com/devkcud/ydl-re/releases/tag/v0.1.0-rc.1) is published as a Linux/amd64 prerelease. Public access, binary/source archives, checksums, and installation are verified. Candidate feedback and stable promotion remain next; no stable v0.1 release exists. MPL 2.0 and public GitHub Issues reporting remain the selected policies.
+[YoinkDL 0.1.0-rc.1](https://github.com/devkcud/ydl-re/releases/tag/v0.1.0-rc.1) is published as a Linux/amd64 prerelease. Public access, binary/source archives, checksums, and installation are verified. The candidate review found no GitHub issue reports and no runtime changes since the tag. Stable qualification is in progress; no stable v0.1 release exists. MPL 2.0 and public GitHub Issues reporting remain the selected policies.
 
 ## Handoff
 
+- The candidate review checked all GitHub Issues and current CI at `4829966`; no issues were returned and both CI jobs passed. This is absence of reports, not independent field-validation evidence. Runtime, build, packaging, workflow, and license sources match the candidate. The seven stable-release criteria are being mapped to their existing tests and recorded results.
+- The review found no real TLS handshake in existing CLI fixtures. `cmd/yoinkdl/https_linux_test.go` adds trusted sequential/parallel downloads and untrusted-certificate refusal through subprocesses. Per-process CA files keep host trust stores unchanged; the tests are Linux-only because they use Linux certificate discovery. No product code changed. Focused, CGO-disabled, race, and full-gate checks passed.
 - Continuing the owner-authorized release work published the verified draft at `2026-10-13T02:24:50Z` (October 12 locally). It remains a prerelease and was not marked Latest. The release notes and all three asset IDs, sizes, and digests are unchanged.
 - Annotated tag `v0.1.0-rc.1` still resolves to `5fae374cd31429f5d8653c6c497dcf0d21865c7e`. Preserve the tag and release assets. Later documentation commits are outside the source archive; do not replace candidate files with builds from current main.
 - [Publication evidence](docs/releases.md#publication-and-public-downloads) records the public checks. Unauthenticated downloads are retained under ignored `bin/releases/0.1.0-rc.1-public/` and match the verified Go 1.27.0 files in `bin/releases/0.1.0-rc.1-hosted/` byte for byte. The earlier local Go 1.27.2 build is separate under `bin/releases/0.1.0-rc.1/`; keep each checksum file with its own archives.
@@ -20,17 +22,18 @@ Milestones A, B, and C are implemented. Milestone D includes aggregate rate caps
 
 ## Validation
 
+- `go test ./cmd/yoinkdl -run '^TestProcessHTTPS$' -count=1 -v`, the CGO-disabled variant, and the `-race` variant passed. `make check` then passed formatting, vet, ordinary/race tests, and build; CLI and packaging tests reran while unchanged core packages used matching cached results. The new HTTPS test has local Go 1.27.2 evidence; hosted Go 1.27.0 execution is still pending.
 - Before publication, `gh release view` and `git ls-remote` confirmed the same draft, notes, three verified assets, and tag target. `gh release edit v0.1.0-rc.1 --repo devkcud/ydl-re --draft=false --prerelease --latest=false --verify-tag` published the existing release successfully.
 - `python3 /tmp/yoinkdl-public-release-check.py` passed outside the sandbox. Its HTTP requests used no GitHub credentials or cookies. The public page, release API, and three canonical download URLs succeeded; metadata reports `draft: false`, `prerelease: true`, and the expected publication time. Asset IDs, sizes, digests, release notes, and downloaded bytes match the prepublication snapshot.
 - The public check invoked `/tmp/yoinkdl-hosted-release-smoke.py` against `bin/releases/0.1.0-rc.1-public/`: checksums, exact Git source snapshot, licenses/metadata, Go 1.27.0/CGO-disabled settings, isolated `install -m 0755`, version/help, and one-/four-connection downloads of 9,437,201 bytes passed with exact hashes, successful JSON, and partial-state cleanup. Temporary detail is `/tmp/yoinkdl-hosted-rc1-verification-w3qzk0cj/verification.json`; the public API snapshot is `/tmp/yoinkdl-rc1-public-api.json`. Durable hashes and results are in the release guide.
-- This step changes documentation only. Matching hosted/runtime results were reused; no redundant local full gate was run. `python3 /tmp/yoinkdl-doccheck.py` passed: 24 Markdown files, 278 local links/anchors, 32 shell blocks, five JSON examples, two TOML examples, fences, and whitespace. `git diff --check` passed. The original design's illustrative `<id>` shell placeholders were normalized for syntax checking; its intentional hard-break spaces remain unchanged.
+- `python3 /tmp/yoinkdl-doccheck.py` passed: 24 Markdown files, 279 local links/anchors, 32 shell blocks, five JSON examples, two TOML examples, fences, and whitespace. `git diff --check` passed. The original design's illustrative `<id>` shell placeholders were normalized for syntax checking; its intentional hard-break spaces remain unchanged.
 - Native foreign-platform execution, full-disk/network-filesystem/power-loss qualification, and interrupted remote upload/retry behavior remain unverified. Evidence and reproduction commands remain in [testing](docs/testing.md), [platforms](docs/platforms.md), and [releases](docs/releases.md).
 
 ## Next steps
 
-1. Review [GitHub Issues](https://github.com/devkcud/ydl-re/issues) for `0.1.0-rc.1` feedback. Reproduce reported failures with deterministic fixtures and qualify any fixes before preparing another candidate or stable release; do not infer stable readiness from publication alone.
-2. After candidate review, select the stable source revision and prepare `0.1.0` notes and archives using the existing release workflow. Preserve the published candidate. Broader native support needs separate runtime evidence; configuration files and daemon/TUI work stay optional/later.
+1. Finish the seven-criterion stable review, prepare `0.1.0` notes, and build/verify archives from a clean committed revision. Preserve the published candidate.
+2. Verify stable packaging and the new HTTPS fixture on hosted Go 1.27.0 before publication. Broader native support needs separate runtime evidence; configuration files and daemon/TUI work stay optional/later.
 
 ## Open decisions and blockers
 
-The first prerelease and its public installation path are verified. Stable promotion awaits candidate review and a release decision. Broader native qualification, durability, signing, and package-manager distribution remain outside current evidence.
+The first prerelease and its public installation path are verified. Local HTTPS qualification passed; stable notes/archives and their hosted verification remain. No reported regression is awaiting reproduction. Broader native qualification, durability, signing, and package-manager distribution remain outside current evidence.

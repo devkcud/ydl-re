@@ -35,6 +35,7 @@ Milestones A, B, and C plus Milestone D rate, JSON, text-output, security regres
 | [Output deadlines](../internal/cli/output_test.go) and [pipe ownership](../internal/cli/output_unix_test.go) | Controlled deadline/cancellation, deadline cleanup, duplicate ownership, original flag restoration, full-pipe cancellation |
 | [JSON integration](../internal/cli/json_test.go) | Known/unknown/empty/parallel output, sequential/ranged resume with retries, publication refusal and offline recovery, output failures before/after publication, source redaction, help/argument/text compatibility |
 | [Process](../cmd/yoinkdl/main_test.go) | Entry point, successful download, real SIGINT with retained partial bytes and no final output |
+| [HTTPS process](../cmd/yoinkdl/https_linux_test.go) | Linux CLI sequential/ranged downloads with a trusted local TLS certificate; untrusted TLS refusal without HTTP requests, final/partial data, or a manifest, with per-process CA isolation |
 | [Crash recovery](../cmd/yoinkdl/resume_test.go) | Kill a process after a durable checkpoint, inspect its state, resume in another process, and verify the complete fixture hash |
 | [Parallel process](../cmd/yoinkdl/parallel_test.go) | Actual CLI process, connection flag, conditional range requests, and complete fixture checksum |
 | [Parallel crash recovery](../cmd/yoinkdl/range_resume_test.go) | Kill with disjoint completed chunks and wrong unconfirmed bytes, restart with a different worker limit, fetch only whole missing chunks, verify final hash and cleanup |
