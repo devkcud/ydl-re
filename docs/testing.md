@@ -55,6 +55,10 @@ Milestones A, B, and C plus Milestone D rate, JSON, text-output, security regres
 | [Queue lifecycle](../internal/queue/lifecycle_test.go) | Every pause/resume/cancel state, recovery, FIFO-tail resume and overflow, publication precedence, and fixed safe error messages |
 | [Queue coordinator](../internal/queue/coordinator_linux_test.go) | FIFO dispatch, persisted recovery and startup settings, running intent before engine calls, safe owned views, draining slots, signal shutdown, and no automatic replay |
 | [Coordinator failures](../internal/queue/coordinator_faults_linux_test.go) | Failed preparation/admission/results/stop, uncertain commits, joined cancellation without stale saves, bounded mailboxes, disconnected callers, and progress during blocked persistence |
+| [Queue controls](../internal/queue/controls_linux_test.go) | Live limits through eight transfers, non-preemptive reductions, persisted settings, idempotent adds, output reservations, FIFO-tail resume, preserved files, draining slots, and late publication |
+| [Queue capacity](../internal/queue/control_limits_linux_test.go) | Full retained queues, forget freeing capacity, admission-order exhaustion, and encoded-size refusal before IO without stopping the queue |
+| [Control commits](../internal/queue/control_commits_linux_test.go) | Admission only after a setting commit, disconnected add persistence/deduplication, and caller request isolation |
+| [Queue HTTP integration](../internal/queue/coordinator_http_linux_test.go) | Default engine runner, real pause/checkpoint/conditional resume, exact published bytes, terminal URL removal, and existing-output refusal |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
@@ -68,7 +72,7 @@ The security review first reproduced option-value and HTTP-parser disclosure, ra
 
 Real disk exhaustion, broader sync/cleanup fault injection, power-loss durability, and native macOS/Windows qualification remain incomplete. Fresh/resumed parallel transfers, bounded retries, aggregate body-rate caps, concurrent offset writers, and checkpoint serialization have executable tests. Retry unit/integration fixtures substitute controlled waits where timing itself is not under test; CLI process checks exercise real backoff. Process termination is not a real power-loss test; publication-boundary recovery also uses controlled ready/link/rename states.
 
-The October 13 E1 queue tests pass on Linux/amd64 with ordinary, race, and CGO-disabled execution. `make check` passes, and the CI compilation recipe builds the CLI and all test programs for Linux/macOS/Windows on amd64/arm64 with CGO disabled. Queue storage is Linux-only; foreign binaries were not run. Store fault tests inject failures at write/sync/rename boundaries, preserve committed state before rename, and require close/reopen after uncertainty. They do not establish daemon lifecycle or real power-loss behavior.
+The October 13 E1/E2 queue tests pass on Linux/amd64 with ordinary, race, and CGO-disabled execution. `make check` passes, and the CI compilation recipe builds the CLI and all test programs for Linux/macOS/Windows on amd64/arm64 with CGO disabled. Queue storage is Linux-only; foreign binaries were not run. Controlled runners prove the coordinator's lifecycle, bounds, durability, and failure ordering; the real HTTP test exercises the existing downloader through pause/resume and no-overwrite refusal. The CGO-disabled run required an environment allowing localhost sockets after the sandbox refused its listener. These checks do not establish daemon IPC/process lifecycle or real power-loss behavior.
 
 ## Test layers
 
@@ -156,7 +160,7 @@ The [CI/release workflows](releases.md) passed local actionlint v1.7.12 checks a
 
 ## Planned v0.2 validation
 
-These are required checks for the [accepted daemon design](daemon-and-queue.md). E1 codec/store and storage-mutation evidence is recorded above; coordinator, public-view privacy, IPC, shared-budget, and full daemon process checks remain pending. The [delivery order](roadmap.md#v02-implementation-order) determines when each group becomes executable.
+These are required checks for the [accepted daemon design](daemon-and-queue.md). E1 storage and E2 coordinator/control evidence is recorded above, including safe internal views. IPC/CLI privacy, shared budgets, and full daemon process checks remain pending. The [delivery order](roadmap.md#v02-implementation-order) determines when each group becomes executable.
 
 | Group | Required evidence |
 |---|---|

@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- Internal v0.2 queue foundation: shared request validation, strict bounded snapshots, and a private Linux atomic store with exclusive ownership. Sequential/concurrent queue settings persist; scheduling and daemon commands remain under development.
+- Internal v0.2 queue foundation: shared request validation, strict bounded snapshots, and a private Linux atomic store with exclusive ownership. Full source URLs and sequential/concurrent queue settings persist privately.
+- Queue coordinator with FIFO admission, live concurrency limits, pause/resume/cancel/forget, conservative recovery, safe polling views, and draining shutdown. Daemon IPC and CLI commands remain under development.
 
 ## [0.1.0]
 

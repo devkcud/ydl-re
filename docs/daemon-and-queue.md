@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-This is the accepted v0.2 contract. E1 and E2's coordinator core are implemented: recovery, FIFO dispatch, safe polling, and draining shutdown. Individual job controls and live concurrency changes remain next, followed by shared budgets, IPC, and daemon commands. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
+This is the accepted v0.2 contract. E1 storage and E2's coordinator are implemented: recovery, FIFO dispatch, durable job controls, live concurrency changes, safe polling, and draining shutdown. Shared budgets, IPC, and daemon CLI commands remain pending. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
 
 ## Scope and ownership
 
@@ -114,6 +114,8 @@ On daemon restart, queued jobs remain eligible, running becomes interrupted, pau
 `internal/queue/lifecycle.go` implements the pure recovery, pause/resume/cancel, and final-result rules. Resume alone consumes a fresh FIFO order when it actually changes state. Engine failures map to fixed messages for cancellation, timeout, file access, missing publication, published-with-error, or generic failure; arbitrary error text never reaches saved diagnostics. Public error projection also replaces unrecognized stored messages.
 
 `NewCoordinator(store, runner, parallel)` prepares recovery and an optional startup override durably without dispatching; zero preserves the saved setting and a nil runner selects `transfer.Download`. Call `Run(ctx)` once after startup prerequisites are ready. The caller owns the store, must give the coordinator exclusive mutation access, and closes it only after Run returns. Runners must return after all transfer work and progress callbacks finish. `List` returns owned safe views; `Stop` acknowledges durable stopping intent while `Done`/Run signal completed cleanup.
+
+The internal coordinator also implements `Add`, `Pause`, `Resume`, `Cancel`, `Forget`, and `SetParallel`. Add takes a client ID and transfer options with an absolute output; it returns the retained view for an identical ID/hash, including terminal records. Capacity, conflicts, invalid input, and exhausted order counters reject before mutation. Encoded-size refusal is also checked before disk IO and leaves the coordinator available. Forget returns whether a record was removed and never deletes transfer files. While stopping, only reads and repeated stop remain available. These Go APIs are not CLI commands or a listening daemon.
 
 The coordinator owns at most eight attempts, a 16-entry control mailbox, and one latest progress value per attempt. Progress callbacks never wait on disk or control replies. Caller cancellation after enqueue reports `ErrOutcomeUnknown` for mutations and does not undo the queued operation. Abandoned replies cannot block the coordinator. Every persistence failure stops admission, cancels and joins runners, and prevents further saves or authoritative views. If durable pause intent cannot be written, the previous running record remains for conservative restart recovery. Persistence errors preserve their causes for internal classification while exposing a fixed safe message.
 

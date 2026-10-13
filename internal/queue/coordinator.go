@@ -49,17 +49,28 @@ type operation uint8
 const (
 	listOp operation = iota
 	stopOp
+	addOp
+	pauseOp
+	resumeOp
+	cancelOp
+	forgetOp
+	parallelOp
 )
 
 type command struct {
-	op    operation
-	reply chan response
+	op       operation
+	id       string
+	job      Job
+	parallel int
+	reply    chan response
 }
 
 type response struct {
-	list   ListView
-	status Status
-	err    error
+	list      ListView
+	status    Status
+	job       JobView
+	forgotten bool
+	err       error
 }
 
 type persistenceError struct {
@@ -221,7 +232,10 @@ func (c *Coordinator) handle(cmd command) response {
 		}
 		return response{status: c.status()}
 	default:
-		return response{err: ErrInvalid}
+		if c.stopping {
+			return response{err: ErrStopping}
+		}
+		return c.mutate(cmd)
 	}
 }
 
