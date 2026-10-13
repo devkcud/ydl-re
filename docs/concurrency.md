@@ -68,7 +68,21 @@ Body reads are bounded by `B` and charged before delivery to the transfer code. 
 
 This is application body pacing: headers, framing, TLS, and socket/HTTP read-ahead are outside the cap. Each active reader can hold at most one pending `B`-byte read while waiting. Body bytes read during redirects also count; unread rejected responses are closed without draining. Useful progress is separate and never supplies or refunds rate credit. Network inactivity timers cover only actual reads, excluding throttle waits. Ready-state recovery stays offline and consumes no budget. A resumed invocation gets a new budget and may use a different cap without changing its checkpoint.
 
-The v0.1 cap is not a specified global cap across separate CLI processes. Scheduling and bandwidth allocation across daemon-managed transfers belong to later design work.
+The v0.1 cap does not coordinate separate CLI processes. The following v0.2 contract extends budgeting only for transfers owned by one daemon instance.
+
+## Daemon-wide rate cap
+
+This is accepted v0.2 design, not implemented behavior. `daemon start --limit R` creates one shared body budget for that process; omission means unlimited. Use the existing positive-integer rate grammar and bounds. The cap is fixed until restart and is not a persistent queue setting. `daemon set --parallel N` changes admissions without replacing or refilling the budget.
+
+Each job retains its own optional `add --limit` setting. A read must satisfy both its transfer budget and the daemon budget; setting either to unlimited does not bypass the other. Reuse the transfer package's limiter/body integration through an optional shared budget handle; do not import daemon code into the engine or add a second HTTP implementation.
+
+For each configured rate, retain `B = min(65536, ceil(R / 10))` and the existing accounting/timing tolerance. Bound each underlying read by the smallest applicable burst. Charge its actual returned byte count to every applicable budget before any throttle wait or cancellation return, including reads that also return an error. Wait until all reservations are eligible, using the latest deadline rather than adding independent waits. Never refund already-read bytes.
+
+The daemon budget includes every managed transfer's probes, redirect drains, resumed network bytes, fallback, and failed/retried attempts. Saved file bytes and offline ready recovery consume no credit. Body delivery from daemon-budget creation stays within `B + R * elapsed_seconds`. Protocol overhead and socket read-ahead remain outside the cap, and each reader may hold one bounded pending read. Throttle waits stay cancellable and outside network inactivity timers.
+
+Keep the shared budget alive across job completion, pause, cancel, failure, resume, and queue concurrency changes. Failed work and progress rollback cannot mint credit. Each explicit transfer attempt may create a fresh per-transfer budget, as the standalone command does; it cannot reset the daemon budget. A new daemon process starts a new bounded burst, without persisting token debt as transfer progress.
+
+FIFO controls job admission, not equal bandwidth shares. Reservations use the existing serialized accounting; no minimum throughput, weighted fairness, or per-job share is promised. Separate daemons and standalone CLI processes remain independent. Dynamic rate changes and cross-process bandwidth coordination are outside v0.2.
 
 ## Cancellation
 

@@ -205,3 +205,23 @@ These interfaces remain proposed and are rejected by the current CLI:
 | TUI, profiles, history, optional hooks | v0.3 |
 
 The JSON event schema is separate from manifest versions 1 and 2, documented in [storage](resume-and-storage.md). See [open decisions](decisions.md) before implementing later additions.
+
+### Planned v0.2 controls
+
+The [daemon/queue contract](daemon-and-queue.md) is accepted but these commands are not implemented or accepted by the current CLI:
+
+| Planned command | Behavior |
+|---|---|
+| `daemon start [--parallel N] [--limit R]` | Foreground owner of the queue and local socket; optional durable concurrency override and process-lifetime shared body cap |
+| `daemon stop` | Acknowledge durable shutdown intent; stop admission and checkpoint/join active work |
+| `daemon set --parallel N` | Persist the whole-transfer admission limit (`1..8`, initial default `1`) and apply it live |
+| `add <url> [options]` | Persist an immutable normalized request and return its job ID; no overwrite option |
+| `list [--json]` | Poll queue policy and safe job/progress views, omitting URLs |
+| `pause <id>` | Pause waiting work or durably request active cancellation/checkpointing |
+| `resume <id>` | Put a paused/interrupted/failed job at the FIFO tail; never bypass checkpoint/identity checks |
+| `cancel <id>` | Stop future work, retaining files and clearing terminal source data |
+| `forget <id>` | Remove a record without an active slot and free its reservation/capacity; never delete output or sidecars |
+
+`--parallel 1` means one download at a time; `--parallel 4` allows four downloads. Each download can independently use `--connections 4` for up to four range workers. Lowering parallelism lets existing jobs finish and gates new admissions; explicitly pause extras for an immediate reduction.
+
+Add accepts the current output, connections, retries, timeout, per-transfer limit, and require-resume options; output paths resolve in the invoking client's directory. No command implicitly starts a daemon. Successful pause/cancel/stop replies acknowledge durable intent, not instantaneous worker/process termination. If a control reply is lost, the operation may have committed; inspect the queue rather than blindly repeating a mutation. A broken list/acknowledgment output does not cancel durable jobs.

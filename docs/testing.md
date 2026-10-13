@@ -144,6 +144,25 @@ The [platform report](platforms.md) records the October 12 native Linux toolchai
 
 The [CI/release workflows](releases.md) passed local actionlint v1.7.12 checks and Bash syntax checks. Native CI commands and the six-target compilation loop were replayed locally. The final packaging gate passed, including race checks; separate shell fixtures reject malformed tags and missing notes and select only the intended changelog section. Optional ShellCheck/Pyflakes integrations were disabled because those tools were not installed. [Hosted CI](platforms.md#hosted-ci-evidence) subsequently passed the full gate, uncached CGO-disabled tests, and six-target compilation at `1ce24810b7b6a05607c30ab37ff725758e29ebb8`. The later [hosted candidate report](releases.md#hosted-candidate-verification) records successful tag-triggered draft creation and downloaded-asset checks.
 
+## Planned v0.2 validation
+
+These are required future checks for the [accepted daemon design](daemon-and-queue.md); none is current implementation evidence. The [delivery order](roadmap.md#v02-implementation-order) determines when each group becomes executable.
+
+| Group | Required evidence |
+|---|---|
+| Queue codec/store | Empty/full round trips; exact fields/types/versions; duplicate/null/oversized input; ID/order/output conflicts; immutable request hash; unsafe owners/modes/symlinks/hard links; corrupt files preserved |
+| Durable mutation | Fail writes, file sync, rename, and directory sync separately; acknowledgment only after durability; uncertain post-rename failures stop work; no stale-memory overwrite; temporary files never adopted |
+| Source privacy | Synthetic query tokens persist only in private source state, clear on terminal transitions/forget, and never reach text, JSON views, logs, malformed-request errors, or IPC failures |
+| Custom concurrency | Default/persisted `1` runs serially; values through `8` bound jobs independently of per-job workers; increases admit FIFO; reductions keep active work but block excess admissions; settings survive restart; capacity and order overflow are refused |
+| Lifecycle | Persist running/pause/cancel before effects; keep slots through cleanup; test cancel during verification/publication, published-with-error results, all restart transitions, and absence of automatic whole-job retry |
+| Ambiguous publication | Kill after output publication but before queue completion; recover as unknown/interrupted, preserve final data, and never infer completion or overwrite through retry |
+| Local IPC | Matching/mismatching peer identities and state roots; unsafe/stale/live sockets; both lock combinations; private fallback path; frame/version/shape limits; bounded clients and read/write deadlines |
+| Lost replies | Drop a connection after durable add/settings/control commits; verify accepted work survives and IDs allow inspection; repeated add IDs deduplicate only while retained |
+| Shared bandwidth | Controlled-clock and HTTP tests across multiple transfers; private/global/both limits; probes/redirects/retries; low/high rates; cancellation after reads; no refund or renewed global burst on resume or concurrency changes |
+| Real processes | Explicit daemon lifecycle, signal cleanup, forced death, saved queue order and settings, real transfer resume, standalone writer conflicts, and isolated test roots |
+
+Use local deterministic servers and temporary roots. Run focused checks for each slice, then `make check` for implementation changes. Native Linux and CGO-disabled process coverage is required; foreign compilation alone never proves daemon support. Existing v0.1 transfer, output, storage, TLS, and packaging suites remain regression gates.
+
 ## Release evidence
 
 The [first candidate report](releases.md#first-candidate-verification) records `0.1.0-rc.1` at `5fae374cd31429f5d8653c6c497dcf0d21865c7e`: the full local packaging gate, archive checksums and exact source identity, isolated installation, and sequential/parallel fixture downloads passed. The hosted candidate passed the same downloaded-archive and installed-binary checks with Go 1.27.0; its source archive matches the local archive exactly. After publication, [unauthenticated public access and installation](releases.md#publication-and-public-downloads) passed with all three assets byte-identical to the verified draft.

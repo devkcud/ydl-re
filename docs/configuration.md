@@ -78,6 +78,8 @@ These settings are accepted for v0.2 but are not implemented. No TOML loader is 
 
 Queue `parallel` is durable, defaults to `1`, and accepts `1..8`. One means sequential downloads; larger values admit concurrent transfers. It is independent of per-transfer `--connections`. An optional `daemon start --parallel N` overrides the saved setting; omission keeps it. `daemon set --parallel N` changes it live and acknowledges only after persistence. Reducing the limit does not stop current downloads; it gates new admissions until the active count fits.
 
+`daemon start --limit R` is a process-lifetime cap across all its jobs. Omission is unlimited; it is not stored with queue policy and cannot be changed through `daemon set`. Each job's own `--limit` remains durable request input. Shared and per-transfer caps compose according to [daemon-wide budgeting](concurrency.md#daemon-wide-rate-cap), without multiplying the configured rate by the concurrent-job count.
+
 Each queued request stores resolved connection/retry/timeout/per-transfer-limit values and an absolute destination. The daemon never resolves a client's relative destination against its own working directory. Full source URLs, including query tokens, are retained in permission-protected queue files by the owner's selected policy; display responses omit them. See [queue requests and persistence](daemon-and-queue.md#source-urls-and-immutable-requests).
 
 ## Units

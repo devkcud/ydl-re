@@ -38,7 +38,7 @@ The CLI runs in the foreground. Interrupting that process is the initial pause m
 | v0.3 | TUI, named profiles, richer inspection and history, optional completion hooks |
 | Later | Optional web UI, other protocols, remote nodes, LAN transfers, scheduling features, sandboxed workflows |
 
-The draft's detailed CLI and hardening milestone place a per-transfer `--limit` in v0.1. Its release table also mentions bandwidth limits in v0.2. The boundary for daemon-wide limits remains an [open decision](decisions.md#release-and-compatibility-decisions).
+The original draft's detailed CLI and hardening milestone place a per-transfer `--limit` in v0.1, which is implemented. The accepted [v0.2 design](daemon-and-queue.md) adds a separate shared daemon cap and a persistent whole-download concurrency setting: `1` for sequential work, higher values for concurrent downloads. Those daemon features remain unimplemented; [budget composition](concurrency.md#daemon-wide-rate-cap) defines their boundary with the existing cap.
 
 ## Outside v0.1
 

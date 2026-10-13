@@ -120,16 +120,22 @@ Requests have exactly `version`, `state_dir`, `op`, and `args`. The server compa
 
 Replies have exactly `version`, `ok`, `result`, and `error`. A success has a non-null safe result and null error; a failure has null result and an error containing fixed `code` and sanitized `message`. Refuse unsupported versions, unknown/duplicate fields, null required values, malformed/trailing JSON, and incorrect argument shapes. Do not reflect raw request bodies or URL values.
 
+Job replies expose only `id`, `order`, `state`, `output`, `published`, `error`, and advisory `bytes`, `total`, `workers`; unobserved counters are null. Daemon views expose `state` (running/stopping), `parallel`, `active`, and `limit_bps` (zero means unlimited). List returns a daemon view and jobs ordered by `order`; add/pause/resume/cancel return a job view, `ping`/`stop`/`set_parallel` return a daemon view, and forget returns `id` plus `forgotten`. Stored requests and their hashes never appear in these views.
+
 `add` with an existing ID and identical input hash returns its current safe view; a changed request conflicts. That guarantee ends after explicit forget. Clients do not blindly retry mutations after a timeout/disconnect: report uncertain outcome and the job ID where known, then let the user inspect `list`. Reads may retry. Disconnecting or failing to print an acknowledgment does not undo a committed operation or cancel a queued job.
 
 `list` is polling, not a subscription. It reports queue policy and safe job fields, plus advisory live snapshots or saved-byte metadata when available. Raw sources are absent. Progress may decrease on retry/recovery and never authorizes publication. Slow or broken control clients must not stall the transfer coordinator; bound/coalesce snapshots and isolate response writes. Existing standalone JSON/output-failure semantics remain unchanged.
 
 ## Startup and shutdown
 
-`daemon start` creates/validates private roots, acquires both locks, loads/reconciles state, applies an optional parallel override durably, binds/checks the socket, and only then admits work. Do not start implicitly from add/list or standalone commands. Startup failure preserves state and releases ownership.
+`daemon start` creates/validates private roots, acquires both locks, loads/reconciles state, applies an optional parallel override durably, binds/checks the socket, and only then admits work. Do not start implicitly from add/list or standalone commands. Startup failure never deletes or resets queue data and releases ownership. Any reconciliation/setting already committed before a later bind failure remains durable; do not roll it back with an older snapshot.
 
-`daemon stop` durably pauses active attempts, stops admission, cancels their contexts, and returns an accepted-stopping response. It does not claim the process has exited. Queued jobs remain queued for the next explicit start. Shutdown joins all transfers and persists actual results before removing its socket and releasing locks; no fixed deadline authorizes destructive cleanup. SIGINT/SIGTERM follows the same safe cleanup. Clean IPC stop exits 0, signal interruption 130, and startup/persistence failure 1.
+`daemon stop` durably pauses active attempts, stops admission, cancels their contexts, and returns an accepted-stopping response. It does not claim the process has exited. While stopping, allow reads and repeated stop requests but reject other mutations. Queued jobs remain queued for the next explicit start. Shutdown settles accepted operations, joins all transfers, and persists actual results before removing its socket and releasing locks; no fixed deadline authorizes destructive cleanup. SIGINT/SIGTERM follows the same safe cleanup. Clean IPC stop exits 0, signal interruption 130, and startup/persistence failure 1.
 
-## Remaining design slice
+## Shared bandwidth
 
-Daemon-wide bandwidth composition and the ordered implementation/validation plan are the remaining R03 slice. Per-job limits retain the existing transfer contract. Do not implement daemon commands before that slice is recorded; the current CLI still rejects them.
+`daemon start --limit R` sets a process-wide body cap using the existing rate grammar; omission is unlimited and restart is required to change it. It is separate from persistent queue `parallel` and each job's own `--limit`. Every read must satisfy both applicable budgets, including probes, redirects, and retries. Changing the concurrency setting never resets shared credit. The full accounting contract is in [daemon-wide rate caps](concurrency.md#daemon-wide-rate-cap).
+
+## Delivery and validation
+
+Follow the [ordered v0.2 plan](roadmap.md#v02-implementation-order), beginning with shared input validation and the strict private queue store. The [daemon validation matrix](testing.md#planned-v02-validation) covers durability, concurrency changes, privacy, crash ambiguity, IPC ownership, and budget composition. No daemon or queue command is implemented yet; document each completed slice and its actual evidence in root STATUS before advancing.

@@ -73,11 +73,26 @@ The [testing matrix](testing.md#required-scenarios) expands these into concrete 
 
 ## v0.2 — Daemon and persistent queue
 
-Add a long-running local process that uses the same transfer application service. Persist queue records and support add, list, pause, resume, and cancel operations. Add concurrency scheduling and define bandwidth management across queued transfers.
+**Status:** design accepted; implementation not started. [Daemon and persistent queue](daemon-and-queue.md) owns R04: foreground Linux daemon, private local IPC, durable queue/source records, conservative recovery, and configurable whole-transfer concurrency. [Daemon-wide rate caps](concurrency.md#daemon-wide-rate-cap) owns R03. Neither changes the released standalone CLI or its transfer manifests.
 
-Pause means canceling active contexts and checkpointing safely. It does not mean freezing goroutines. The standalone download command remains usable without a daemon.
+Queue concurrency defaults to one transfer and persists across restarts. `daemon set --parallel N` selects `1..8` live; reductions wait for active work to finish before admitting more. The owner's full-URL persistence choice uses private queue files and redacted public views. Foreground startup is explicit, and no network service, database, TOML loader, TUI, or automatic daemon launch is required.
 
-The original release table also lists bandwidth limits here, while the detailed CLI and Milestone D place `--limit` in v0.1. Preserve the v0.1 per-transfer cap intent and resolve any broader daemon budget separately.
+Pause/cancel use context cancellation and wait for the engine to release writers. Crash-interrupted attempts do not restart automatically or infer success from file presence. An initial queued transfer never overwrites a completed destination. `forget` explicitly frees a non-running queue record without deleting its data files.
+
+### v0.2 implementation order
+
+| Order | Complete slice | Required proof before moving on |
+|---|---|---|
+| E1 | Shared pure request validation; `internal/queue` job model, strict snapshot codec, and private Linux atomic store/lock | Same standalone validation behavior; exact schema/URL privacy rules; refused unsafe/corrupt state; durable mutations; uncertain-commit fail-stop; competing writers excluded |
+| E2 | Queue coordinator, FIFO dispatcher, persisted concurrency setting, pause/resume/cancel/forget, and restart reconciliation | Fake-runner deterministic transitions; `1` serializes jobs; higher settings bound whole transfers; live increases/decreases and slot retention; persistence before side effects; publication/cancellation races |
+| E3 | Optional shared transfer body budget with per-transfer composition | Combined cap across independent transfers/probes/retries; cancellation without refunds; unchanged standalone rate/timeout behavior; no credit reset when job/concurrency state changes |
+| E4 | Linux state/runtime resolution, private Unix IPC, peer checks, both ownership locks, and safe startup/shutdown | Bounded strict protocol; state-directory mismatch refusal; stale/live/foreign socket preservation; peer/permission refusal; blocked/disconnected clients cannot stall or cancel jobs |
+| E5 | CLI daemon/queue adapters and safe text/JSON views | Complete add/list/control path through real transfers; caller-relative output resolution; explicit startup; no source leakage; ambiguous acknowledgments; existing direct commands remain independent |
+| E6 | Process-crash qualification, release docs, and platform gates | Real kill/restart and publication-boundary cases; queue-full/forget recovery; concurrency and shared-rate process tests; native Linux full/race/CGO-disabled gates and six-target compilation |
+
+Keep each slice runnable and locally committed with its tests and current STATUS handoff. Use a narrow callable transfer runner for coordinator tests and the existing `transfer.Download` in production. Do not add a generic job framework or duplicate the downloader. E1 is the immediate next implementation task; user-visible daemon commands should be documented as implemented only after their complete path exists.
+
+The [v0.2 validation matrix](testing.md#planned-v02-validation) makes the failure paths concrete. A daemon release requires all slices and evidence, not merely a listener or a queue file.
 
 ## v0.3 — TUI and richer local workflows
 
@@ -100,7 +115,7 @@ yoinkdl cancel <id>
 yoinkdl tui
 ```
 
-`daemon start` is the primary discoverable name. The historical `summon` alias is only a possible hidden compatibility convenience. There is no committed fixed port, HTTP API, or IPC protocol.
+`daemon start` is the primary name and will run in the foreground. The accepted [v0.2 control contract](daemon-and-queue.md#local-control-protocol) uses a private Linux Unix socket and versioned JSON frames; no TCP port or public HTTP API exists. `daemon set --parallel` and `forget` are also planned controls. The historical `summon` alias remains deferred.
 
 ## Deferred concepts
 

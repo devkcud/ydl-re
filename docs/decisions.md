@@ -93,9 +93,6 @@ The owner selected MPL 2.0 with no named copyright-holder notice, GitHub Release
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
 | R02 | Native qualification beyond Linux/amd64 | Hosted Linux/amd64 CI passed; cross-compilation does not prove foreign runtime behavior | [Platforms](platforms.md) |
-| R03 | Future daemon-wide bandwidth allocation | The v0.1 cap applies to one standalone transfer; separate processes do not share it | [Roadmap](roadmap.md) |
-
-For R03, the aggregate cap for one transfer is implemented for v0.1. Daemon-wide budget semantics remain uncommitted.
 
 ## v0.2 decisions made
 
@@ -103,7 +100,9 @@ R04 is settled by [Daemon and persistent queue](daemon-and-queue.md), with imple
 
 The owner selected full URL/query-token storage in private local queue files and requested configurable concurrent downloads. The durable `parallel` setting defaults to `1`, accepts `1..8`, and can change live. It governs whole-job admission; per-download worker counts remain separate. Lowering it lets active jobs finish while withholding new work. Crash-interrupted jobs require explicit resume; no-overwrite queued transfers preserve ambiguous publication outcomes. Terminal records can be forgotten without deleting files.
 
-Linux XDG state/runtime selection is settled for the daemon; this does not implement a general configuration loader or qualify other native platforms. R03's shared bandwidth policy and the implementation plan are the next design slice.
+R03 is settled by [daemon-wide budgeting](concurrency.md#daemon-wide-rate-cap): one process-lifetime body budget shared across managed jobs, composed with each job's existing cap. Charge both before waiting, wait for all applicable reservations, preserve shared credit/debt across job lifecycle and concurrency changes, and retain existing burst/timeouts/accounting boundaries. `daemon start --limit` is fixed until restart; cross-process caps and dynamic rate changes are deferred.
+
+Linux XDG state/runtime selection is settled for the daemon; this does not implement a general configuration loader or qualify other native platforms. The [ordered implementation plan](roadmap.md#v02-implementation-order) and [validation matrix](testing.md#planned-v02-validation) are accepted; no v0.2 runtime slice is implemented yet.
 
 ## Already established direction
 
