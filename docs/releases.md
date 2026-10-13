@@ -69,6 +69,26 @@ Unauthenticated HTTPS requests returned success for the release page, the public
 
 The publicly downloaded archives passed checksum verification, exact source-snapshot comparison, packaged license/metadata checks, and isolated installation. Version/help and one-/four-connection downloads reproduced the same 9,437,201-byte fixture hash, successful JSON results, and partial-state cleanup. The public API reports `draft: false`, `prerelease: true`, and the publication time above. This qualifies the published Linux/amd64 candidate; stable promotion still requires candidate review.
 
+## Stable readiness review
+
+The candidate review on October 12, 2026 (America/Sao_Paulo) found no GitHub Issues in any state. This provides no independent field-testing evidence and supplies no reported regression to reproduce. [CI run 38337336004](https://github.com/devkcud/ydl-re/actions/runs/38337336004) passed both jobs at `48299669d3e930d18d296c1568b82807d370152e`. The production, build, packaging, workflow, and license sources match `v0.1.0-rc.1`; later changes add documentation and HTTPS qualification tests.
+
+The [seven acceptance criteria](roadmap.md#v010-acceptance) have the following evidence within the existing Linux/amd64 platform limits:
+
+| Criterion | Reviewed evidence |
+|---|---|
+| Correct direct HTTP(S) bytes | [HTTP fixtures](../internal/transfer/download_test.go) and [Linux HTTPS subprocesses](../cmd/yoinkdl/https_linux_test.go) verify exact content. Trusted sequential/ranged TLS succeeds; untrusted TLS fails before HTTP requests or downloaded data. |
+| Resume across process termination | [Sequential](../cmd/yoinkdl/resume_test.go) and [parallel](../cmd/yoinkdl/range_resume_test.go) tests kill writers after checkpoints, restart, and compare complete fixture hashes. |
+| No silent resource-version mixing | [Worker failures](../internal/transfer/workers_test.go) and [resume refusals](../internal/transfer/resume_test.go) reject changed validators/bounds and preserve existing verified state. |
+| Wrong/incomplete lengths detected | The HTTP short-body and worker short/oversized/broken-body cases preserve incomplete state and refuse final publication. |
+| Verified atomic publication | [Storage publication](../internal/storage/file_test.go) and [range recovery](../internal/storage/range_checkpoint_test.go) cover no-overwrite links, deliberate replacement, conflicts, ready-state recovery, and coverage/byte checks under the qualified Unix policy. |
+| Simultaneous writers excluded | Storage ownership tests admit one file owner; [range writer tests](../internal/storage/range_writer_test.go) admit one claimant per chunk and verify exact concurrent output. |
+| Integration/race gates pass | Hosted Go 1.27.0 native/race and CGO-disabled runs passed. The new TLS fixture passed focused ordinary, CGO-disabled, and race runs plus local `make check` on Go 1.27.2. |
+
+The HTTPS test was added in `a17767a`; it uses isolated per-process CA files without changing the host trust store or product transport settings. Native Linux/arm64/macOS, Windows storage, network filesystems, full-disk/power-loss behavior, and interrupted remote uploads remain outside these claims. No unresolved integrity failure was found on the reviewed paths. Lack of issue reports alone was not used as an acceptance result.
+
+The exact `## [0.1.0]` section in [CHANGELOG.md](../CHANGELOG.md#010) is prepared. Build and verify its archives from a clean committed revision with `make release VERSION=0.1.0`, then validate the stable draft and new TLS tests on hosted Go 1.27.0 before publication. Preserve the published prerelease and its tag/assets. Stable `0.1.0` has not been tagged or published.
+
 ## Draft-release workflow
 
 [Draft release](../.github/workflows/release.yml) runs for pushed `v*` tags. It validates the tag, requires nonempty notes beneath the exact `## [<version>]` heading in [CHANGELOG.md](../CHANGELOG.md), runs `make release`, and creates a GitHub draft with both archives and checksums. A prerelease version produces a prerelease draft. Missing notes or failed validation stop before any draft is created. Existing releases are not overwritten.
