@@ -18,6 +18,13 @@ const usage = `Usage: yoinkdl <command>
 Commands:
   download <url> [options]  Download an HTTP(S) file
   inspect <output>          Show saved transfer metadata
+  daemon <start|stop|set>    Manage the foreground Linux daemon
+  add <url> [options]       Add a persistent download job
+  list [--json]             List queued and retained jobs
+  pause <id>                Pause a job
+  resume <id>               Queue a paused or failed job
+  cancel <id>               Cancel a job while retaining files
+  forget <id>               Remove an idle job record only
   version                   Show the installed version
   help                      Show this help
 
@@ -60,17 +67,24 @@ func Run(ctx context.Context, args []string, out, errOut io.Writer, version stri
 
 	switch args[0] {
 	case "help", "--help", "-h":
+		if len(args) == 3 && args[1] == "daemon" {
+			return daemonCommand(ctx, []string{args[2], "--help"}, out, errOut)
+		}
 		if len(args) == 2 {
 			switch args[1] {
 			case "download":
 				return reply(ctx, out, errOut, downloadUsage)
 			case "inspect":
 				return reply(ctx, out, errOut, inspectUsage)
+			case "daemon":
+				return reply(ctx, out, errOut, daemonUsage)
+			case "add", "list", "pause", "resume", "cancel", "forget":
+				return reply(ctx, out, errOut, queueUsage(args[1]))
 			}
 		}
 
 		if len(args) != 1 {
-			return diagnostic(ctx, errOut, "usage: yoinkdl help [download|inspect]", 2)
+			return diagnostic(ctx, errOut, "usage: yoinkdl help [command]", 2)
 		}
 
 		return reply(ctx, out, errOut, usage)
@@ -87,6 +101,15 @@ func Run(ctx context.Context, args []string, out, errOut io.Writer, version stri
 
 	case "inspect":
 		return inspect(ctx, args[1:], out, errOut)
+
+	case "daemon":
+		return daemonCommand(ctx, args[1:], out, errOut)
+
+	case "add":
+		return add(ctx, args[1:], out, errOut)
+
+	case "list", "pause", "resume", "cancel", "forget":
+		return queueCommand(ctx, args[0], args[1:], out, errOut)
 
 	default:
 		return diagnostic(ctx, errOut, "unknown command; run yoinkdl help", 2)
@@ -115,15 +138,21 @@ type outputOptions struct {
 }
 
 func parseDownload(args []string) (transfer.Request, outputOptions, error) {
+	return parseTransfer(args, "download")
+}
+
+func parseTransfer(args []string, name string) (transfer.Request, outputOptions, error) {
 	var req transfer.Request
 	var opts outputOptions
-	fs := flag.NewFlagSet("download", flag.ContinueOnError)
+	fs := flag.NewFlagSet(name, flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	fs.StringVar(&req.Output, "output", "", "output path")
 	fs.StringVar(&req.Output, "o", "", "output path")
-	fs.BoolVar(&req.Overwrite, "overwrite", false, "replace completed output")
 	fs.BoolVar(&req.Resume, "resume", false, "require existing transfer state")
-	fs.BoolVar(&opts.quiet, "quiet", false, "suppress progress")
+	if name == "download" {
+		fs.BoolVar(&req.Overwrite, "overwrite", false, "replace completed output")
+		fs.BoolVar(&opts.quiet, "quiet", false, "suppress progress")
+	}
 	fs.BoolVar(&opts.json, "json", false, "JSON progress and result")
 	fs.DurationVar(&req.Timeout, "timeout", transfer.DefaultTimeout, "network inactivity timeout")
 
@@ -169,7 +198,7 @@ func parseDownload(args []string) (transfer.Request, outputOptions, error) {
 	}
 
 	if len(urls) != 1 {
-		return req, opts, errors.New("download requires exactly one HTTP(S) URL")
+		return req, opts, fmt.Errorf("%s requires exactly one HTTP(S) URL", name)
 	}
 
 	if req.Timeout <= 0 {

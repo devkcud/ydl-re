@@ -90,6 +90,8 @@ Use short, clear names, explicit visibility where supported, constants for fixed
 
 Keep the transfer/storage packages independent of terminal rendering. Use deterministic fixtures and local servers for correctness, including interruption, malformed responses, resource conflicts, and failed publication.
 
+CLI option parsing uses `internal/cli/flags.go` to accept interspersed options while reporting only recognized option names on bad values. Reuse that scanner for new commands so argument diagnostics cannot echo source credentials or query tokens.
+
 ## Documentation maintenance
 
 Keep current commands in [CLI](cli.md), defaults in [configuration](configuration.md), and file guarantees in [resume and storage](resume-and-storage.md). Mark future interfaces as planned and update [open decisions](decisions.md) when choices are adopted.
@@ -101,5 +103,3 @@ Check local links, anchors, code fences, structured examples, shell syntax, and 
 Milestone D is complete for stable `0.1.0` on Linux/amd64 under MPL 2.0. The [release guide](releases.md) defines version/tag grammar, source/checksum assets, changelog requirements, draft creation, and installation. Hosted CI, packaging, public downloads, unchanged assets, and HTTP/HTTPS installation checks passed. Native qualification beyond Linux/amd64 remains open. Validate every claimed platform before distribution.
 
 Preserve the published `v0.1.0` tag and assets. Future releases need fresh evidence for changed behavior under the [acceptance criteria](roadmap.md#v010-acceptance), including parallel transfers, retries, and every claimed native platform.
-
-CLI option parsing uses `internal/cli/flags.go` to accept interspersed options while reporting only recognized option names on bad values. Reuse that scanner for new commands so argument diagnostics cannot echo source credentials or query tokens.

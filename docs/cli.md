@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A, B, and C plus the Milestone D rate cap and JSON output implement the commands below. Examples use the built executable from the repository root. See [getting started](getting-started.md) to build it.
+The repository build implements the standalone commands and the Linux v0.2 development daemon/queue commands below. Published `0.1.0` binaries retain the standalone command set. Examples use the built executable from the repository root. See [getting started](getting-started.md) to build it.
 
 ## Commands
 
@@ -14,6 +14,10 @@ Milestones A, B, and C plus the Milestone D rate cap and JSON output implement t
 | `yoinkdl help` | Show command help |
 | `yoinkdl help download` | Show download help |
 | `yoinkdl help inspect` | Show inspection help |
+| `yoinkdl daemon <start|stop|set>` | Manage the foreground Linux daemon |
+| `yoinkdl add <url> [options]` | Add an immutable persistent job |
+| `yoinkdl list [--json]` | Poll safe queue and daemon views |
+| `yoinkdl pause/resume/cancel/forget <id> [--json]` | Control a job or remove its idle record |
 
 No arguments, `-h`, and `--help` also show command help. The shorthand `yoinkdl <url>` is not supported.
 
@@ -194,34 +198,74 @@ Inspection does not contact the server, hash the partial file, acquire writer ow
 
 Successful transfers remove their manifests, so inspection is not a completed-download history command. Its human-readable layout is not a JSON/event API.
 
+## Daemon and queue
+
+These Linux commands are implemented in the repository build for v0.2 development. They are not part of published `0.1.0`. The [daemon contract](daemon-and-queue.md) describes private paths, source retention, durability, and IPC ownership. Start is explicit and stays in the foreground; no client command starts a daemon automatically.
+
+| Command | Behavior |
+|---|---|
+| `daemon start [--parallel N] [--limit R]` | Own the queue/socket in the foreground; report selected paths and persistent runtime fallback |
+| `daemon stop [--json]` | Acknowledge durable shutdown intent; drain active transfers |
+| `daemon set --parallel N [--json]` | Persist whole-transfer concurrency (`1..8`, initially `1`) and apply it live |
+| `add <url> [options]` | Persist a normalized request and return its generated 32-character lowercase hex job ID |
+| `list [--json]` | Poll daemon policy and safe job/progress views without URLs or hashes |
+| `pause <id> [--json]` | Pause waiting work or durably request active cancellation/checkpointing |
+| `resume <id> [--json]` | Put a paused/interrupted/failed job at the FIFO tail, preserving checkpoint/identity checks |
+| `cancel <id> [--json]` | Stop future work, retain files, and clear terminal source data |
+| `forget <id> [--json]` | Remove a record without an active slot and free capacity/reservation; preserve all files |
+
+Use `help daemon`, `help daemon start`, or `<command> --help` for syntax. Client commands accept `--json`; foreground `daemon start` reports text only. Start's optional parallel override replaces the durable setting; omission preserves it. Its shared limit defaults to unlimited on every start and is fixed until restart. Job worker limits and whole-job parallelism are independent; lowering parallelism lets active jobs finish before admitting more.
+
+Add accepts `--output`/`-o`, `--connections`/`-c`, `--retries`, `--timeout`, `--limit`, `--resume`, and `--json`, with the same validation/defaults as download. There is no overwrite or quiet option. The client resolves an explicit relative output, or the derived URL filename, against its own working directory before submission. Output parents must exist when the transfer runs. Full source URLs/query tokens persist privately, as selected by the owner; all displayed records omit them.
+
+Start the owner in one terminal:
+
+```sh
+./bin/yoinkdl daemon start --parallel 2 --limit 5MB/s
+```
+
+Use another terminal with the same XDG state/runtime environment:
+
+```sh
+id=$(./bin/yoinkdl add 'https://example.org/archive.zip' -o ./archive.zip)
+./bin/yoinkdl list --json
+./bin/yoinkdl pause "$id"
+./bin/yoinkdl resume "$id"
+./bin/yoinkdl daemon set --parallel 1
+./bin/yoinkdl daemon stop
+```
+
+Text add prints only the job ID. List prints daemon policy followed by one escaped row per retained job: ID, state, bytes/total, workers, publication, output, and any safe error. Unobserved progress/publication is `unknown`. Other controls print the acknowledged job state or daemon policy. Acknowledgment confirms a durable operation, not completed downloading or instantaneous cleanup.
+
+### Queue JSON results
+
+Each client command with `--json` writes one newline-terminated result object. This schema is separate from download progress/results, transfer manifests, and IPC framing. No progress stream is emitted.
+
+| Field | Meaning |
+|---|---|
+| `schema_version` | Integer `1` |
+| `command` | `add`, `list`, `pause`, `resume`, `cancel`, `forget`, `daemon stop`, or `daemon set` |
+| `job_id` | Locally generated/submitted or requested job ID, otherwise `null`; an ID alone does not prove acceptance |
+| `exit_code` | `0` for a successful reply, `1` for failure, `2` for locally refused oversized/invalid queue requests, or `130` for interruption |
+| `result` | The safe [operation-specific result](daemon-and-queue.md#local-control-protocol), or `null` on failure |
+| `error` | `null` on success, otherwise fixed `code` and `message` strings |
+
+Example empty list:
+
+```json
+{"schema_version":1,"command":"list","job_id":null,"exit_code":0,"result":{"daemon":{"state":"running","parallel":1,"active":0,"limit_bps":0},"jobs":[]},"error":null}
+```
+
+Example unacknowledged add:
+
+```json
+{"schema_version":1,"command":"add","job_id":"00112233445566778899aabbccddeeff","exit_code":1,"result":null,"error":{"code":"outcome_unknown","message":"operation outcome is unknown; run yoinkdl list before retrying"}}
+```
+
+Inspect `error.code` for `outcome_unknown`; the operation may have committed. The submitted ID remains in JSON or text diagnostics even if a reply is lost or names the wrong job. Calls never retry automatically. Syntax/normalization errors before submission still use stderr and exit `2`, including when `--json` was requested. Runtime failures use the selected text/JSON format. Text failures go to stderr.
+
+Output uses the existing bounded writer. Broken/blocked client output can fail or be interrupted without canceling durable jobs. Failed acknowledgment output reports the job ID on stderr when possible; check the process exit status as well as any JSON, since a partial or already-written record cannot communicate a later output failure. Terminal error reports have a separate bounded reporting context. Failed startup output closes ownership before any job is admitted; already-committed recovery/settings remain durable. Clean daemon stop exits `0`; SIGINT/SIGTERM joins/checkpoints work and exits `130`; persistence/ownership failures exit `1`.
+
 ## Planned additions
 
-These interfaces remain proposed and are rejected by the current CLI:
-
-| Addition | Intended milestone/release |
-|---|---|
-| Configuration files | Optional format still to implement and specify |
-| Queue/daemon commands | v0.2 |
-| TUI, profiles, history, optional hooks | v0.3 |
-
-The JSON event schema is separate from manifest versions 1 and 2, documented in [storage](resume-and-storage.md). See [open decisions](decisions.md) before implementing later additions.
-
-### Planned v0.2 controls
-
-The [daemon/queue contract](daemon-and-queue.md) is accepted but these commands are not implemented or accepted by the current CLI:
-
-| Planned command | Behavior |
-|---|---|
-| `daemon start [--parallel N] [--limit R]` | Foreground owner of the queue and local socket; optional durable concurrency override and process-lifetime shared body cap |
-| `daemon stop` | Acknowledge durable shutdown intent; stop admission and checkpoint/join active work |
-| `daemon set --parallel N` | Persist the whole-transfer admission limit (`1..8`, initial default `1`) and apply it live |
-| `add <url> [options]` | Persist an immutable normalized request and return its job ID; no overwrite option |
-| `list [--json]` | Poll queue policy and safe job/progress views, omitting URLs |
-| `pause <id>` | Pause waiting work or durably request active cancellation/checkpointing |
-| `resume <id>` | Put a paused/interrupted/failed job at the FIFO tail; never bypass checkpoint/identity checks |
-| `cancel <id>` | Stop future work, retaining files and clearing terminal source data |
-| `forget <id>` | Remove a record without an active slot and free its reservation/capacity; never delete output or sidecars |
-
-`--parallel 1` means one download at a time; `--parallel 4` allows four downloads. Each download can independently use `--connections 4` for up to four range workers. Lowering parallelism lets existing jobs finish and gates new admissions; explicitly pause extras for an immediate reduction.
-
-Add accepts the current output, connections, retries, timeout, per-transfer limit, and require-resume options; output paths resolve in the invoking client's directory. No command implicitly starts a daemon. Successful pause/cancel/stop replies acknowledge durable intent, not instantaneous worker/process termination. If a control reply is lost, the operation may have committed; inspect the queue rather than blindly repeating a mutation. A broken list/acknowledgment output does not cancel durable jobs.
+Configuration loading, a TUI, profiles, history, and optional hooks remain unimplemented. No automatic startup, background spawning, or service installation is required. See [open decisions](decisions.md) and the [roadmap](roadmap.md) before adding later interfaces.
