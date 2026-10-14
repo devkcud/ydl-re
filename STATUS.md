@@ -6,9 +6,11 @@ Updated: October 13, 2026 (America/Sao_Paulo).
 
 [YoinkDL 0.1.0](https://github.com/devkcud/ydl-re/releases/tag/v0.1.0) retains its stable Linux/amd64 release evidence. Milestones A through D and v0.2 E1 through E4 are complete locally.
 
-The internal Linux daemon now owns private state/runtime paths, validates bounded local IPC, dispatches queue controls, composes shared bandwidth, and drains transfers and clients before releasing ownership. E5 CLI adapters are next. Daemon/queue commands and automatic startup remain unimplemented; E6 full daemon process/crash qualification remains pending.
+The internal Linux daemon now owns private state/runtime paths, validates bounded local IPC, dispatches queue controls, composes shared bandwidth, and drains transfers and clients before releasing ownership. E5 is in progress: common redacted option parsing is extracted; daemon/queue adapters are next. Daemon/queue commands and automatic startup remain unimplemented; E6 full daemon process/crash qualification remains pending.
 
 ## Handoff
+
+- `internal/cli/flags.go` extracts the existing interspersed flag scanner. It applies only registered options, preserves help/terminator behavior, and reports invalid recognized flag names without reflecting values. `parseDownload` uses it with unchanged defaults and validation; new queue/daemon parsers will reuse it.
 
 - `internal/daemon/paths.go`, `paths_linux.go`, and `paths_other.go` expose pure `Resolve()` with normalized state/runtime paths and `Fallback`. Relative/invalid XDG values are ignored; unsafe configured runtime bases are refused. Overlong socket paths fail before creation. Non-Linux resolution, construction, and client calls return `ErrUnsupported`.
 - `ownership_linux.go` reuses `queue.Open`, creates private runtime directories, and holds a separate persistent nonblocking lock. Socket probing/binding uses `/proc/self/fd` anchors; initial chmod uses an O_PATH socket handle. Linux `/proc/self/fd` is required. Stale removal requires both locks, socket type/owner/identity checks, and connection-refused. Cleanup preserves foreign or replaced artifacts. Peer checks use kernel effective-user credentials in both directions.
@@ -22,12 +24,9 @@ The internal Linux daemon now owns private state/runtime paths, validates bounde
 
 ## Validation
 
-- `go test ./internal/daemon -run TestProtocol -count=1` and `go test ./internal/daemon -count=1` passed. The initial ownership run was blocked by sandbox Unix-socket `setsockopt: operation not permitted`; authorized reruns passed. Initial protocol fixtures had a 34-character ID; correcting them to the required 32 characters resolved those fixture failures without weakening validation.
-- `make check` passed after ownership, then after full integration and the final Close refinement: formatting, vet, ordinary/race tests, and build. The final gate reran daemon and packaging suites; unchanged CLI/process/queue/transfer/storage/range suites reused matching cached results. Review found and removed Close's reliance on the control mailbox; concurrent Close and parent-context cleanup have regression coverage.
-- `CGO_ENABLED=0 go test ./internal/daemon -count=1` passed again after the final shutdown change. Native evidence is Linux/amd64, Go `1.27.2-X:nodwarf5`. Ownership tests include simulated foreign file owners and real kernel peer-UID matching/refusal; no separate foreign-user process was required.
-- The CI six-target compilation recipe passed: CGO-disabled `go build -p 2 -trimpath` for the CLI and `go test -p 2 -c` for every test package on Linux/macOS/Windows amd64/arm64. Outputs: `/tmp/yoinkdl-e4-compile.daevpzxu`. After the final Linux-only shutdown refinement, native tests and `CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go test -p 2 -c -o /tmp/yoinkdl-e4-compile.daevpzxu/linux-arm64/tests/daemon.test ./internal/daemon` passed. Foreign binaries were not run.
-- Fixtures cover both locks, stale/live/unsafe/replaced sockets, strict/private IPC, lost replies and mutation uncertainty, pipelining, sixteen-client admission, real read/write deadlines, progress despite blocked clients, persistence/ownership failure, and cleanup ordering. Real HTTP through IPC verifies checkpoint pause/resume, conditional requests, exact publication, retained shared cap, and terminal source-token removal.
-- `python3 /tmp/yoinkdl-doccheck.py` passed 25 Markdown files, 336 local links/anchors, 32 shell blocks, six JSON and two TOML examples, fences, and whitespace. It caught a draft CLI anchor typo, which was corrected. `git diff --check` passed, including the new files once staged. Daemon CLI/process/crash gates were not run because E5/E6 are not implemented.
+- `go test ./internal/cli -run 'Test(Commands|DownloadOptions|InvalidArguments|ConnectionOptions|RetryOptions|RateOptions|InvalidOptions)' -count=1` passed outside the sandbox, covering existing parser behavior, redaction, option ordering, and HTTP transfer fixtures.
+- `make check` passed formatting, vet, ordinary/race tests, and build for the parser extraction. Existing E1 through E4 evidence remains in [testing](docs/testing.md); E5 CLI behavior is not yet implemented.
+- `python3 /tmp/yoinkdl-doccheck.py` passed 25 Markdown files, 337 local links/anchors, 32 shell blocks, six JSON and two TOML examples, fences, and whitespace. `git diff --check` passed.
 
 ## Next steps
 
@@ -37,4 +36,4 @@ The internal Linux daemon now owns private state/runtime paths, validates bounde
 
 ## Open decisions and blockers
 
-No E4 blocker remains. R03/R04, Linux paths, private URL persistence, and concurrency preferences are settled. E5/E6 remain unfinished. CLI privacy/rendering, full daemon process/crash/publication-boundary qualification, native platforms beyond Linux/amd64, and real power-loss durability remain unverified. Signing and package-manager distribution remain separate work.
+No implementation blocker remains. R03/R04, Linux paths, private URL persistence, and concurrency preferences are settled. E5/E6 remain unfinished. CLI privacy/rendering, full daemon process/crash/publication-boundary qualification, native platforms beyond Linux/amd64, and real power-loss durability remain unverified. Signing and package-manager distribution remain separate work.

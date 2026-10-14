@@ -163,55 +163,9 @@ func parseDownload(args []string) (transfer.Request, outputOptions, error) {
 		return nil
 	})
 
-	var options []struct{ name, value string }
-	var urls []string
-
-	for i := 0; i < len(args); i++ {
-		arg := args[i]
-
-		if arg == "--" {
-			urls = append(urls, args[i+1:]...)
-			break
-		}
-
-		if arg == "-h" || arg == "--help" {
-			return req, opts, flag.ErrHelp
-		}
-
-		if !strings.HasPrefix(arg, "-") || arg == "-" {
-			urls = append(urls, arg)
-			continue
-		}
-
-		name, value, inline := strings.Cut(strings.TrimPrefix(strings.TrimPrefix(arg, "-"), "-"), "=")
-		option := fs.Lookup(name)
-
-		if option == nil {
-			return req, opts, errors.New("unknown option; run yoinkdl download --help")
-		}
-
-		boolean, ok := option.Value.(interface{ IsBoolFlag() bool })
-
-		if !inline {
-			value = "true"
-			if !ok || !boolean.IsBoolFlag() {
-				i++
-
-				if i >= len(args) {
-					return req, opts, fmt.Errorf("option --%s requires a value", name)
-				}
-
-				value = args[i]
-			}
-		}
-
-		options = append(options, struct{ name, value string }{name, value})
-	}
-
-	for _, option := range options {
-		if err := fs.Set(option.name, option.value); err != nil {
-			return req, opts, fmt.Errorf("invalid value for --%s; run yoinkdl download --help", option.name)
-		}
+	urls, err := parseFlags(fs, args)
+	if err != nil {
+		return req, opts, err
 	}
 
 	if len(urls) != 1 {
