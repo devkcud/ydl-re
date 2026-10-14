@@ -10,9 +10,9 @@ As of October 13, 2026, stable `0.1.0` is published for Linux/amd64. The transfe
 
 Use the root [README](../README.md) for an introduction, [STATUS.md](../STATUS.md) for the current handoff and next steps, and [AGENTS.md](../AGENTS.md) for implementation instructions.
 
-The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, aggregate rate caps, JSON events, resume, and local inspection. Milestones A through D are complete for the initial Linux/amd64 scope, with a local [security review](security.md), [platform evidence](platforms.md), and verified [stable public downloads and installation](releases.md#stable-publication). MPL 2.0, GitHub Releases, and public issue reporting remain the policies. Other native platforms, daemon CLI adapters, and full daemon process qualification remain future work.
+The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, aggregate rate caps, JSON events, resume, and local inspection. Milestones A through D are complete for the initial Linux/amd64 scope, with a local [security review](security.md), [platform evidence](platforms.md), and verified [stable public downloads and installation](releases.md#stable-publication). MPL 2.0, GitHub Releases, and public issue reporting remain the policies. Other native platforms and final v0.2 crash/release qualification remain future work.
 
-These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions. The [v0.2 daemon/queue contract](daemon-and-queue.md) and [ordered plan](roadmap.md#v02-implementation-order) are accepted. E1 through E4 are complete locally: private storage, queue controls/concurrency/recovery, shared bandwidth, and the Linux IPC runtime. E5 CLI adapters are next; daemon/queue commands remain unimplemented.
+These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions. The [v0.2 daemon/queue contract](daemon-and-queue.md) and [ordered plan](roadmap.md#v02-implementation-order) are accepted. E1 through E5 are complete locally: private storage, queue controls/concurrency/recovery, shared bandwidth, Linux IPC, and the daemon/queue CLI. The commands are available in repository builds for v0.2 development; published `0.1.0` remains standalone. E6 crash and release qualification is next.
 
 ## Start here
 
@@ -34,7 +34,7 @@ These pages distinguish the implementation from the original design. The [decisi
 | [HTTP handling](http.md) | Probing, ranges, validators, fallback, redirects |
 | [Resume and storage](resume-and-storage.md) | Sidecars, manifest, checkpoints, locks, crash recovery |
 | [Concurrency and retries](concurrency.md) | Range planning, workers, backoff, rate limits, progress |
-| [Daemon and queue](daemon-and-queue.md) | Internal queue storage, scheduling, shared budgets, and Linux IPC/lifecycle; CLI pending |
+| [Daemon and queue](daemon-and-queue.md) | Linux daemon/queue commands, private storage/IPC, scheduling, shared budgets, and lifecycle |
 | [Security](security.md) | File safety, credentials, network trust, future daemon risks |
 | [Development](development.md) | Current checkout, proposed build workflow, coding conventions |
 | [Testing](testing.md) | Deterministic tests, fault cases, release evidence |

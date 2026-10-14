@@ -67,6 +67,28 @@ Require an existing compatible checkpoint explicitly:
 
 Partial reuse requires a known size, identity encoding, and a matching strong ETag. Changed URLs/versions, corrupt state, and legacy partials without manifests are refused without destructive restart. A small `.yoinkdl.lock` file remains after success; its presence alone does not mean a process is active.
 
+## Linux queue (v0.2 development)
+
+Repository builds include explicit daemon and queue commands. Published `0.1.0` remains standalone; final v0.2 crash/release qualification is pending.
+
+Run the owner in one terminal:
+
+```sh
+./bin/yoinkdl daemon start --parallel 2 --limit 5MB/s
+```
+
+In another terminal with the same XDG environment:
+
+```sh
+id=$(./bin/yoinkdl add 'https://example.org/archive.zip' -o ./archive.zip)
+./bin/yoinkdl list --json
+./bin/yoinkdl pause "$id"
+./bin/yoinkdl resume "$id"
+./bin/yoinkdl daemon stop
+```
+
+Clients never start a daemon implicitly. Add returns a job ID after durable admission; output failures do not cancel accepted jobs. A lost acknowledgment reports an unknown outcome and retains the submitted ID. See [commands and JSON results](docs/cli.md#daemon-and-queue) for controls, source privacy, and output behavior.
+
 ## Platforms
 
 Linux/amd64 has local runtime evidence on ext4 and tmpfs, including race tests on ext4, plus passing hosted Ubuntu 24.04.5 checks with Go 1.27.0. CLI builds and test compilation pass for Linux, macOS, and Windows on amd64/arm64. Linux/arm64 and macOS still need native qualification; Windows storage remains explicitly unsupported. See the [platform matrix and reproduction commands](docs/platforms.md).
@@ -82,7 +104,7 @@ The output filesystem must support advisory locking, hard links, and directory s
 | [CLI reference](docs/cli.md) | Implemented commands and planned additions |
 | [Configuration](docs/configuration.md) | Current defaults and proposed configuration |
 | [Architecture](docs/architecture.md) | Current packages and target design |
-| [Daemon and queue](docs/daemon-and-queue.md) | Internal queue and Linux IPC runtime; daemon CLI pending |
+| [Daemon and queue](docs/daemon-and-queue.md) | Linux v0.2 development daemon, queue commands, private IPC, and shared caps |
 | [Resume and storage](docs/resume-and-storage.md) | File safety, checkpoints, and recovery |
 | [Development](docs/development.md) | Make targets and contributor workflow |
 | [Testing](docs/testing.md) | Current evidence and remaining scenarios |

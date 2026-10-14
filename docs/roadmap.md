@@ -73,7 +73,7 @@ The [testing matrix](testing.md#required-scenarios) expands these into concrete 
 
 ## v0.2 — Daemon and persistent queue
 
-**Status:** E1 through E4 are complete locally: private atomic queue storage, recovery, FIFO scheduling, durable controls, live concurrency, safe views, composed shared/per-transfer bandwidth, and Linux private IPC with draining shutdown. E5 CLI wiring is next. [Daemon and persistent queue](daemon-and-queue.md) owns R04: foreground Linux daemon, private local IPC, durable queue/source records, conservative recovery, and configurable whole-transfer concurrency. [Daemon-wide rate caps](concurrency.md#daemon-wide-rate-cap) owns R03. Neither changes the released standalone CLI or its transfer manifests.
+**Status:** E1 through E5 are complete locally: private storage/recovery, FIFO controls and concurrency, composed bandwidth, Linux IPC/lifecycle, and explicit daemon/queue CLI commands with safe text/JSON results. E6 forced-death/publication-boundary and final release qualification is next. [Daemon and persistent queue](daemon-and-queue.md) owns R04: foreground Linux daemon, private local IPC, durable queue/source records, conservative recovery, and configurable whole-transfer concurrency. [Daemon-wide rate caps](concurrency.md#daemon-wide-rate-cap) owns R03. Neither changes the released standalone CLI or its transfer manifests.
 
 Queue concurrency defaults to one transfer and persists across restarts. `daemon set --parallel N` selects `1..8` live; reductions wait for active work to finish before admitting more. The owner's full-URL persistence choice uses private queue files and redacted public views. Foreground startup is explicit, and no network service, database, TOML loader, TUI, or automatic daemon launch is required.
 
@@ -90,7 +90,7 @@ Pause/cancel use context cancellation and wait for the engine to release writers
 | E5 | CLI daemon/queue adapters and safe text/JSON views | Complete add/list/control path through real transfers; caller-relative output resolution; explicit startup; no source leakage; ambiguous acknowledgments; existing direct commands remain independent |
 | E6 | Process-crash qualification, release docs, and platform gates | Real kill/restart and publication-boundary cases; queue-full/forget recovery; concurrency and shared-rate process tests; native Linux full/race/CGO-disabled gates and six-target compilation |
 
-Keep each slice runnable and locally committed with its tests and current STATUS handoff. Use a narrow callable transfer runner for coordinator tests and retain one `transfer.Budget.Download` runner for the daemon lifetime. Do not add a generic job framework or duplicate the downloader. E5 is the immediate next implementation task; user-visible daemon commands should be documented as implemented only after their complete path exists.
+Keep each slice runnable and locally committed with its tests and current STATUS handoff. Use a narrow callable transfer runner for coordinator tests and retain one `transfer.Budget.Download` runner for the daemon lifetime. Do not add a generic job framework or duplicate the downloader. E6 is the immediate next task. The implemented commands are available in repository builds; publishing v0.2 requires the remaining process/crash and release evidence.
 
 The [v0.2 validation matrix](testing.md#planned-v02-validation) makes the failure paths concrete. A daemon release requires all slices and evidence, not merely a listener or a queue file.
 

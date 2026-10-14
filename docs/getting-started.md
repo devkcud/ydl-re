@@ -127,3 +127,7 @@ Configuration files are not loaded. Automatic sequential body restart is not imp
 The engine asks for identity encoding and saves the exact bytes the server returns. If the server still applies content encoding, those bytes are preserved without transparent decoding. Unknown-length completion can establish clean HTTP completion, not the publisher's intended size without additional metadata.
 
 See the [CLI reference](cli.md), [troubleshooting](troubleshooting.md), and [roadmap](roadmap.md).
+
+## Use the Linux queue
+
+The repository build also provides [v0.2 development queue commands](cli.md#daemon-and-queue), beyond published `0.1.0`. Run `yoinkdl daemon start` explicitly in one terminal, then use add/list/control commands from another terminal with the same XDG environment. Add resolves outputs in the client's directory and prints a job ID; successful admission does not mean the file has completed. A lost reply retains that ID for inspection, and broken client output never cancels durable jobs. Final v0.2 crash/release qualification remains pending.

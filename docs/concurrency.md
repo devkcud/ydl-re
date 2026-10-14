@@ -72,9 +72,9 @@ The v0.1 cap does not coordinate separate CLI processes. The following v0.2 cont
 
 ## Daemon-wide rate cap
 
-The engine implements optional shared budgets; daemon startup and CLI wiring remain pending. `transfer.NewBudget(rate)` creates a concurrency-safe handle at a fixed byte rate; zero returns a nil unlimited handle, and negative rates are refused. Pass `budget.Download` as the queue runner and retain the same pointer for the owner's entire lifetime. Do not copy an initialized budget. Nil and zero-value handles impose no shared cap, while each request's private cap still applies. The standalone `transfer.Download` uses that same path with no shared cap.
+The engine implements optional shared budgets, used by the Linux development daemon CLI. `transfer.NewBudget(rate)` creates a concurrency-safe handle at a fixed byte rate; zero returns a nil unlimited handle, and negative rates are refused. Pass `budget.Download` as the queue runner and retain the same pointer for the owner's entire lifetime. Do not copy an initialized budget. Nil and zero-value handles impose no shared cap, while each request's private cap still applies. The standalone `transfer.Download` uses that same path with no shared cap.
 
-The planned `daemon start --limit R` creates one such budget for that process; omission means unlimited. Use the existing positive-integer rate grammar and bounds. The cap is fixed until restart and is not a persistent queue setting. `daemon set --parallel N` changes admissions without replacing or refilling the budget.
+`daemon start --limit R` creates one such budget for that process; omission means unlimited. Use the existing positive-integer rate grammar and bounds. The cap is fixed until restart and is not a persistent queue setting. `daemon set --parallel N` changes admissions without replacing or refilling the budget.
 
 Each job retains its own optional `add --limit` setting. A read must satisfy both its transfer budget and the daemon budget; setting either to unlimited does not bypass the other. Reuse the transfer package's limiter/body integration through an optional shared budget handle; do not import daemon code into the engine or add a second HTTP implementation.
 
@@ -96,7 +96,7 @@ Propagate `context.Context` from the signal handler through requests, workers, b
 4. Persist only safely completed progress.
 5. Close resources and report interruption with the state-preservation outcome.
 
-A later daemon pause should use the same cancellation/checkpoint mechanism. Do not implement pause by arbitrarily freezing worker goroutines.
+Daemon pause uses the same cancellation/checkpoint mechanism and joins active work before releasing its slot. It does not freeze worker goroutines.
 
 ## Progress accounting
 

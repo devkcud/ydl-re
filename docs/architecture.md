@@ -2,14 +2,14 @@
 
 [Documentation index](README.md)
 
-Milestones A through D and v0.2 E1 through E4 implement the packages below. The diagrams and proposed layout describe the larger target architecture.
+Milestones A through D and v0.2 E1 through E5 implement the packages below. The diagrams and proposed layout describe the larger target architecture.
 
 ## Current packages
 
 | Package | Implemented responsibility |
 |---|---|
 | `cmd/yoinkdl` | Entry point, build version, SIGINT/SIGTERM cancellation |
-| `internal/cli` | Standard-library parsing, inspection, stdout/stderr, text progress, versioned JSON records and output backpressure |
+| `internal/cli` | Standalone and daemon/queue parsing, inspection, safe text/JSON results, stdout/stderr, progress, and output backpressure |
 | `internal/transfer` | Sequential/ranged HTTP, probing, immutable identity, response validation, retries, timeouts, composed transfer/shared rate budgets, byte checks, snapshots |
 | `internal/ranges` | Bounded fixed-chunk planning, validated coverage, missing work, HTTP endpoint conversion |
 | `internal/storage` | Stable OS locks, prefix/chunk manifests and checksums, durable checkpoints, preservation, publication recovery |
@@ -18,7 +18,9 @@ Milestones A through D and v0.2 E1 through E4 implement the packages below. The 
 
 `transfer.Download` is the current application entry point. Storage verifies local bytes before transfer validates remote identity; only then may it truncate uncertain tails. `storage.Inspect` reads metadata without acquiring writer ownership or contacting the server. No separate app, scheduler, configuration, or progress package is needed for this slice. Tests live beside the code, including interruption and forced-process-crash checks in `cmd/yoinkdl`.
 
-`transfer.Normalize` shares the engine's pure URL/option validation, defaults, and automatic filename rules with future queue callers. It removes fragments, owns the resolved retry value, preserves explicit output strings, and performs no file/network work. `Download` uses the same normalization internally; filesystem ownership and absolute output resolution still belong to their existing boundaries.
+`transfer.Normalize` shares the engine's pure URL/option validation, defaults, and automatic filename rules with queue callers. It removes fragments, owns the resolved retry value, preserves explicit output strings, and performs no file/network work. `Download` uses the same normalization internally; filesystem ownership and absolute output resolution still belong to their existing boundaries.
+
+`cli/daemon.go` prepares the foreground owner through `daemon.New`, writes the escaped startup notice, then calls `Run`. Failed startup output closes ownership before admission. `cli/queue.go` reuses transfer/flag validation, generates client job IDs, resolves absolute outputs in the client's directory, and sends one `daemon.Call`. `queue_output.go` prints safe text or one versioned JSON result, keeping submitted IDs and uncertain outcomes independent of acknowledgment-output failures. Client output never owns a job's cancellation context.
 
 `transfer.NewBudget` creates an optional shared body budget. Its `Download` method has the same signature as the standalone function and can serve directly as a queue runner. Each invocation creates its private request budget, while the receiver retains shared credit/debt across invocations. The HTTP body wrapper charges both before waiting until the later reservation; no queue types or shared-budget state enter transfer requests or manifests.
 
@@ -153,7 +155,7 @@ flowchart TD
     App --> Engine[Download engine]
 ```
 
-The [accepted v0.2 contract](daemon-and-queue.md) uses `internal/queue` for durable state and scheduling and `internal/daemon` for Linux local control/lifecycle. Both are implemented, including composed shared budgets; CLI adapters remain pending. Standalone `transfer.Download` and the retained `Budget.Download` runner share the same engine, pure validation, and body accounting. The engine never imports daemon or CLI code.
+The [accepted v0.2 contract](daemon-and-queue.md) uses `internal/queue` for durable state and scheduling and `internal/daemon` for Linux local control/lifecycle. Both are implemented, including composed shared budgets and CLI adapters. Standalone `transfer.Download` and the retained `Budget.Download` runner share the same engine, pure validation, and body accounting. The engine never imports daemon or CLI code.
 
 The queue coordinator serializes durable mutations and owns transfer contexts. Persist running intent before engine calls, and record outcomes after the engine joins workers and releases storage. Safe status records omit stored source URLs; progress is coalesced and never blocks the engine on a control client. Polling is sufficient for v0.2; TUI subscriptions remain later work.
 

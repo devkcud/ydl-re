@@ -96,13 +96,13 @@ The owner selected MPL 2.0 with no named copyright-holder notice, GitHub Release
 
 ## v0.2 decisions made
 
-R04 is settled by [Daemon and persistent queue](daemon-and-queue.md). Its private queue store, coordinator, and Linux IPC runtime are implemented; CLI wiring remains pending. Use a foreground Linux daemon, private pathname Unix IPC with kernel peer-UID checks, distinct state/runtime locks, and an atomic bounded JSON queue. Keep standalone downloads independent and the existing transfer engine authoritative for byte validation/publication.
+R04 is settled by [Daemon and persistent queue](daemon-and-queue.md). Its private queue store, coordinator, Linux IPC runtime, and CLI controls are implemented in the v0.2 development build. Use a foreground Linux daemon, private pathname Unix IPC with kernel peer-UID checks, distinct state/runtime locks, and an atomic bounded JSON queue. Keep standalone downloads independent and the existing transfer engine authoritative for byte validation/publication.
 
 The owner selected full URL/query-token storage in private local queue files and requested configurable concurrent downloads. The durable `parallel` setting defaults to `1`, accepts `1..8`, and can change live. It governs whole-job admission; per-download worker counts remain separate. Lowering it lets active jobs finish while withholding new work. Crash-interrupted jobs require explicit resume; no-overwrite queued transfers preserve ambiguous publication outcomes. Terminal records can be forgotten without deleting files.
 
 R03 is settled by [daemon-wide budgeting](concurrency.md#daemon-wide-rate-cap): one process-lifetime body budget shared across managed jobs, composed with each job's existing cap. Charge both before waiting, wait for all applicable reservations, preserve shared credit/debt across job lifecycle and concurrency changes, and retain existing burst/timeouts/accounting boundaries. `daemon start --limit` is fixed until restart; cross-process caps and dynamic rate changes are deferred.
 
-Linux XDG state/runtime selection is settled for the daemon; this does not implement a general configuration loader or qualify other native platforms. The [ordered implementation plan](roadmap.md#v02-implementation-order) and [validation matrix](testing.md#planned-v02-validation) are accepted. E1 through E4 are complete with local Linux tests; E5 and E6 remain pending.
+Linux XDG state/runtime selection is settled for the daemon; this does not implement a general configuration loader or qualify other native platforms. The [ordered implementation plan](roadmap.md#v02-implementation-order) and [validation matrix](testing.md#planned-v02-validation) are accepted. E1 through E5 are complete with local Linux tests; E6 final crash/release qualification remains pending.
 
 ## Already established direction
 

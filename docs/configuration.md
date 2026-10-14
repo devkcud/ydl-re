@@ -72,9 +72,9 @@ archive.zip.yoinkdl.lock
 
 That exception makes interrupted CLI transfers discoverable without a central service. Deleting the configuration folder must not be described as deleting every transfer artifact.
 
-## Planned daemon settings
+## Daemon settings
 
-The internal queue/runtime implements these v0.2 settings; the CLI commands shown below remain pending. No TOML loader is required. The daemon alone creates its private state/runtime roots; standalone commands retain the current no-config-directory behavior.
+The repository build implements these v0.2 daemon/queue settings and CLI commands. Published `0.1.0` remains standalone. No TOML loader is required. The daemon alone creates its private state/runtime roots; standalone commands retain the current no-config-directory behavior.
 
 Queue `parallel` is durable, defaults to `1`, and accepts `1..8`. One means sequential downloads; larger values admit concurrent transfers. It is independent of per-transfer `--connections`. An optional `daemon start --parallel N` overrides the saved setting; omission keeps it. `daemon set --parallel N` changes it live and acknowledges only after persistence. Reducing the limit does not stop current downloads; it gates new admissions until the active count fits.
 
