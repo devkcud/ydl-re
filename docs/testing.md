@@ -65,6 +65,10 @@ Milestones A, B, and C plus Milestone D rate, JSON, text-output, security regres
 | [Queue shared-budget integration](../internal/queue/budget_http_linux_test.go) | One retained budget across real pause/resume, failure/retry, cancellation, completion, subsequent jobs, and live concurrency increases/reductions; exact output and retained partial data |
 | [Daemon ownership](../internal/daemon/ownership_linux_test.go) | XDG/default/fallback paths, length bounds, both lock combinations, private modes, stale/live/unsafe/replaced sockets, changed roots/locks, simulated foreign artifact owners, and actual kernel peer credentials |
 | [Daemon protocol](../internal/daemon/protocol_test.go) | Every request/reply shape, nested duplicates/unknown/null fields, normalized transfer input, Unicode and size bounds, fixed redacted errors, and exact newline frame boundaries |
+| [Daemon lifecycle](../internal/daemon/server_linux_test.go) | Complete internal control path, retained settings/budget, safe views, lost add replies, pipelining refusal, stop acknowledgment before joining, failed-bind recovery retention, repeated Close, and context shutdown |
+| [Daemon client](../internal/daemon/client_linux_test.go) | No implicit startup/artifacts, mutation uncertainty after lost/malformed replies, cancellable IO, unsafe peer artifacts, state mismatch, malformed frame privacy, and no mutation on refusal |
+| [Daemon failures and bounds](../internal/daemon/failures_linux_test.go) | Persistence/ownership failure stops and joins without stale saves, sixteen accepted clients, progress despite stalled clients, and real read/write deadline cleanup |
+| [Daemon HTTP](../internal/daemon/http_linux_test.go) | Real IPC add/pause/resume, conditional checkpoints, composed shared cap, exact publication, and terminal source-token removal |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
@@ -81,6 +85,8 @@ Real disk exhaustion, broader sync/cleanup fault injection, power-loss durabilit
 The October 13 E1/E2 queue tests pass on Linux/amd64 with ordinary, race, and CGO-disabled execution. `make check` passes, and the CI compilation recipe builds the CLI and all test programs for Linux/macOS/Windows on amd64/arm64 with CGO disabled. Queue storage is Linux-only; foreign binaries were not run. Controlled runners prove the coordinator's lifecycle, bounds, durability, and failure ordering; the real HTTP test exercises the existing downloader through pause/resume and no-overwrite refusal. The CGO-disabled run required an environment allowing localhost sockets after the sandbox refused its listener. These checks do not establish daemon IPC/process lifecycle or real power-loss behavior.
 
 E3 passed focused controlled-clock and local HTTP checks, `make check`, and `CGO_ENABLED=0 go test ./internal/transfer ./internal/queue -count=1` on Linux/amd64. Four independent clients with four readers each satisfy private/shared allowances at minimum, rounded, and maximum rates. Canceled/error bytes retain both charges; combined waits use the later reservation. Real downloads cover probes, redirects, fallback, retries, and saved network bytes; ready recovery consumes no credit. A real queue retains the same cap across job lifecycle and concurrency changes. No daemon process or new foreign-target runtime qualification is implied.
+
+E4 passed `go test ./internal/daemon -count=1`, `make check`, and `CGO_ENABLED=0 go test ./internal/daemon -count=1` on Linux/amd64 with Go 1.27.2. The final gate covers concurrent Close and parent-context shutdown; Close uses an independent signal so a full control mailbox cannot prevent cleanup. Unix socket fixtures require execution outside the sandbox. The CI six-target CLI/test compilation recipe passed; after the final Linux shutdown refinement, native checks and Linux/arm64 daemon test compilation passed again. Foreign binaries were not executed. Source privacy is covered at the internal IPC boundary; CLI rendering, real daemon signals/forced death, and publication-boundary crash qualification remain E5/E6 work.
 
 ## Test layers
 
@@ -168,7 +174,7 @@ The [CI/release workflows](releases.md) passed local actionlint v1.7.12 checks a
 
 ## Planned v0.2 validation
 
-These are required checks for the [accepted daemon design](daemon-and-queue.md). E1 storage, E2 coordinator/controls, and E3 shared-budget tests are recorded above, including safe internal views. IPC/CLI privacy and full daemon process checks remain pending. The [delivery order](roadmap.md#v02-implementation-order) determines when each group becomes executable.
+These are required checks for the [accepted daemon design](daemon-and-queue.md). E1 storage, E2 coordinator/controls, E3 shared budgets, and E4 IPC/lifecycle tests are recorded above, including safe internal/IPC views. CLI privacy and full daemon process checks remain pending. The [delivery order](roadmap.md#v02-implementation-order) determines when each group becomes executable.
 
 | Group | Required evidence |
 |---|---|

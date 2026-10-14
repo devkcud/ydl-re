@@ -16,6 +16,7 @@ yoink-reborn/
 ├── docs/
 ├── internal/
 │   ├── cli/
+│   ├── daemon/
 │   ├── queue/
 │   ├── ranges/
 │   ├── storage/
@@ -83,7 +84,7 @@ Update the handoff after every implementation step, even when work is incomplete
 
 ## Code and package boundaries
 
-`cmd/yoinkdl` owns process signals and the entry point. `internal/cli` owns parsing, local inspection, stdout/stderr, and progress rendering. `internal/transfer` owns request/response identity, resume validation, transfer completion, and snapshots. `internal/ranges` owns chunk arithmetic and coverage. `internal/storage` owns stable locks, versioned manifest validation, prefix/chunk hashing, checkpoints, and publication recovery. `internal/queue` owns private queue storage, lifecycle transitions, FIFO dispatch, durable controls, safe views, and draining shutdown. Shared budgets and daemon wiring remain next.
+`cmd/yoinkdl` owns process signals and the entry point. `internal/cli` owns parsing, local inspection, stdout/stderr, and progress rendering. `internal/transfer` owns request/response identity, resume validation, transfer completion, and snapshots. `internal/ranges` owns chunk arithmetic and coverage. `internal/storage` owns stable locks, versioned manifest validation, prefix/chunk hashing, checkpoints, and publication recovery. `internal/queue` owns private queue storage, lifecycle transitions, FIFO dispatch, durable controls, safe views, and draining shutdown. `internal/daemon` owns Linux paths/private IPC, peer checks, bounded clients, safe replies, and lifecycle integration with one retained shared transfer budget. CLI daemon/queue adapters remain next.
 
 Use short, clear names, explicit visibility where supported, constants for fixed values, and blank lines between logical blocks. Go uses capitalization for visibility and package-level functions instead of class-level static methods. Avoid comments unless complex logic cannot be made clear in code.
 

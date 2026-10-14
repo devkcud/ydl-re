@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A through D and v0.2 E1 through E3 implement the packages below. The diagrams and proposed layout describe the larger target architecture.
+Milestones A through D and v0.2 E1 through E4 implement the packages below. The diagrams and proposed layout describe the larger target architecture.
 
 ## Current packages
 
@@ -14,7 +14,7 @@ Milestones A through D and v0.2 E1 through E3 implement the packages below. The 
 | `internal/ranges` | Bounded fixed-chunk planning, validated coverage, missing work, HTTP endpoint conversion |
 | `internal/storage` | Stable OS locks, prefix/chunk manifests and checksums, durable checkpoints, preservation, publication recovery |
 | `internal/queue` | Private atomic state, FIFO admission, durable controls, live concurrency, recovery, safe polling, and draining shutdown |
-| `internal/daemon` | Linux path selection, private runtime ownership, conservative socket creation/cleanup, and peer credentials; IPC/lifecycle wiring pending |
+| `internal/daemon` | Linux path/endpoint ownership, strict private IPC, peer checks, bounded clients, safe views, and joined runtime lifecycle |
 
 `transfer.Download` is the current application entry point. Storage verifies local bytes before transfer validates remote identity; only then may it truncate uncertain tails. `storage.Inspect` reads metadata without acquiring writer ownership or contacting the server. No separate app, scheduler, configuration, or progress package is needed for this slice. Tests live beside the code, including interruption and forced-process-crash checks in `cmd/yoinkdl`.
 
@@ -153,7 +153,7 @@ flowchart TD
     App --> Engine[Download engine]
 ```
 
-The [accepted v0.2 contract](daemon-and-queue.md) uses `internal/queue` for durable state and scheduling and plans `internal/daemon` for Linux local control/lifecycle. The queue coordinator and controls are implemented; shared budgeting, local IPC, and CLI adapters remain pending. Both front ends use `transfer.Download`; shared pure validation and budget handling belong to the transfer package. The engine never imports daemon or CLI code.
+The [accepted v0.2 contract](daemon-and-queue.md) uses `internal/queue` for durable state and scheduling and `internal/daemon` for Linux local control/lifecycle. Both are implemented, including composed shared budgets; CLI adapters remain pending. Standalone `transfer.Download` and the retained `Budget.Download` runner share the same engine, pure validation, and body accounting. The engine never imports daemon or CLI code.
 
 The queue coordinator serializes durable mutations and owns transfer contexts. Persist running intent before engine calls, and record outcomes after the engine joins workers and releases storage. Safe status records omit stored source URLs; progress is coalesced and never blocks the engine on a control client. Polling is sufficient for v0.2; TUI subscriptions remain later work.
 

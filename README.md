@@ -82,7 +82,7 @@ The output filesystem must support advisory locking, hard links, and directory s
 | [CLI reference](docs/cli.md) | Implemented commands and planned additions |
 | [Configuration](docs/configuration.md) | Current defaults and proposed configuration |
 | [Architecture](docs/architecture.md) | Current packages and target design |
-| [Daemon and queue](docs/daemon-and-queue.md) | Implemented internal queue storage, scheduling, and controls; daemon CLI pending |
+| [Daemon and queue](docs/daemon-and-queue.md) | Internal queue and Linux IPC runtime; daemon CLI pending |
 | [Resume and storage](docs/resume-and-storage.md) | File safety, checkpoints, and recovery |
 | [Development](docs/development.md) | Make targets and contributor workflow |
 | [Testing](docs/testing.md) | Current evidence and remaining scenarios |

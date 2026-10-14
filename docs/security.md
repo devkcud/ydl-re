@@ -48,9 +48,9 @@ Never execute downloaded files or scripts automatically. Automatic unpacking and
 
 Length and range checks establish transfer consistency under the protocol assumptions. They are not malware scanning, publisher authentication, or a user-supplied cryptographic checksum. User checksum verification is deferred; fixture hashes remain useful in tests.
 
-## Planned daemon and hooks
+## Daemon and planned hooks
 
-The [v0.2 daemon contract](daemon-and-queue.md) is accepted but not implemented. It uses a private Linux pathname socket, owner-only directories/files, peer-UID checks in both directions, and separate locks for state and endpoint ownership. There is no TCP listener, public HTTP API, remote control, or automatic startup. Same-user processes are trusted to request the same network destinations and output paths as the standalone CLI, including private/loopback URLs; this is not a multi-user service. Network exposure would require a separate authentication and SSRF design.
+The internal Linux runtime implements the [v0.2 daemon contract](daemon-and-queue.md); CLI adapters and full daemon process/crash qualification remain pending. It uses a private Linux pathname socket, owner-only directories/files, peer-UID checks in both directions, and separate locks for state and endpoint ownership. There is no TCP listener, public HTTP API, remote control, or automatic startup. Same-user processes are trusted to request the same network destinations and output paths as the standalone CLI, including private/loopback URLs; this is not a multi-user service. Network exposure would require a separate authentication and SSRF design.
 
 The owner explicitly selected full source-URL persistence, including query tokens, in private queue files. This is a new daemon-only source store, not a change to the fingerprint-only transfer manifests. It is permission-protected plaintext, not encryption. Clear URLs on completion/cancellation, omit them from all public views/diagnostics, and let explicit forget remove idle queue records without deleting data files. Use safe response types that cannot accidentally serialize the stored request.
 

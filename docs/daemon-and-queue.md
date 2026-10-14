@@ -2,11 +2,11 @@
 
 [Documentation index](README.md)
 
-This is the accepted v0.2 contract. E1 storage, E2's coordinator, and E3 shared budgeting are implemented: recovery, FIFO dispatch, durable job controls, live concurrency changes, safe polling, draining shutdown, and composed body caps. Linux daemon paths/lifecycle, IPC, and daemon CLI commands remain pending. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
+This is the accepted v0.2 contract. E1 through E4 are complete locally: private storage, FIFO dispatch, durable job controls, live concurrency, safe views, composed body caps, and Linux paths/private IPC/lifecycle. Daemon CLI commands and full process qualification remain pending. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
 
 ## Scope and ownership
 
-The daemon will run the existing transfer engine through a retained `transfer.Budget.Download` runner. Standalone `download`, `inspect`, and `version` keep their current behavior and never contact the daemon or create its directories.
+The internal daemon runtime runs the existing transfer engine through a retained `transfer.Budget.Download` runner. Standalone `download`, `inspect`, and `version` keep their current behavior and never contact the daemon or create its directories.
 
 Add only `internal/queue` for durable jobs and scheduling, and `internal/daemon` for local control and process lifecycle. Keep CLI adapters in `internal/cli`. Reuse pure transfer request validation, filename rules, cancellation, checkpoints, and body-rate accounting; do not copy the downloader or make it import daemon code.
 
@@ -45,7 +45,7 @@ Require matching effective user IDs from kernel peer credentials on both client 
 
 A stale socket can be removed only while holding both locks, after verifying socket type, owner, and unchanged inode, and receiving connection-refused from a probe. A responding peer, timeout, permission error, symlink, or unrelated file is preserved and reported. Disable unconditional listener unlink-on-close; cleanup removes only the socket inode this daemon created. Overlong socket paths are errors, never truncated or redirected to a shared temporary path.
 
-E4's path/ownership foundation is implemented in `internal/daemon`. `Resolve` reads the XDG/home environment without IO and returns normalized paths plus `Fallback`; unsupported platforms return `ErrUnsupported`. Ownership creates missing state parents, reuses `queue.Open`, then acquires the separate private runtime lock. Socket probing/binding uses the opened directory through Linux `/proc/self/fd`; a socket `O_PATH` handle anchors its initial permission change. `/proc/self/fd` must be available; there is no unanchored fallback. Peer checks use kernel credentials on both connection ends. IPC framing, request dispatch, and daemon lifecycle wiring remain pending.
+E4's path/ownership foundation is implemented in `internal/daemon`. `Resolve` reads the XDG/home environment without IO and returns normalized paths plus `Fallback`; unsupported platforms return `ErrUnsupported`. Ownership creates missing state parents, reuses `queue.Open`, then acquires the separate private runtime lock. Socket probing/binding uses the opened directory through Linux `/proc/self/fd`; a socket `O_PATH` handle anchors its initial permission change. `/proc/self/fd` must be available; there is no unanchored fallback. Peer checks use kernel credentials on both connection ends. The protocol and runtime layers use these ownership checks before dispatch and retain both locks through completed shutdown.
 
 ## Source URLs and immutable requests
 
@@ -144,11 +144,17 @@ Job replies expose only `id`, `order`, `state`, `output`, `published`, `error`, 
 
 `list` is polling, not a subscription. It reports queue policy and safe job fields, plus advisory live snapshots or saved-byte metadata when available. Raw sources are absent. Progress may decrease on retry/recovery and never authorizes publication. Slow or broken control clients must not stall the transfer coordinator; bound/coalesce snapshots and isolate response writes. Existing standalone JSON/output-failure semantics remain unchanged.
 
+`daemon.Call(ctx, paths, op, args)` is the internal Linux client. It validates the request locally, checks private runtime/socket ownership and the server's kernel UID, sends once, and validates the operation-specific reply. Empty operations require an empty object for `args`. It creates no directories or processes. A failed write, lost reply, or malformed reply after a mutation is attempted reports an unknown outcome; reads do not gain that mutation warning. Context cancellation interrupts client IO without undoing accepted work.
+
 ## Startup and shutdown
 
 `daemon start` creates/validates private roots, acquires both locks, loads/reconciles state, applies an optional parallel override durably, binds/checks the socket, and only then admits work. Do not start implicitly from add/list or standalone commands. Startup failure never deletes or resets queue data and releases ownership. Any reconciliation/setting already committed before a later bind failure remains durable; do not roll it back with an older snapshot.
 
 `daemon stop` durably pauses active attempts, stops admission, cancels their contexts, and returns an accepted-stopping response. It does not claim the process has exited. While stopping, allow reads and repeated stop requests but reject other mutations. Queued jobs remain queued for the next explicit start. Shutdown settles accepted operations, joins all transfers, and persists actual results before removing its socket and releasing locks; no fixed deadline authorizes destructive cleanup. SIGINT/SIGTERM follows the same safe cleanup. Clean IPC stop exits 0, signal interruption 130, and startup/persistence failure 1.
+
+The internal API is `daemon.New(Options{Paths, Parallel, Limit})`, then `Server.Run(ctx)` once. New acquires ownership, durably reconciles the coordinator and optional concurrency override, and binds the endpoint without starting downloads. Run admits work only after that preparation. Close releases an unstarted instance or requests joined shutdown independently of the control mailbox; Done closes after transfer results, client handlers, and ownership cleanup finish. Parent-context interruption remains a cancellation error for the future CLI to map to exit 130. Non-Linux construction and client operations return `ErrUnsupported`.
+
+At most sixteen accepted client handlers run concurrently. Socket read/write deadlines and bounded coordinator waits are independent of job contexts. Disconnecting an acknowledged or unacknowledged mutation never cancels the job. Stop replies can finish before process cleanup; stalled response writers cannot block coordinator progress, and their deadlines bound handler cleanup. Persistence failures and detected runtime ownership changes stop admission and join transfers; foreign replacement artifacts remain preserved. CLI signal/exit-code behavior and forced daemon death remain E5/E6 qualification work.
 
 ## Shared bandwidth
 

@@ -19,6 +19,10 @@ All six local matrix CLI builds used `CGO_ENABLED=0`, `-trimpath`, and the defau
 
 Linux/amd64 is the only platform with native qualification in this report. The code enables Linux and macOS storage; compilation alone does not qualify another architecture, locking, signals, terminal handling, filesystem semantics, or an OS version. Windows builds retain explicit storage refusal and are not usable downloader releases. Other targets have not been checked. The temporary build outputs are validation artifacts, with no installer, signing, packaging, or distribution contract.
 
+## Internal v0.2 daemon runtime
+
+E4's internal daemon API is Linux-only and requires `/proc/self/fd` for anchored socket operations. Non-Linux construction, path resolution, and client calls return `ErrUnsupported`. Linux/amd64 ordinary/race and CGO-disabled daemon tests passed on Go 1.27.2. The six-target CLI/test compilation recipe passed with the new package; final Linux shutdown changes also passed native tests and Linux/arm64 daemon test compilation. Foreign test programs were not executed. Daemon CLI adapters and full process/crash qualification remain pending; these checks do not change stable binary support.
+
 ## Native Linux evidence
 
 | Item | Observed value |
