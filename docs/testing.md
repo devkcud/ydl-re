@@ -77,6 +77,7 @@ Milestones A, B, and C plus Milestone D rate, JSON, text-output, security regres
 | [Daemon capacity recovery](../cmd/yoinkdl/daemon_capacity_linux_test.go) | 256 retained terminal jobs through real process IPC, full-queue refusal/deduplication across forced death, durable forget across forced/clean restart, freed output reservations, preserved final files, and conditional partial readmission |
 | [Daemon process concurrency](../cmd/yoinkdl/daemon_parallel_linux_test.go) | Default serial admission, live increase to eight jobs, non-preemptive reduction, FIFO replacement after cancellation, persisted limits, and paused/waiting behavior after restart |
 | [Daemon process draining](../internal/daemon/drain_linux_test.go) | Actual canceled transfers held before runner return, retained pausing/canceling slots, busy forget refusal, and admission only after result delivery |
+| [Daemon process budgets](../cmd/yoinkdl/daemon_budget_linux_test.go) | Composed private/shared caps across concurrent probes and payloads, retained shared allowance through job/control changes, restart with a new shared rate, persisted private limits, and exclusion of saved bytes |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
@@ -108,7 +109,11 @@ E6 retained-capacity recovery fills all 256 records through IPC to an actual CLI
 
 The capacity slice passed `go test ./cmd/yoinkdl -run '^TestDaemonProcessCapacityAndForgetRecovery$' -count=1`, the same command with `CGO_ENABLED=0`, and `make check` including race tests on Linux/amd64.
 
-E6 process concurrency uses gated HTTP responses with the actual CLI entry point to prove default serial admission, a live increase to eight jobs, a non-preemptive reduction to two, and FIFO replacement only below the reduced limit. Restart preserves that limit and leaves paused jobs idle. A separate child daemon fixture holds real canceled-transfer results through the private runner seam; pausing/canceling retain their slot and refuse forget until the runner returns. Exact output/prefix checks, focused ordinary tests including affected crash regressions, `make check` with race tests, and focused CGO-disabled concurrency tests pass on Linux/amd64. Shared-rate process tests and final release/six-target gates remain pending.
+E6 process concurrency uses gated HTTP responses with the actual CLI entry point to prove default serial admission, a live increase to eight jobs, a non-preemptive reduction to two, and FIFO replacement only below the reduced limit. Restart preserves that limit and leaves paused jobs idle. A separate child daemon fixture holds real canceled-transfer results through the private runner seam; pausing/canceling retain their slot and refuse forget until the runner returns. Exact output/prefix checks, focused ordinary tests including affected crash regressions, `make check` with race tests, and focused CGO-disabled concurrency tests pass on Linux/amd64.
+
+E6 shared-rate fixtures use actual CLI daemons and normal production runners. Three concurrent range downloads cover private-only, shared-only, private-slower, and shared-slower caps, including one-byte probes. Known body totals and observed progress stay within burst plus rate times elapsed duration, measured from the first HTTP response with the existing five-millisecond tolerance. A separate lifecycle fixture keeps the shared allowance through pause/resume, cancellation, failed attempts and explicit resume, completion, later jobs, and live parallel changes. Restart selects a faster shared cap and independently checks the persisted slower private cap on a conditional suffix, excluding saved bytes. Exact file/prefix bytes and request counts are checked. These wall-clock tests establish cap enforcement for the fixtures, not minimum throughput or bandwidth fairness.
+
+The rate slice passed focused ordinary tests, `make check` including race tests, and `CGO_ENABLED=0 go test ./cmd/yoinkdl -run '^TestDaemonProcess(ComposedRateLimits|BudgetSurvivesControlsAndRestart)$' -count=1` on Linux/amd64. No production changes were needed. Final whole-suite CGO-disabled, six-target compilation, and release qualification remain pending.
 
 ## Test layers
 
@@ -196,7 +201,7 @@ The [CI/release workflows](releases.md) passed local actionlint v1.7.12 checks a
 
 ## Planned v0.2 validation
 
-These are required checks for the [accepted daemon design](daemon-and-queue.md). E1 storage, E2 coordinator/controls, E3 shared budgets, and E4 IPC/lifecycle tests are recorded above, including safe internal/IPC views. E5 also covers CLI privacy, real signals, clean restart, and failed output. E6 covers forced CLI death, saved FIFO/settings, explicit checkpoint resume, publication ambiguity, pending controls, retained capacity/forget recovery, and live process concurrency. Shared-rate process checks remain pending. The [delivery order](roadmap.md#v02-implementation-order) determines when each group becomes executable.
+These are required checks for the [accepted daemon design](daemon-and-queue.md). E1 storage, E2 coordinator/controls, E3 shared budgets, and E4 IPC/lifecycle tests are recorded above, including safe internal/IPC views. E5 also covers CLI privacy, real signals, clean restart, and failed output. E6 covers forced CLI death, saved FIFO/settings, explicit checkpoint resume, publication ambiguity, pending controls, retained capacity/forget recovery, live process concurrency, and shared-rate process behavior. Final platform/release gates remain pending. The [delivery order](roadmap.md#v02-implementation-order) determines the remaining qualification work.
 
 | Group | Required evidence |
 |---|---|

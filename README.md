@@ -69,7 +69,7 @@ Partial reuse requires a known size, identity encoding, and a matching strong ET
 
 ## Linux queue (v0.2 development)
 
-Repository builds include explicit daemon and queue commands. Published `0.1.0` remains standalone; final v0.2 process/release qualification is pending.
+Repository builds include explicit daemon and queue commands. Published `0.1.0` remains standalone; final v0.2 release qualification is pending.
 
 Run the owner in one terminal:
 
