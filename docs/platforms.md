@@ -2,20 +2,22 @@
 
 [Documentation index](README.md)
 
-The native evidence covers Linux/amd64. The local results were recorded on October 12, 2026, against runtime and test sources at `ee2f29558b3b162f4ad39fc6682ba7edf878f240`. The later [hosted CI run](#hosted-ci-evidence) covers packaging tests at `1ce24810b7b6a05607c30ab37ff725758e29ebb8`; [stable publication evidence](releases.md#stable-publication) records `0.1.0` at `31330c6b07d33af148341bdfb346c0e139082fdb`. Other native platforms and power-loss behavior remain unqualified.
+The latest local qualification covers the completed E6 runtime/test sources at clean revision `5c00f2e1e522268c27ab89aba7d1f479fa12950f`, checked on October 19, 2026. Native Linux/amd64 ordinary/race/CGO-disabled gates and six-target compilation passed. Local v0.2 candidate packaging remains separate work; no hosted v0.2 run or publication is claimed.
+
+The earlier October 12 native report covered `ee2f29558b3b162f4ad39fc6682ba7edf878f240`. The [hosted CI run](#hosted-ci-evidence) and [stable publication evidence](releases.md#stable-publication) below remain historical v0.1 evidence. Other native platforms and power-loss behavior remain unqualified.
 
 ## Build and runtime matrix
 
 | Target | CLI build | Test programs | Native runtime evidence | Current status |
 |---|---|---|---|---|
-| `linux/amd64` | Pass | Compiled and run | Local ext4/tmpfs checks; hosted Ubuntu 24.04.5 gate, race, and CGO-disabled tests | Qualified initial stable binary target |
+| `linux/amd64` | Pass | Compiled and run | E6 ext4 ordinary/race gate and tmpfs CGO-disabled suite; historical v0.1 hosted checks | Locally qualified v0.2 runtime; stable `0.1.0` binary target |
 | `linux/arm64` | Pass | Compile only | Unavailable on this host | Storage enabled; native behavior unqualified |
 | `darwin/amd64` | Pass | Compile only | Unavailable on this host | Storage enabled; native behavior unqualified |
 | `darwin/arm64` | Pass | Compile only | Unavailable on this host | Storage enabled; native behavior unqualified |
 | `windows/amd64` | Pass | Compile only | Unavailable on this host | Download/inspection storage unsupported by design |
 | `windows/arm64` | Pass | Compile only | Unavailable on this host | Download/inspection storage unsupported by design |
 
-All six local matrix CLI builds used `CGO_ENABLED=0`, `-trimpath`, and the default `dev` label. `file` identified the intended ELF, Mach-O, and PE architectures. The original local run compiled five Go test packages for each foreign target; the hosted run also includes the later `tools` package. No foreign binary or test program was executed. The separate native full gate used CGO for race testing. No cross-C compiler was needed.
+All six E6 matrix CLI builds used `CGO_ENABLED=0`, `-trimpath`, and the default `dev` label. Each target compiled all eight test packages, including queue, daemon, and packaging tests. `file` identified the intended ELF, Mach-O, and PE architectures; `go version -m` recorded the checked revision and `vcs.modified=false`. Only the Linux/amd64 CLI's version command was executed from the matrix outputs; native test execution came from the separate full suites. No foreign binary or test program was executed. The native full gate used CGO for race testing. No cross-C compiler was needed.
 
 Linux/amd64 is the only platform with native qualification in this report. The code enables Linux and macOS storage; compilation alone does not qualify another architecture, locking, signals, terminal handling, filesystem semantics, or an OS version. Windows builds retain explicit storage refusal and are not usable downloader releases. Other targets have not been checked. The temporary build outputs are validation artifacts, with no installer, signing, packaging, or distribution contract.
 
@@ -23,13 +25,13 @@ Linux/amd64 is the only platform with native qualification in this report. The c
 
 E4's internal daemon API is Linux-only and requires `/proc/self/fd` for anchored socket operations. Non-Linux construction, path resolution, and client calls return `ErrUnsupported`. Linux/amd64 ordinary/race and CGO-disabled daemon tests passed on Go 1.27.2. The six-target CLI/test compilation recipe passed with the new package; final Linux shutdown changes also passed native tests and Linux/arm64 daemon test compilation. Foreign test programs were not executed. E5 adds ordinary/race/CGO-disabled CLI and real-process tests, plus six-target compilation, for the development commands.
 
-E6 forced-death, checkpoint/FIFO recovery, pending-control, publication-boundary, capacity/forget, live concurrency, and shared-rate fixtures have local Linux/amd64 process evidence. The [testing report](testing.md#current-evidence) records ordinary/race/CGO-disabled results and distinguishes actual CLI processes from private runner seams used to hold results at precise boundaries. Final whole-suite CGO-disabled, six-target compilation, and release gates remain pending; these checks do not change published stable binary support.
+E6 forced-death, checkpoint/FIFO recovery, pending-control, publication-boundary, capacity/forget, live concurrency, and shared-rate fixtures passed the final Linux/amd64 gate and uncached whole-suite CGO-disabled run. Six-target compilation also passed. The [testing report](testing.md#current-evidence) distinguishes actual CLI processes from private runner seams used to hold results at precise boundaries. Candidate archive/installation verification remains pending; these checks do not change published stable binary support.
 
 ## Native Linux evidence
 
 | Item | Observed value |
 |---|---|
-| Host | Arch Linux, `linux/amd64`, kernel `7.2.9-zen1-1-zen` |
+| Host | Arch Linux, `linux/amd64`, kernel `7.2.11-zen1-1-zen` |
 | Go | `go1.27.2-X:nodwarf5`; `GOEXPERIMENT=nodwarf5` |
 | CPU build baseline | `GOAMD64=v1` |
 | Race environment | `CGO_ENABLED=1`, GCC `16.2.1 20260810`, unprivileged UID 1000 |
@@ -37,11 +39,13 @@ E6 forced-death, checkpoint/FIFO recovery, pending-control, publication-boundary
 | Default temporary filesystem | tmpfs at `/tmp` |
 | Source tree when checked | Clean; no product-code changes required |
 
-`make check` passed with `TMPDIR` set to a private directory under the workspace's ignored `bin/` directory. This places the filesystem, HTTP, CLI, and subprocess fixtures on ext4 instead of the default tmpfs. Formatting, vet, ordinary tests, race tests, and build passed. The pure range-planning package reused its matching cached result; the packages exercising files and processes ran with the new temporary directory.
+`TMPDIR="$PWD/bin/t.MBOfTk" make check` passed with the private temporary directory on ext4. Formatting, vet, ordinary tests, race tests, and build passed. All seven packages exercising files/processes reran in both ordinary and race modes; only pure range planning reused matching cached results. The CLI/process suite took 18.472 seconds ordinarily and 75.604 seconds with the race detector.
 
 `CGO_ENABLED=0 go test -count=1 ./...` also passed on Linux/amd64 with the default tmpfs temporary directory. This run was uncached and did not use the race detector. The separate CGO-disabled CLI build was identified as a statically linked ELF executable, and its `version` command returned `yoinkdl dev`. This does not assert equivalent DNS behavior between Go's native and cgo resolvers.
 
 The existing suites exercise prefix/chunk resume, forced process termination, stable advisory locks, hard-link and rename recovery, private partial permissions, symlink/collision refusal, stored-byte verification, cancellation, SIGINT/SIGTERM, terminal geometry, and blocked/broken output. See [testing coverage](testing.md#current-evidence).
+
+Local logs and the eight-package-per-target outputs are retained under ignored `bin/e6-qualification.0Stkvu/`: `native-ext4.log`, `cgo-disabled.log`, `matrix-host.log`, and `environment.json`. The first sandbox attempt could not open local listeners. A longer ext4 temporary path also correctly triggered the daemon's socket-length refusal; shortening the path fixed the fixture environment. Sandboxed cross-compilation reported unresolved macOS standard-library packages despite their files being present; the identical six-target recipe passed outside the sandbox. These failed attempts remain in the same evidence directory. No product changes were required.
 
 ## Hosted CI evidence
 
@@ -70,13 +74,13 @@ uname -srm
 findmnt --noheadings --target . --output TARGET,FSTYPE
 findmnt --noheadings --target /tmp --output TARGET,FSTYPE
 mkdir -p bin
-check_tmp=$(mktemp -d "$PWD/bin/platform.XXXXXX")
+check_tmp=$(mktemp -d "$PWD/bin/t.XXXXXX")
 TMPDIR="$check_tmp" make check
 rmdir "$check_tmp"
 CGO_ENABLED=0 go test -count=1 ./...
 ```
 
-`findmnt` is a Linux inspection command. Confirm the private temporary directory is on the filesystem being qualified. `rmdir` removes only an empty directory; investigate retained fixtures if a failed run leaves it nonempty. Tests need no public service and use deterministic local HTTP fixtures.
+`findmnt` is a Linux inspection command. Confirm the private temporary directory is on the filesystem being qualified. Keep its absolute path short: daemon fixtures append state/runtime directories and `control.sock`, whose full Linux pathname must be shorter than 108 bytes. If the checkout path is too long, select a shorter private directory on the same filesystem. `rmdir` removes only an empty directory; investigate retained fixtures if a failed run leaves it nonempty. Tests need no public service and use deterministic local HTTP fixtures.
 
 ## Reproduce compilation checks
 

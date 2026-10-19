@@ -120,6 +120,14 @@ Unauthenticated HTTPS requests succeeded for the release page, release API, Late
 
 The public binary passed an isolated `install -m 0755`, version/help, and the same 9,437,201-byte HTTP/HTTPS fixture with one and four connections. Exact hashes, completed/published JSON results, partial-state cleanup, and untrusted-certificate refusal passed. Source archive, licenses, metadata, and build settings were rechecked. The existing `0.1.0-rc.1` remains a separate published prerelease with unchanged notes, asset identities, sizes, and digests. Milestones A through D are complete for the qualified Linux/amd64 scope; future platforms and wider durability claims need separate evidence.
 
+## v0.2 local qualification
+
+Final E6 runtime/platform gates passed on October 19, 2026, against clean runtime/test revision `5c00f2e1e522268c27ab89aba7d1f479fa12950f`. The [platform report](platforms.md#native-linux-evidence) records Linux/amd64, Go `1.27.2-X:nodwarf5`, ext4 ordinary/race execution, an uncached whole-suite CGO-disabled tmpfs run, and CLI/eight-package test compilation for all six targets. Foreign test programs were not executed.
+
+The [E6 testing report](testing.md#current-evidence) covers forced death, retained queue capacity, conditional resume, publication ambiguity, concurrency, and shared budgets. [Security evidence](security.md#review-evidence) includes private queue ownership, strict IPC, source redaction, uncertain commits, and preservation through forget/restart. Existing standalone transfer, TLS, output, storage, and packaging suites remain passing regression gates.
+
+Prepare and verify a local `0.2.0-rc.1` candidate from a clean committed tree next. Archive checksums, exact source identity, licenses/metadata, and installed standalone/daemon commands require candidate-specific evidence before completion. Existing tags and published v0.1 assets must remain unchanged. No v0.2 tag, hosted run, upload, or publication is implied by these local gates.
+
 ## Draft-release workflow
 
 [Draft release](../.github/workflows/release.yml) runs for pushed `v*` tags. It validates the tag, requires nonempty notes beneath the exact `## [<version>]` heading in [CHANGELOG.md](../CHANGELOG.md), runs `make release`, and creates a GitHub draft with both archives and checksums. A prerelease version produces a prerelease draft. Missing notes or failed validation stop before any draft is created. Existing releases are not overwritten.

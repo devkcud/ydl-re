@@ -102,7 +102,7 @@ The owner selected full URL/query-token storage in private local queue files and
 
 R03 is settled by [daemon-wide budgeting](concurrency.md#daemon-wide-rate-cap): one process-lifetime body budget shared across managed jobs, composed with each job's existing cap. Charge both before waiting, wait for all applicable reservations, preserve shared credit/debt across job lifecycle and concurrency changes, and retain existing burst/timeouts/accounting boundaries. `daemon start --limit` is fixed until restart; cross-process caps and dynamic rate changes are deferred.
 
-Linux XDG state/runtime selection is settled for the daemon; this does not implement a general configuration loader or qualify other native platforms. The [ordered implementation plan](roadmap.md#v02-implementation-order) and [validation matrix](testing.md#planned-v02-validation) are accepted. E1 through E5 are complete with local Linux tests. E6 crash, capacity, concurrency, and shared-rate process fixtures pass locally; final platform/release qualification remains pending.
+Linux XDG state/runtime selection is settled for the daemon; this does not implement a general configuration loader or qualify other native platforms. The [ordered implementation plan](roadmap.md#v02-implementation-order) and [validation matrix](testing.md#planned-v02-validation) are accepted. E1 through E5 are complete with local Linux tests. E6 crash, capacity, concurrency, and shared-rate process fixtures pass the final native ordinary/race/CGO-disabled gates and six-target compilation. Local candidate archive/installation verification remains pending.
 
 ## Already established direction
 

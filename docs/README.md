@@ -6,13 +6,13 @@ YoinkDL is a local-first download manager written in Go. It provides sequential 
 
 ## Project status
 
-As of October 13, 2026, stable `0.1.0` is published for Linux/amd64. The transfer, resume, and retry engine has native ext4/tmpfs evidence, hosted CI, and six-target compilation evidence. Use `make build` to build `bin/yoinkdl`, `make test` for tests, and `make check` for the full gate. There are no external Go dependencies.
+As of October 19, 2026, stable `0.1.0` is published for Linux/amd64. The transfer, resume, and retry engine has native ext4/tmpfs evidence, hosted v0.1 CI, and six-target compilation evidence. Use `make build` to build `bin/yoinkdl`, `make test` for tests, and `make check` for the full gate. There are no external Go dependencies.
 
 Use the root [README](../README.md) for an introduction, [STATUS.md](../STATUS.md) for the current handoff and next steps, and [AGENTS.md](../AGENTS.md) for implementation instructions.
 
 The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, aggregate rate caps, JSON events, resume, and local inspection. Milestones A through D are complete for the initial Linux/amd64 scope, with a local [security review](security.md), [platform evidence](platforms.md), and verified [stable public downloads and installation](releases.md#stable-publication). MPL 2.0, GitHub Releases, and public issue reporting remain the policies. Other native platforms and final v0.2 release qualification remain future work.
 
-These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions. The [v0.2 daemon/queue contract](daemon-and-queue.md) and [ordered plan](roadmap.md#v02-implementation-order) are accepted. E1 through E5 are complete locally: private storage, queue controls/concurrency/recovery, shared bandwidth, Linux IPC, and the daemon/queue CLI. The commands are available in repository builds for v0.2 development; published `0.1.0` remains standalone. E6 crash, capacity, concurrency, and shared-rate process fixtures pass locally; final platform/release qualification remains.
+These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions. The [v0.2 daemon/queue contract](daemon-and-queue.md) and [ordered plan](roadmap.md#v02-implementation-order) are accepted. E1 through E5 are complete locally: private storage, queue controls/concurrency/recovery, shared bandwidth, Linux IPC, and the daemon/queue CLI. The commands are available in repository builds for v0.2 development; published `0.1.0` remains standalone. E6 crash, capacity, concurrency, and shared-rate process fixtures pass the final native ordinary/race/CGO-disabled gates and six-target compilation. Local candidate archive/installation verification remains.
 
 ## Start here
 
