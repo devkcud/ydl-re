@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -241,6 +242,7 @@ func TestDaemonCrashProcess(t *testing.T) {
 
 type crashProcess struct {
 	cmd    *exec.Cmd
+	input  io.WriteCloser
 	done   <-chan error
 	events <-chan string
 	err    bytes.Buffer
@@ -248,9 +250,19 @@ type crashProcess struct {
 
 func startCrashProcess(t *testing.T, paths Paths, hold bool) *crashProcess {
 	t.Helper()
-	p := &crashProcess{cmd: exec.Command(os.Args[0], "-test.run=^TestDaemonCrashProcess$")}
+	return startDaemonTestProcess(t, paths, "TestDaemonCrashProcess", fmt.Sprintf("YOINKDL_DAEMON_CRASH_HOLD=%t", hold))
+}
+
+func startDaemonTestProcess(t *testing.T, paths Paths, name string, env ...string) *crashProcess {
+	t.Helper()
+	p := &crashProcess{cmd: exec.Command(os.Args[0], "-test.run=^"+name+"$")}
 	p.cmd.Env = append(os.Environ(), "YOINKDL_DAEMON_CRASH_PROCESS=1", "YOINKDL_DAEMON_CRASH_STATE="+paths.State,
-		"YOINKDL_DAEMON_CRASH_RUNTIME="+paths.Runtime, fmt.Sprintf("YOINKDL_DAEMON_CRASH_HOLD=%t", hold))
+		"YOINKDL_DAEMON_CRASH_RUNTIME="+paths.Runtime)
+	p.cmd.Env = append(p.cmd.Env, env...)
+	in, err := p.cmd.StdinPipe()
+	check(t, err)
+	p.input = in
+	t.Cleanup(func() { in.Close() })
 	out, err := p.cmd.StdoutPipe()
 	check(t, err)
 	p.cmd.Stderr = &p.err
