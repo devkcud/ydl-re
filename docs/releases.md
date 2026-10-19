@@ -126,13 +126,26 @@ Final E6 runtime/platform gates passed on October 19, 2026, against clean runtim
 
 The [E6 testing report](testing.md#current-evidence) covers forced death, retained queue capacity, conditional resume, publication ambiguity, concurrency, and shared budgets. [Security evidence](security.md#review-evidence) includes private queue ownership, strict IPC, source redaction, uncertain commits, and preservation through forget/restart. Existing standalone transfer, TLS, output, storage, and packaging suites remain passing regression gates.
 
-The [0.2.0-rc.1 notes](../CHANGELOG.md#020-rc1) are prepared for a local candidate. From the clean commit containing those notes, run:
+The [0.2.0-rc.1 notes](../CHANGELOG.md#020-rc1) belong to clean candidate revision `34041c372519ac751bb9d6ec1ecda56184d13161`. Its runtime/test/build sources are unchanged from the E6 gate revision above. The candidate was built with:
 
 ```sh
-make release VERSION=0.2.0-rc.1
+TMPDIR="$PWD/bin/t.MBOfTk" make release VERSION=0.2.0-rc.1
 ```
 
-Archive checksums, exact source identity, licenses/metadata, and installed standalone/daemon commands require candidate-specific evidence before completion. Existing tags and published v0.1 assets must remain unchanged. No v0.2 tag, hosted run, upload, or publication is implied by these local gates.
+The full packaging gate passed, rerunning all seven filesystem/process packages ordinarily and with the race detector; only range planning reused cached results. The three assets are retained under ignored `bin/releases/0.2.0-rc.1/`. Packaging used Go `1.27.2-X:nodwarf5`, `CGO_ENABLED=0`, `GOAMD64=v1`, and the committed source snapshot. Later evidence-only documentation commits are not part of this candidate's source identity.
+
+| Archive | SHA-256 |
+|---|---|
+| `yoinkdl_0.2.0-rc.1_linux_amd64.tar.gz` | `609ef91668a87ef91a94f30b53c1111416af807e0666417150c420cf1176a3b9` |
+| `yoinkdl_0.2.0-rc.1_source.tar.gz` | `d03d4de60c475610e9a32957f6a27c2ab09d0ee8e52714b5b1de8ffa35480f02` |
+
+Both archives match `SHA256SUMS`; the decompressed source archive matches `git archive` of the candidate revision byte for byte. Packaged licenses, security policy, changelog, source metadata, and binary build settings were checked. An isolated `install -m 0755` under `bin/r.7o9q_lmi/` passed version/help and sequential/four-worker HTTP and trusted HTTPS downloads. Every output matched the 9,437,201-byte fixture's SHA-256, `39202f5960cff6f21401ff53547fd309d1a4dc3a88f9498240e38807b0208e01`; an untrusted certificate was refused without final publication.
+
+The installed daemon passed explicit startup, private source retention and terminal clearing, safe views, pause, clean stop/restart, persisted concurrency, restart-selected shared cap, and conditional resume from a 131,072-byte prefix to the exact fixture. Forget preserved the completed file; readmission refused that existing file without HTTP traffic or inode changes. Cancellation and forget retained a matching partial prefix. Clean shutdown completed, and synthetic URL tokens were absent from command output and daemon logs.
+
+Local evidence and rerunnable verification scripts are in `bin/e6-qualification.0Stkvu/`: `release.log`, `installed-candidate.json`, `installed-candidate.log`, and `yoinkdl-verify-release.py`. Run the latter from the repository root with `0.2.0-rc.1`; it checks the source revision recorded in the package and creates fresh isolated fixtures. All 18 existing v0.1 archive/checksum files and both existing tag objects remain unchanged.
+
+E1 through E6 are complete for local Linux/amd64 qualification. No v0.2 tag, hosted run, upload, or publication was performed. Keep this candidate local under the current no-push rule; any later release instruction must use the recorded source revision and verify hosted assets separately. Foreign native execution and power-loss durability remain unqualified.
 
 ## Draft-release workflow
 

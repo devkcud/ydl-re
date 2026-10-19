@@ -69,7 +69,7 @@ Partial reuse requires a known size, identity encoding, and a matching strong ET
 
 ## Linux queue (v0.2 development)
 
-Repository builds include explicit daemon and queue commands. E6's native Linux ordinary/race/CGO-disabled gates and six-target compilation pass locally. Candidate archive/installation verification remains next; published `0.1.0` remains standalone.
+Repository builds include explicit daemon and queue commands. E1 through E6 pass local qualification, including native ordinary/race/CGO-disabled gates, six-target compilation, and [0.2.0-rc.1 archive/installation checks](docs/releases.md#v02-local-qualification). The candidate remains local; published `0.1.0` remains standalone.
 
 Run the owner in one terminal:
 

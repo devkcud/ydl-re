@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-This is the accepted v0.2 contract. E1 through E5 are complete locally: private storage, FIFO controls/concurrency, safe views, composed caps, Linux IPC/lifecycle, and explicit daemon/queue CLI commands. E6 crash, capacity, concurrency, and shared-rate process fixtures pass locally; final platform/release qualification remains pending. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
+This is the accepted v0.2 contract. E1 through E6 are complete locally: private storage, FIFO controls/concurrency, safe views, composed caps, Linux IPC/lifecycle, explicit daemon/queue CLI commands, and release qualification. Process fixtures, final native/platform gates, and [local 0.2.0-rc.1 archive/installation checks](releases.md#v02-local-qualification) pass. Hosted verification and publication remain separate work. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
 
 ## Scope and ownership
 

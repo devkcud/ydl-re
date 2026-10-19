@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The latest local qualification covers the completed E6 runtime/test sources at clean revision `5c00f2e1e522268c27ab89aba7d1f479fa12950f`, checked on October 19, 2026. Native Linux/amd64 ordinary/race/CGO-disabled gates and six-target compilation passed. Local v0.2 candidate packaging remains separate work; no hosted v0.2 run or publication is claimed.
+The latest local qualification covers the completed E6 runtime/test sources at clean revision `5c00f2e1e522268c27ab89aba7d1f479fa12950f`, checked on October 19, 2026. Native Linux/amd64 ordinary/race/CGO-disabled gates and six-target compilation passed. The [local 0.2.0-rc.1 candidate](releases.md#v02-local-qualification) also passed packaging and installed-binary checks at `34041c372519ac751bb9d6ec1ecda56184d13161`, with unchanged runtime/test sources. No hosted v0.2 run or publication is claimed.
 
 The earlier October 12 native report covered `ee2f29558b3b162f4ad39fc6682ba7edf878f240`. The [hosted CI run](#hosted-ci-evidence) and [stable publication evidence](releases.md#stable-publication) below remain historical v0.1 evidence. Other native platforms and power-loss behavior remain unqualified.
 
@@ -25,7 +25,7 @@ Linux/amd64 is the only platform with native qualification in this report. The c
 
 E4's internal daemon API is Linux-only and requires `/proc/self/fd` for anchored socket operations. Non-Linux construction, path resolution, and client calls return `ErrUnsupported`. Linux/amd64 ordinary/race and CGO-disabled daemon tests passed on Go 1.27.2. The six-target CLI/test compilation recipe passed with the new package; final Linux shutdown changes also passed native tests and Linux/arm64 daemon test compilation. Foreign test programs were not executed. E5 adds ordinary/race/CGO-disabled CLI and real-process tests, plus six-target compilation, for the development commands.
 
-E6 forced-death, checkpoint/FIFO recovery, pending-control, publication-boundary, capacity/forget, live concurrency, and shared-rate fixtures passed the final Linux/amd64 gate and uncached whole-suite CGO-disabled run. Six-target compilation also passed. The [testing report](testing.md#current-evidence) distinguishes actual CLI processes from private runner seams used to hold results at precise boundaries. Candidate archive/installation verification remains pending; these checks do not change published stable binary support.
+E6 forced-death, checkpoint/FIFO recovery, pending-control, publication-boundary, capacity/forget, live concurrency, and shared-rate fixtures passed the final Linux/amd64 gate and uncached whole-suite CGO-disabled run. Six-target compilation and local candidate archive/installation verification also passed. The [testing report](testing.md#current-evidence) distinguishes actual CLI processes from private runner seams used to hold results at precise boundaries. These checks do not change published stable binary support.
 
 ## Native Linux evidence
 
