@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-This is the accepted v0.2 contract. E1 through E5 are complete locally: private storage, FIFO controls/concurrency, safe views, composed caps, Linux IPC/lifecycle, and explicit daemon/queue CLI commands. Final E6 crash/release qualification remains pending. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
+This is the accepted v0.2 contract. E1 through E5 are complete locally: private storage, FIFO controls/concurrency, safe views, composed caps, Linux IPC/lifecycle, and explicit daemon/queue CLI commands. E6 crash fixtures pass locally; capacity, broader process concurrency/rate tests, and final release qualification remain pending. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
 
 ## Scope and ownership
 
@@ -154,7 +154,7 @@ Job replies expose only `id`, `order`, `state`, `output`, `published`, `error`, 
 
 The internal API is `daemon.New(Options{Paths, Parallel, Limit})`, then `Server.Run(ctx)` once. New acquires ownership, durably reconciles the coordinator and optional concurrency override, and binds the endpoint without starting downloads. Run admits work only after that preparation. Close releases an unstarted instance or requests joined shutdown independently of the control mailbox; Done closes after transfer results, client handlers, and ownership cleanup finish. The CLI maps parent-context interruption to exit 130 after cleanup. Non-Linux construction and client operations return `ErrUnsupported`.
 
-At most sixteen accepted client handlers run concurrently. Socket read/write deadlines and bounded coordinator waits are independent of job contexts. Disconnecting an acknowledged or unacknowledged mutation never cancels the job. Stop replies can finish before process cleanup; stalled response writers cannot block coordinator progress, and their deadlines bound handler cleanup. Persistence failures and detected runtime ownership changes stop admission and join transfers; foreign replacement artifacts remain preserved. CLI signal/exit-code behavior has real-process evidence; forced daemon death remains E6 qualification work.
+At most sixteen accepted client handlers run concurrently. Socket read/write deadlines and bounded coordinator waits are independent of job contexts. Disconnecting an acknowledged or unacknowledged mutation never cancels the job. Stop replies can finish before process cleanup; stalled response writers cannot block coordinator progress, and their deadlines bound handler cleanup. Persistence failures and detected runtime ownership changes stop admission and join transfers; foreign replacement artifacts remain preserved. CLI signals, forced daemon death, pending controls, and publication ambiguity have local [process evidence](testing.md#current-evidence).
 
 ## Shared bandwidth
 

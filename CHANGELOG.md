@@ -5,7 +5,8 @@
 - Internal v0.2 queue foundation: shared request validation, strict bounded snapshots, and a private Linux atomic store with exclusive ownership. Full source URLs and sequential/concurrent queue settings persist privately.
 - Queue coordinator with FIFO admission, live concurrency limits, pause/resume/cancel/forget, conservative recovery, safe polling views, and draining shutdown. Private Linux IPC and composed shared/per-transfer bandwidth are implemented.
 
-- Linux v0.2 development CLI: explicit foreground daemon start/stop/set, add/list/pause/resume/cancel/forget, safe text/JSON results, caller-relative outputs, and preserved job IDs after lost acknowledgments. Broken client output does not cancel durable jobs. Final v0.2 crash/release qualification remains pending.
+- Linux v0.2 development CLI: explicit foreground daemon start/stop/set, add/list/pause/resume/cancel/forget, safe text/JSON results, caller-relative outputs, and preserved job IDs after lost acknowledgments. Broken client output does not cancel durable jobs. Final v0.2 process/release qualification remains pending.
+- Local Linux crash qualification covers saved queue order/settings, explicit checkpoint resume, pending pause/cancel intents, and preserved final files after death between publication and queue completion.
 
 ## [0.1.0]
 

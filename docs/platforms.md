@@ -21,7 +21,9 @@ Linux/amd64 is the only platform with native qualification in this report. The c
 
 ## Internal v0.2 daemon runtime
 
-E4's internal daemon API is Linux-only and requires `/proc/self/fd` for anchored socket operations. Non-Linux construction, path resolution, and client calls return `ErrUnsupported`. Linux/amd64 ordinary/race and CGO-disabled daemon tests passed on Go 1.27.2. The six-target CLI/test compilation recipe passed with the new package; final Linux shutdown changes also passed native tests and Linux/arm64 daemon test compilation. Foreign test programs were not executed. E5 now adds ordinary/race/CGO-disabled CLI and real-process tests, plus six-target compilation, for the development commands. Final forced-death/publication-boundary qualification remains pending; these checks do not change published stable binary support.
+E4's internal daemon API is Linux-only and requires `/proc/self/fd` for anchored socket operations. Non-Linux construction, path resolution, and client calls return `ErrUnsupported`. Linux/amd64 ordinary/race and CGO-disabled daemon tests passed on Go 1.27.2. The six-target CLI/test compilation recipe passed with the new package; final Linux shutdown changes also passed native tests and Linux/arm64 daemon test compilation. Foreign test programs were not executed. E5 adds ordinary/race/CGO-disabled CLI and real-process tests, plus six-target compilation, for the development commands.
+
+E6 forced-death, checkpoint/FIFO recovery, pending-control, and publication-boundary fixtures pass on Linux/amd64 with ordinary/race and focused CGO-disabled tests. The [testing report](testing.md#current-evidence) distinguishes actual CLI processes from the private runner seam used to hold results at crash boundaries. Final capacity, broader process concurrency/rate, whole-suite CGO-disabled, and six-target gates remain pending; these checks do not change published stable binary support.
 
 ## Native Linux evidence
 
