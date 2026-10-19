@@ -74,6 +74,7 @@ Milestones A, B, and C plus Milestone D rate, JSON, text-output, security regres
 | [Daemon CLI processes](../cmd/yoinkdl/daemon_linux_test.go) | Actual command processes, clean stop/restart, persisted concurrency, per-start rate reset, conditional resume, SIGINT/SIGTERM checkpointing, broken/full acknowledgment pipes, and startup output cleanup |
 | [Daemon CLI crash recovery](../cmd/yoinkdl/daemon_crash_linux_test.go) | Forced owner death with two active checkpoints and three waiting jobs, retained settings/order/lock inodes, stale endpoint recovery, explicit FIFO-tail resume, exact output hashes, and terminal source removal |
 | [Daemon crash boundaries](../internal/daemon/crash_linux_test.go) | Real subprocess death after verified publication or pause/cancel cleanup, held runner results, durable intent reconciliation, unknown outcomes, existing-output refusal, and metadata-only forget preserving final/partial files |
+| [Daemon capacity recovery](../cmd/yoinkdl/daemon_capacity_linux_test.go) | 256 retained terminal jobs through real process IPC, full-queue refusal/deduplication across forced death, durable forget across forced/clean restart, freed output reservations, preserved final files, and conditional partial readmission |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
@@ -99,7 +100,11 @@ E6 CLI crash recovery forcibly kills the actual daemon entry point after two tra
 
 E6 boundary fixtures run a daemon subprocess through the existing private runner seam. A wrapper holds the real `Budget.Download` result after verified publication or canceled-transfer cleanup, before the coordinator can record it. SIGKILL preserves running/pausing/canceling intents; a fresh normal runner recovers them as interrupted/paused/canceled with unknown publication. Existing final files retain their bytes and inode across restart, refused retry, cancellation, and forget. Paused prefixes resume conditionally to exact bytes; canceled prefixes and manifests remain unchanged after forget. The hook exists only in test code and is not a production option. These tests cover process death after publication cleanup, not real power loss or every storage syscall boundary.
 
-Both crash slices passed focused ordinary tests and `make check` on Go `1.27.2-X:nodwarf5` Linux/amd64, including race tests. `CGO_ENABLED=0 go test ./cmd/yoinkdl ./internal/daemon -run '^TestDaemonProcessCrash' -count=1` passed all new crash fixtures. The initial sandbox attempt could not write the Go cache; approved execution outside the sandbox passed. Retained-capacity recovery, broader process concurrency/shared-rate tests, and final release/six-target gates remain pending.
+Both crash slices passed focused ordinary tests and `make check` on Go `1.27.2-X:nodwarf5` Linux/amd64, including race tests. `CGO_ENABLED=0 go test ./cmd/yoinkdl ./internal/daemon -run '^TestDaemonProcessCrash' -count=1` passed all new crash fixtures. The initial sandbox attempt could not write the Go cache; approved execution outside the sandbox passed.
+
+E6 retained-capacity recovery fills all 256 records through IPC to an actual CLI daemon, including completed and canceled jobs. Forced restart preserves capacity, terminal add deduplication, and output reservations. Refused adds and absent-ID forget leave snapshot bytes and admission order unchanged; the CLI reports a safe JSON `capacity` failure and creates no output artifacts. Forget releases one slot durably across forced and clean restart without deleting files. Reusing a forgotten ID consumes a fresh order: an existing final file is refused without HTTP traffic or inode/content changes, while a canceled prefix resumes with its saved validator to exact bytes. The refilled queue again refuses new work. This fixture uses normal production runners throughout.
+
+The capacity slice passed `go test ./cmd/yoinkdl -run '^TestDaemonProcessCapacityAndForgetRecovery$' -count=1`, the same command with `CGO_ENABLED=0`, and `make check` including race tests on Linux/amd64. Broader process concurrency/shared-rate tests and final release/six-target gates remain pending.
 
 ## Test layers
 
@@ -187,7 +192,7 @@ The [CI/release workflows](releases.md) passed local actionlint v1.7.12 checks a
 
 ## Planned v0.2 validation
 
-These are required checks for the [accepted daemon design](daemon-and-queue.md). E1 storage, E2 coordinator/controls, E3 shared budgets, and E4 IPC/lifecycle tests are recorded above, including safe internal/IPC views. E5 also covers CLI privacy, real signals, clean restart, and failed output. E6 covers forced CLI death, saved FIFO/settings, explicit checkpoint resume, publication ambiguity, and pending controls. Capacity and broader process scheduling/rate checks remain pending. The [delivery order](roadmap.md#v02-implementation-order) determines when each group becomes executable.
+These are required checks for the [accepted daemon design](daemon-and-queue.md). E1 storage, E2 coordinator/controls, E3 shared budgets, and E4 IPC/lifecycle tests are recorded above, including safe internal/IPC views. E5 also covers CLI privacy, real signals, clean restart, and failed output. E6 covers forced CLI death, saved FIFO/settings, explicit checkpoint resume, publication ambiguity, pending controls, and retained capacity/forget recovery. Broader process scheduling/rate checks remain pending. The [delivery order](roadmap.md#v02-implementation-order) determines when each group becomes executable.
 
 | Group | Required evidence |
 |---|---|
