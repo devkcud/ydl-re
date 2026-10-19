@@ -72,6 +72,7 @@ Milestones A, B, and C plus Milestone D rate, JSON, text-output, security regres
 | [Queue CLI](../internal/cli/queue_linux_test.go) and [arguments](../internal/cli/queue_test.go) | Real command/control paths, private diagnostics, relative/default filenames, text escaping, JSON, preserved files, runtime fallback, and no implicit startup |
 | [Queue CLI failures](../internal/cli/queue_failures_linux_test.go) | Lost/malformed/mismatched replies retain submitted IDs and unknown outcomes; failed/blocked output preserves accepted jobs; failed startup output prevents admission |
 | [Daemon CLI processes](../cmd/yoinkdl/daemon_linux_test.go) | Actual command processes, clean stop/restart, persisted concurrency, per-start rate reset, conditional resume, SIGINT/SIGTERM checkpointing, broken/full acknowledgment pipes, and startup output cleanup |
+| [Daemon CLI crash recovery](../cmd/yoinkdl/daemon_crash_linux_test.go) | Forced owner death with two active checkpoints and three waiting jobs, retained settings/order/lock inodes, stale endpoint recovery, explicit FIFO-tail resume, exact output hashes, and terminal source removal |
 
 `make check` runs formatting checks, vet, tests, race tests, and the binary build. The built binary's version and download help were also exercised. Tests use local sockets and need an environment that permits localhost listeners.
 
@@ -91,7 +92,9 @@ E3 passed focused controlled-clock and local HTTP checks, `make check`, and `CGO
 
 E4 passed `go test ./internal/daemon -count=1`, `make check`, and `CGO_ENABLED=0 go test ./internal/daemon -count=1` on Linux/amd64 with Go 1.27.2. The final gate covers concurrent Close and parent-context shutdown; Close uses an independent signal so a full control mailbox cannot prevent cleanup. Unix socket fixtures require execution outside the sandbox. The CI six-target CLI/test compilation recipe passed; after the final Linux shutdown refinement, native checks and Linux/arm64 daemon test compilation passed again. Foreign binaries were not executed. Source privacy is covered at the internal IPC boundary; E5 coverage below extends CLI rendering and real signal checks; forced-death and publication-boundary qualification remain E6 work.
 
-E5 passed focused CLI/process checks, `make check`, and `CGO_ENABLED=0 go test ./cmd/yoinkdl ./internal/cli -count=1` on Linux/amd64. The full gate reran the changed CLI/process suites with the race detector and retained matching cached engine/queue/runtime results. Six-target CGO-disabled CLI and test-program compilation passed. Process fixtures run the actual entry point in child processes with isolated XDG roots, check signal exit `130` after cleanup, and prove client output failures leave daemon-owned jobs running. Final E6 forced-death/publication-boundary and broader process concurrency/rate qualification remain pending; no v0.2 release or foreign runtime support is claimed.
+E5 passed focused CLI/process checks, `make check`, and `CGO_ENABLED=0 go test ./cmd/yoinkdl ./internal/cli -count=1` on Linux/amd64. The full gate reran the changed CLI/process suites with the race detector and retained matching cached engine/queue/runtime results. Six-target CGO-disabled CLI and test-program compilation passed. Process fixtures run the actual entry point in child processes with isolated XDG roots, check signal exit `130` after cleanup, and prove client output failures leave daemon-owned jobs running. E6 extends this process evidence below; no v0.2 release or foreign runtime support is claimed.
+
+E6 CLI crash recovery forcibly kills the actual daemon entry point after two transfers save nonzero checkpoints, with three more jobs waiting. Restart preserves the configured parallel limit and admission order, acquires the existing lock inodes, replaces the stale socket, and leaves both interrupted attempts idle until explicit resume. Waiting work runs first; resumed transfers request only validated checkpoint suffixes and publish exact fixture hashes. Final publication-boundary, pending pause/cancel intent, retained-capacity, broader concurrency/rate, and release qualification remain pending.
 
 ## Test layers
 
@@ -179,7 +182,7 @@ The [CI/release workflows](releases.md) passed local actionlint v1.7.12 checks a
 
 ## Planned v0.2 validation
 
-These are required checks for the [accepted daemon design](daemon-and-queue.md). E1 storage, E2 coordinator/controls, E3 shared budgets, and E4 IPC/lifecycle tests are recorded above, including safe internal/IPC views. E5 also covers CLI privacy, real signals, clean restart, and failed output. E6 forced-death/publication-boundary and broader process scheduling/rate checks remain pending. The [delivery order](roadmap.md#v02-implementation-order) determines when each group becomes executable.
+These are required checks for the [accepted daemon design](daemon-and-queue.md). E1 storage, E2 coordinator/controls, E3 shared budgets, and E4 IPC/lifecycle tests are recorded above, including safe internal/IPC views. E5 also covers CLI privacy, real signals, clean restart, and failed output. E6 now covers forced CLI death, saved FIFO/settings, and explicit checkpoint resume; publication-boundary, pending controls, capacity, and broader process scheduling/rate checks remain pending. The [delivery order](roadmap.md#v02-implementation-order) determines when each group becomes executable.
 
 | Group | Required evidence |
 |---|---|
