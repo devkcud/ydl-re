@@ -126,7 +126,13 @@ Final E6 runtime/platform gates passed on October 19, 2026, against clean runtim
 
 The [E6 testing report](testing.md#current-evidence) covers forced death, retained queue capacity, conditional resume, publication ambiguity, concurrency, and shared budgets. [Security evidence](security.md#review-evidence) includes private queue ownership, strict IPC, source redaction, uncertain commits, and preservation through forget/restart. Existing standalone transfer, TLS, output, storage, and packaging suites remain passing regression gates.
 
-Prepare and verify a local `0.2.0-rc.1` candidate from a clean committed tree next. Archive checksums, exact source identity, licenses/metadata, and installed standalone/daemon commands require candidate-specific evidence before completion. Existing tags and published v0.1 assets must remain unchanged. No v0.2 tag, hosted run, upload, or publication is implied by these local gates.
+The [0.2.0-rc.1 notes](../CHANGELOG.md#020-rc1) are prepared for a local candidate. From the clean commit containing those notes, run:
+
+```sh
+make release VERSION=0.2.0-rc.1
+```
+
+Archive checksums, exact source identity, licenses/metadata, and installed standalone/daemon commands require candidate-specific evidence before completion. Existing tags and published v0.1 assets must remain unchanged. No v0.2 tag, hosted run, upload, or publication is implied by these local gates.
 
 ## Draft-release workflow
 

@@ -2,13 +2,19 @@
 
 ## Unreleased
 
-- Internal v0.2 queue foundation: shared request validation, strict bounded snapshots, and a private Linux atomic store with exclusive ownership. Full source URLs and sequential/concurrent queue settings persist privately.
-- Queue coordinator with FIFO admission, live concurrency limits, pause/resume/cancel/forget, conservative recovery, safe polling views, and draining shutdown. Private Linux IPC and composed shared/per-transfer bandwidth are implemented.
+## [0.2.0-rc.1]
 
-- Linux v0.2 development CLI: explicit foreground daemon start/stop/set, add/list/pause/resume/cancel/forget, safe text/JSON results, caller-relative outputs, and preserved job IDs after lost acknowledgments. Broken client output does not cancel durable jobs. Final v0.2 release qualification remains pending.
-- Local Linux crash qualification covers saved queue order/settings, explicit checkpoint resume, pending pause/cancel intents, and preserved final files after death between publication and queue completion.
-- Retained queue capacity and forget recovery now have real daemon process evidence: full terminal queues survive restart, forget durably releases capacity, final files remain protected, and preserved partials can be readmitted safely.
-- Process qualification covers live concurrency changes, retained cancellation slots, composed private/shared bandwidth, shared credit across controls and job transitions, and persisted private caps across restart.
+First Linux/amd64 candidate for the optional daemon and persistent queue. Standalone downloads remain independent.
+
+- Explicit foreground `daemon start/stop/set` and `add/list/pause/resume/cancel/forget` commands, with no automatic daemon startup.
+- Durable FIFO admission, up to 256 retained jobs, and live whole-download concurrency from 1 through 8, separate from each download's worker count.
+- Private Linux state and Unix-socket control with exclusive ownership, peer-UID checks, strict bounded messages, and joined shutdown.
+- A daemon-wide bandwidth cap composed with per-download caps, retained across job transitions and live concurrency changes.
+- Safe text/JSON results, caller-relative output paths, and preserved job IDs after lost acknowledgments. Failed client output leaves accepted work running.
+- Explicit resume after interrupted attempts, conservative publication outcomes after crashes, and metadata-only forget that preserves final files and checkpoints. Queued transfers never overwrite existing final files.
+- Local crash, capacity, concurrency, and shared-rate process qualification; native ordinary/race/CGO-disabled gates and six-target compilation pass.
+
+Queue files intentionally retain full source URLs, including query tokens, as private plaintext until completion/cancellation or explicit forget. Transfer manifests remain fingerprint-only. Linux/amd64 is the only qualified native target; other builds provide compilation evidence, and non-Linux daemon operations remain unsupported. Hosted candidate verification and publication are separate from local preparation.
 
 ## [0.1.0]
 
