@@ -4,7 +4,7 @@
 
 The CLI supports parallel and sequential downloads with safe resume, bounded retries, aggregate rate caps, and local checkpoint inspection.
 
-Linux/amd64 users can [install stable `0.1.0`](releases.md#install-a-published-binary). The steps below build from source and use `./bin/yoinkdl`; with an installed binary on PATH, use `yoinkdl` instead.
+Linux/amd64 users can [install stable `0.1.0` or the `0.2.0-rc.1` queue prerelease](releases.md#install-a-published-binary). The steps below build from source and use `./bin/yoinkdl`; with an installed binary on PATH, use `yoinkdl` instead.
 
 ## Build locally
 
@@ -130,4 +130,4 @@ See the [CLI reference](cli.md), [troubleshooting](troubleshooting.md), and [roa
 
 ## Use the Linux queue
 
-The repository build also provides [v0.2 development queue commands](cli.md#daemon-and-queue), beyond published `0.1.0`. Run `yoinkdl daemon start` explicitly in one terminal, then use add/list/control commands from another terminal with the same XDG environment. Add resolves outputs in the client's directory and prints a job ID; successful admission does not mean the file has completed. A lost reply retains that ID for inspection, and broken client output never cancels durable jobs. Final v0.2 release qualification remains pending.
+The repository build and published `0.2.0-rc.1` also provide [queue commands](cli.md#daemon-and-queue), beyond stable `0.1.0`. Run `yoinkdl daemon start` explicitly in one terminal, then use add/list/control commands from another terminal with the same XDG environment. Add resolves outputs in the client's directory and prints a job ID; successful admission does not mean the file has completed. A lost reply retains that ID for inspection, and broken client output never cancels durable jobs. [Hosted validation and public installation](releases.md#v02-hosted-qualification-and-publication) passed for this prerelease.

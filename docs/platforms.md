@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The latest local qualification covers the completed E6 runtime/test sources at clean revision `5c00f2e1e522268c27ab89aba7d1f479fa12950f`, checked on October 19, 2026. Native Linux/amd64 ordinary/race/CGO-disabled gates and six-target compilation passed. The [local 0.2.0-rc.1 candidate](releases.md#v02-local-qualification) also passed packaging and installed-binary checks at `34041c372519ac751bb9d6ec1ecda56184d13161`, with unchanged runtime/test sources. No hosted v0.2 run or publication is claimed.
+The latest local qualification covers the completed E6 runtime/test sources at clean revision `5c00f2e1e522268c27ab89aba7d1f479fa12950f`, checked on October 19, 2026. Native Linux/amd64 ordinary/race/CGO-disabled gates and six-target compilation passed. The [0.2.0-rc.1 candidate](releases.md#v02-local-qualification) also passed local packaging and installed-binary checks at `34041c372519ac751bb9d6ec1ecda56184d13161`, with unchanged runtime/test sources. [Hosted qualification and public installation](releases.md#v02-hosted-qualification-and-publication) subsequently passed, and the candidate is published as a prerelease.
 
 The earlier October 12 native report covered `ee2f29558b3b162f4ad39fc6682ba7edf878f240`. The [hosted CI run](#hosted-ci-evidence) and [stable publication evidence](releases.md#stable-publication) below remain historical v0.1 evidence. Other native platforms and power-loss behavior remain unqualified.
 
@@ -10,7 +10,7 @@ The earlier October 12 native report covered `ee2f29558b3b162f4ad39fc6682ba7edf8
 
 | Target | CLI build | Test programs | Native runtime evidence | Current status |
 |---|---|---|---|---|
-| `linux/amd64` | Pass | Compiled and run | E6 ext4 ordinary/race gate and tmpfs CGO-disabled suite; historical v0.1 hosted checks | Locally qualified v0.2 runtime; stable `0.1.0` binary target |
+| `linux/amd64` | Pass | Compiled and run | E6 ext4 ordinary/race and tmpfs CGO-disabled suites; hosted Ubuntu 24.04.5 gates and public installation | Qualified `0.2.0-rc.1` prerelease and stable `0.1.0` binary target |
 | `linux/arm64` | Pass | Compile only | Unavailable on this host | Storage enabled; native behavior unqualified |
 | `darwin/amd64` | Pass | Compile only | Unavailable on this host | Storage enabled; native behavior unqualified |
 | `darwin/arm64` | Pass | Compile only | Unavailable on this host | Storage enabled; native behavior unqualified |
@@ -46,6 +46,12 @@ E6 forced-death, checkpoint/FIFO recovery, pending-control, publication-boundary
 The existing suites exercise prefix/chunk resume, forced process termination, stable advisory locks, hard-link and rename recovery, private partial permissions, symlink/collision refusal, stored-byte verification, cancellation, SIGINT/SIGTERM, terminal geometry, and blocked/broken output. See [testing coverage](testing.md#current-evidence).
 
 Local logs and the eight-package-per-target outputs are retained under ignored `bin/e6-qualification.0Stkvu/`: `native-ext4.log`, `cgo-disabled.log`, `matrix-host.log`, and `environment.json`. The first sandbox attempt could not open local listeners. A longer ext4 temporary path also correctly triggered the daemon's socket-length refusal; shortening the path fixed the fixture environment. Sandboxed cross-compilation reported unresolved macOS standard-library packages despite their files being present; the identical six-target recipe passed outside the sandbox. These failed attempts remain in the same evidence directory. No product changes were required.
+
+## Hosted v0.2 evidence
+
+[CI 39338571399](https://github.com/devkcud/ydl-re/actions/runs/39338571399) passed native ordinary/race tests, the uncached CGO-disabled suite, and six-target CLI/test compilation at `ae8339a9aa507dd526719318e9f9ea6d934df3a9`. [Draft run 39338981764](https://github.com/devkcud/ydl-re/actions/runs/39338981764) passed the full packaging gate at candidate `34041c372519ac751bb9d6ec1ecda56184d13161`. Runtime/test/build sources match the local E6 gate; the later main revision adds documentation only.
+
+Both runs used Ubuntu 24.04.5, image `ubuntu-24.04` version `20261012.334.1`, Go `1.27.0`, `GOTOOLCHAIN=local`, `GOAMD64=v1`, and no Go experiments. Race testing used CGO; the separate full suite and release binary used CGO disabled. Foreign binaries were not executed, and filesystem/mount details were not recorded. [Hosted/public archive verification](releases.md#v02-hosted-qualification-and-publication) proves source identity and isolated HTTP/HTTPS/daemon installation on the local Linux/amd64 host.
 
 ## Hosted CI evidence
 

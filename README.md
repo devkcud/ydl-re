@@ -67,9 +67,9 @@ Require an existing compatible checkpoint explicitly:
 
 Partial reuse requires a known size, identity encoding, and a matching strong ETag. Changed URLs/versions, corrupt state, and legacy partials without manifests are refused without destructive restart. A small `.yoinkdl.lock` file remains after success; its presence alone does not mean a process is active.
 
-## Linux queue (v0.2 development)
+## Linux queue (0.2.0-rc.1 prerelease)
 
-Repository builds include explicit daemon and queue commands. E1 through E6 pass local qualification, including native ordinary/race/CGO-disabled gates, six-target compilation, and [0.2.0-rc.1 archive/installation checks](docs/releases.md#v02-local-qualification). The candidate remains local; published `0.1.0` remains standalone.
+[YoinkDL 0.2.0-rc.1](https://github.com/devkcud/ydl-re/releases/tag/v0.2.0-rc.1) is published for Linux/amd64 with explicit daemon and queue commands. E1 through E6 pass local and hosted qualification, including native ordinary/race/CGO-disabled gates, six-target compilation, and [public archive/installation checks](docs/releases.md#v02-hosted-qualification-and-publication). Stable `0.1.0` remains Latest and provides standalone downloads.
 
 Run the owner in one terminal:
 
@@ -104,7 +104,7 @@ The output filesystem must support advisory locking, hard links, and directory s
 | [CLI reference](docs/cli.md) | Implemented commands and planned additions |
 | [Configuration](docs/configuration.md) | Current defaults and proposed configuration |
 | [Architecture](docs/architecture.md) | Current packages and target design |
-| [Daemon and queue](docs/daemon-and-queue.md) | Linux v0.2 development daemon, queue commands, private IPC, and shared caps |
+| [Daemon and queue](docs/daemon-and-queue.md) | Linux v0.2 prerelease daemon, queue commands, private IPC, and shared caps |
 | [Resume and storage](docs/resume-and-storage.md) | File safety, checkpoints, and recovery |
 | [Development](docs/development.md) | Make targets and contributor workflow |
 | [Testing](docs/testing.md) | Current evidence and remaining scenarios |

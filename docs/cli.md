@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The repository build implements the standalone commands and the Linux v0.2 development daemon/queue commands below. Published `0.1.0` binaries retain the standalone command set. Examples use the built executable from the repository root. See [getting started](getting-started.md) to build it.
+The repository build and published `0.2.0-rc.1` implement the standalone commands and Linux daemon/queue commands below. Stable `0.1.0` binaries retain the standalone command set. Examples use the built executable from the repository root. See [getting started](getting-started.md) to build it.
 
 ## Commands
 
@@ -200,7 +200,7 @@ Successful transfers remove their manifests, so inspection is not a completed-do
 
 ## Daemon and queue
 
-These Linux commands are implemented in the repository build for v0.2 development. They are not part of published `0.1.0`. The [daemon contract](daemon-and-queue.md) describes private paths, source retention, durability, and IPC ownership. Start is explicit and stays in the foreground; no client command starts a daemon automatically.
+These Linux commands are available in the repository build and [published 0.2.0-rc.1 prerelease](releases.md#v02-hosted-qualification-and-publication). They are not part of stable `0.1.0`. The [daemon contract](daemon-and-queue.md) describes private paths, source retention, durability, and IPC ownership. Start is explicit and stays in the foreground; no client command starts a daemon automatically.
 
 | Command | Behavior |
 |---|---|

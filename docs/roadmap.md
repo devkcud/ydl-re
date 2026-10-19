@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A through D are complete for the initial Linux/amd64 scope. Stable [0.1.0](https://github.com/devkcud/ydl-re/releases/tag/v0.1.0) is published with verified public downloads and installation. v0.2 is implemented and qualified locally as `0.2.0-rc.1`; hosted verification and publication remain separate work. There is no promised release date for later milestones.
+Milestones A through D are complete for the initial Linux/amd64 scope. Stable [0.1.0](https://github.com/devkcud/ydl-re/releases/tag/v0.1.0) is published with verified public downloads and installation. v0.2 is published as the [0.2.0-rc.1 prerelease](releases.md#v02-hosted-qualification-and-publication) after local and hosted qualification; stable `0.1.0` remains Latest. There is no promised release date for later milestones.
 
 ## Delivery sequence
 
@@ -73,7 +73,7 @@ The [testing matrix](testing.md#required-scenarios) expands these into concrete 
 
 ## v0.2 — Daemon and persistent queue
 
-**Status:** E1 through E6 are complete locally: private storage/recovery, FIFO controls and concurrency, composed bandwidth, Linux IPC/lifecycle, and explicit daemon/queue CLI commands with safe text/JSON results. E6 crash, capacity, concurrency, and shared-rate process fixtures pass the final native ordinary/race/CGO-disabled gates and six-target compilation. The [local 0.2.0-rc.1 candidate](releases.md#v02-local-qualification) also passed archive and installed-binary verification. [Daemon and persistent queue](daemon-and-queue.md) owns R04: foreground Linux daemon, private local IPC, durable queue/source records, conservative recovery, and configurable whole-transfer concurrency. [Daemon-wide rate caps](concurrency.md#daemon-wide-rate-cap) owns R03. Neither changes the released standalone CLI or its transfer manifests.
+**Status:** E1 through E6 are complete locally: private storage/recovery, FIFO controls and concurrency, composed bandwidth, Linux IPC/lifecycle, and explicit daemon/queue CLI commands with safe text/JSON results. E6 crash, capacity, concurrency, and shared-rate process fixtures pass the final native ordinary/race/CGO-disabled gates and six-target compilation. The [published 0.2.0-rc.1 prerelease](releases.md#v02-hosted-qualification-and-publication) also passed hosted CI and public archive/installation verification. [Daemon and persistent queue](daemon-and-queue.md) owns R04: foreground Linux daemon, private local IPC, durable queue/source records, conservative recovery, and configurable whole-transfer concurrency. [Daemon-wide rate caps](concurrency.md#daemon-wide-rate-cap) owns R03. Neither changes the released standalone CLI or its transfer manifests.
 
 Queue concurrency defaults to one transfer and persists across restarts. `daemon set --parallel N` selects `1..8` live; reductions wait for active work to finish before admitting more. The owner's full-URL persistence choice uses private queue files and redacted public views. Foreground startup is explicit, and no network service, database, TOML loader, TUI, or automatic daemon launch is required.
 
@@ -90,7 +90,7 @@ Pause/cancel use context cancellation and wait for the engine to release writers
 | E5 | CLI daemon/queue adapters and safe text/JSON views | Complete add/list/control path through real transfers; caller-relative output resolution; explicit startup; no source leakage; ambiguous acknowledgments; existing direct commands remain independent |
 | E6 | Process-crash qualification, release docs, and platform gates | Real kill/restart and publication-boundary cases; queue-full/forget recovery; concurrency and shared-rate process tests; native Linux full/race/CGO-disabled gates and six-target compilation |
 
-Keep each slice runnable and locally committed with its tests and current STATUS handoff. Use a narrow callable transfer runner for coordinator tests and retain one `transfer.Budget.Download` runner for the daemon lifetime. Do not add a generic job framework or duplicate the downloader. E6 local qualification is complete. Preserve candidate source revision `34041c372519ac751bb9d6ec1ecda56184d13161` and its verified local assets. Hosted verification and publication remain separate actions; never push under the current repository rules.
+Keep each slice runnable and locally committed with its tests and current STATUS handoff. Use a narrow callable transfer runner for coordinator tests and retain one `transfer.Budget.Download` runner for the daemon lifetime. Do not add a generic job framework or duplicate the downloader. E6 qualification and `0.2.0-rc.1` publication are complete. Preserve source revision `34041c372519ac751bb9d6ec1ecda56184d13161`, tag, release notes, and assets. The release-specific push exception is complete; future work remains local under the repository rules.
 
 The [v0.2 validation matrix](testing.md#planned-v02-validation) makes the failure paths concrete. A daemon release requires all slices and evidence, not merely a listener or a queue file.
 
@@ -102,7 +102,7 @@ Hooks need a separate opt-in execution policy. Arbitrary workflow languages rema
 
 ## Later front ends
 
-The daemon/queue commands below are available in v0.2 repository builds; `tui` remains proposed. None are part of published v0.1:
+The daemon/queue commands below are available in the `0.2.0-rc.1` prerelease and repository builds; `tui` remains proposed. None are part of published v0.1:
 
 ```text
 yoinkdl daemon start
@@ -115,7 +115,7 @@ yoinkdl cancel <id>
 yoinkdl tui
 ```
 
-`daemon start` is the primary name and will run in the foreground. The accepted [v0.2 control contract](daemon-and-queue.md#local-control-protocol) uses a private Linux Unix socket and versioned JSON frames; no TCP port or public HTTP API exists. `daemon set --parallel` and `forget` are also implemented v0.2 controls. The historical `summon` alias remains deferred.
+`daemon start` is the primary name and runs in the foreground. The accepted [v0.2 control contract](daemon-and-queue.md#local-control-protocol) uses a private Linux Unix socket and versioned JSON frames; no TCP port or public HTTP API exists. `daemon set --parallel` and `forget` are also implemented v0.2 controls. The historical `summon` alias remains deferred.
 
 ## Deferred concepts
 

@@ -145,7 +145,33 @@ The installed daemon passed explicit startup, private source retention and termi
 
 Local evidence and rerunnable verification scripts are in `bin/e6-qualification.0Stkvu/`: `release.log`, `installed-candidate.json`, `installed-candidate.log`, and `yoinkdl-verify-release.py`. Run the latter from the repository root with `0.2.0-rc.1`; it checks the source revision recorded in the package and creates fresh isolated fixtures. All 18 existing v0.1 archive/checksum files and both existing tag objects remain unchanged.
 
-E1 through E6 are complete for local Linux/amd64 qualification. No v0.2 tag, hosted run, upload, or publication was performed. Keep this candidate local under the current no-push rule; any later release instruction must use the recorded source revision and verify hosted assets separately. Foreign native execution and power-loss durability remain unqualified.
+E1 through E6 completed local Linux/amd64 qualification before the owner authorized the hosted release below. The local archives remain separate from hosted/public downloads. Foreign native execution and power-loss durability remain unqualified.
+
+## v0.2 hosted qualification and publication
+
+The owner explicitly authorized pushing and publishing `v0.2.0-rc.1` after hosted validation. Main was already pushed at `ae8339a9aa507dd526719318e9f9ea6d934df3a9`. Annotated tag object `31bebc5dfc543d318aa47b5ec5fb9c1f69657fa7` was created and pushed at the verified candidate source `34041c372519ac751bb9d6ec1ecda56184d13161`; no later documentation revision was substituted.
+
+[CI run 39338571399](https://github.com/devkcud/ydl-re/actions/runs/39338571399) passed the native full/race gate, uncached CGO-disabled tests, and six-target CLI/test compilation at the pushed main revision. [Draft run 39338981764](https://github.com/devkcud/ydl-re/actions/runs/39338981764) passed tag/changelog validation, the full packaging gate, and all uploads at the candidate tag. Both used Ubuntu 24.04.5, runner image `20261012.334.1`, and Go `1.27.0` with no Go experiments. Foreign binaries were compiled only; the hosted logs add no filesystem-specific or power-loss guarantee.
+
+The draft's notes matched the tagged `0.2.0-rc.1` changelog section. All three downloaded assets matched GitHub's recorded sizes and SHA-256 digests. The hosted source archive is byte-identical to the local candidate source archive. The binary archive differs from the local Go `1.27.2-X:nodwarf5` build as expected; these are the hosted and published digests:
+
+| Asset | Bytes | SHA-256 |
+|---|---|---|
+| `yoinkdl_0.2.0-rc.1_linux_amd64.tar.gz` | 3,101,155 | `542759e161799e0276039733e3b70b4bda2d9db3957931af7178af9c9459054b` |
+| `yoinkdl_0.2.0-rc.1_source.tar.gz` | 261,445 | `d03d4de60c475610e9a32957f6a27c2ab09d0ee8e52714b5b1de8ffa35480f02` |
+| `SHA256SUMS` | 203 | `f60cc1072c0aeaabc28c98d45430b1413b8d92713b5c7c2dcc56958ba1d3d020` |
+
+Separately downloaded hosted and public archives passed the retained `verify-release.py` fixture. Both installed binaries reported `0.2.0-rc.1`, used Go `1.27.0`, `CGO_ENABLED=0`, and `GOAMD64=v1`, and reproduced the exact 9,437,201-byte fixture with one/four workers over HTTP and trusted HTTPS. Untrusted certificates were refused. Daemon checks passed explicit startup, private source retention/clearing, safe views, pause, clean restart, persisted concurrency, conditional resume from 131,072 bytes, final-file preservation/refusal, cancellation, metadata-only forget, and clean shutdown.
+
+Publication completed at `2026-10-19T23:07:45Z` using:
+
+```sh
+gh release edit v0.2.0-rc.1 --repo devkcud/ydl-re --draft=false --prerelease --latest=false --verify-tag
+```
+
+The [YoinkDL 0.2.0-rc.1 prerelease](https://github.com/devkcud/ydl-re/releases/tag/v0.2.0-rc.1) has release ID `417837910`. Anonymous HTTPS requests succeeded for its page, API, and all three canonical asset URLs. Public files are byte-identical to the verified draft downloads. Notes, asset IDs/sizes/digests, and the tag/source identity are preserved. Both previous releases retain their notes and assets; Latest still resolves to stable `v0.1.0`.
+
+Hosted files are retained under `bin/releases/0.2.0-rc.1-hosted/`, public files under `bin/releases/0.2.0-rc.1-public/`, and logs, API snapshots, checks, and rerunnable verification scripts under `bin/v02-release.8Go8z2/`. The release-specific push/publication exception is complete; unrelated future work remains local under the repository's no-push rule. Stable `0.2.0` promotion has not been requested or performed.
 
 ## Draft-release workflow
 
@@ -170,3 +196,5 @@ install -m 0755 yoinkdl "$HOME/.local/bin/yoinkdl"
 ```
 
 Ensure `$HOME/.local/bin` is on PATH. The archive's `SOURCE.txt` identifies the corresponding source archive. Other native platforms, broader filesystem durability, signing, and package-manager distribution remain outside the current release evidence; see [platform qualification](platforms.md).
+
+To try the Linux queue prerelease, use its [0.2.0-rc.1 binary archive](https://github.com/devkcud/ydl-re/releases/download/v0.2.0-rc.1/yoinkdl_0.2.0-rc.1_linux_amd64.tar.gz), [matching sources](https://github.com/devkcud/ydl-re/releases/download/v0.2.0-rc.1/yoinkdl_0.2.0-rc.1_source.tar.gz), and [checksums](https://github.com/devkcud/ydl-re/releases/download/v0.2.0-rc.1/SHA256SUMS). Apply the same installation steps with `0.2.0-rc.1` in the archive/directory names. It remains a prerelease; stable `0.1.0` is still Latest.
