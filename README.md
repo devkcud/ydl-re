@@ -12,6 +12,8 @@ Milestones A through D are complete for the initial Linux/amd64 release. `downlo
 
 The [product roadmap](docs/roadmap.md) now focuses on a local-first web app using Vue 3 + TypeScript, with Vue Flow selected for a later Visual Grabber. Profiles, library/history, rules, scheduling, and browser workflows are planned around the existing daemon. A Firefox extension with link handoff and opt-in download interception, plus hosted-server selection, come later; these features are not implemented. The TUI remains canceled.
 
+The [W1 local web contract](docs/local-web.md) defines the first downloads/profile workflow, separate process/build lifetime, and local authentication boundary. It is a specification; the web command and frontend are not available yet.
+
 ## Build and test
 
 Install Go 1.27 or newer and GNU Make, then run from the repository root:
@@ -107,6 +109,7 @@ The output filesystem must support advisory locking, hard links, and directory s
 | [Configuration](docs/configuration.md) | Current defaults and proposed configuration |
 | [Architecture](docs/architecture.md) | Current packages and target design |
 | [Daemon and queue](docs/daemon-and-queue.md) | Linux v0.2 prerelease daemon, queue commands, private IPC, and shared caps |
+| [Local web contract](docs/local-web.md) | Planned W1 downloads/profiles, API/authentication, metadata, and acceptance cases |
 | [Resume and storage](docs/resume-and-storage.md) | File safety, checkpoints, and recovery |
 | [Development](docs/development.md) | Make targets and contributor workflow |
 | [Testing](docs/testing.md) | Current evidence and remaining scenarios |

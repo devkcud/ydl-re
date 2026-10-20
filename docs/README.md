@@ -6,7 +6,7 @@ YoinkDL is a local-first download manager written in Go. It provides sequential 
 
 ## Project status
 
-As of October 19, 2026, stable `0.1.0` is published for Linux/amd64. The transfer, resume, and retry engine has native ext4/tmpfs evidence, hosted v0.1 CI, and six-target compilation evidence. Use `make build` to build `bin/yoinkdl`, `make test` for tests, and `make check` for the full gate. There are no external Go dependencies.
+As of October 20, 2026, stable `0.1.0` is published for Linux/amd64. The transfer, resume, and retry engine has native ext4/tmpfs evidence, hosted v0.1 CI, and six-target compilation evidence. Use `make build` to build `bin/yoinkdl`, `make test` for tests, and `make check` for the full gate. There are no external Go dependencies.
 
 Use the root [README](../README.md) for an introduction, [STATUS.md](../STATUS.md) for the current handoff and next steps, and [AGENTS.md](../AGENTS.md) for implementation instructions.
 
@@ -15,6 +15,8 @@ The [getting-started guide](getting-started.md) and [CLI reference](cli.md) docu
 These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions. The [v0.2 daemon/queue contract](daemon-and-queue.md) and [ordered plan](daemon-and-queue.md#delivery-and-validation) are accepted. E1 through E6 are complete for the Linux/amd64 prerelease: private storage, queue controls/concurrency/recovery, shared bandwidth, Linux IPC, the daemon/queue CLI, and release qualification. The commands are available in published `0.2.0-rc.1`; stable `0.1.0` remains standalone and Latest. E6 crash, capacity, concurrency, and shared-rate process fixtures pass the final native ordinary/race/CGO-disabled gates and six-target compilation. The [published 0.2.0-rc.1 prerelease](releases.md#v02-hosted-qualification-and-publication) passed hosted CI, archive checks, anonymous downloads, and installed-binary verification.
 
 The owner selected a [local-first web application](roadmap.md#local-web-application), using Vue 3 + TypeScript and Vue Flow for the Visual Grabber editor. The roadmap now tracks feature phases rather than version targets. Downloads/basic profiles come first, followed by library/history, rules, schedules, and browser workflows. A Firefox extension with link handoff and opt-in download interception, plus hosted-instance/profile targeting, are explicitly later. None of these application features are implemented; the TUI remains canceled.
+
+The [W1 contract](local-web.md) now defines the first workflow and local process/build/authentication boundary. Profile persistence and the concrete API/recovery contract are being defined next; no web command or endpoint is implemented.
 
 ## Start here
 
@@ -37,6 +39,7 @@ The owner selected a [local-first web application](roadmap.md#local-web-applicat
 | [Resume and storage](resume-and-storage.md) | Sidecars, manifest, checkpoints, locks, crash recovery |
 | [Concurrency and retries](concurrency.md) | Range planning, workers, backoff, rate limits, progress |
 | [Daemon and queue](daemon-and-queue.md) | Linux daemon/queue commands, private storage/IPC, scheduling, shared budgets, and lifecycle |
+| [Local web contract](local-web.md) | Planned W1 workflow, HTTP/authentication, profiles, private metadata, recovery, and delivery order |
 | [Security](security.md) | File safety, credentials, network trust, future daemon risks |
 | [Development](development.md) | Current checkout, proposed build workflow, coding conventions |
 | [Testing](testing.md) | Deterministic tests, fault cases, release evidence |
