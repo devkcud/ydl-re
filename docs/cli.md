@@ -268,6 +268,4 @@ Output uses the existing bounded writer. Broken/blocked client output can fail o
 
 ## Planned additions
 
-Configuration loading, a TUI, profiles, history, and optional hooks remain unimplemented. No automatic startup, background spawning, or service installation is required. See [open decisions](decisions.md) and the [roadmap](roadmap.md) before adding later interfaces.
-
-The [initial v0.3 TUI contract](tui.md) specifies a future `yoinkdl tui` command for existing Linux daemon jobs, with polled safe snapshots and pause/resume/cancel/forget. It defines keyboard interaction, terminal ownership, and uncertainty handling; it is not available in current builds or `0.2.0-rc.1`. Adding jobs and changing daemon settings continue to use the existing CLI.
+Configuration loading, profiles, history, and optional hooks remain unimplemented proposals. The next scope awaits the owner's direction; these features are not selected as the next work. No automatic startup, background spawning, or service installation is required. See [open decisions](decisions.md) and the [roadmap](roadmap.md).

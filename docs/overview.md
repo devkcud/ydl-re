@@ -35,7 +35,7 @@ The CLI runs in the foreground. Interrupting that process is the initial pause m
 |---|---|
 | v0.1 | `download`, `inspect`, `version`; HTTP(S); safe streaming and parallel ranges; local resume; retries; progress; aggregate transfer cap; JSON output; completion checks |
 | v0.2 | Local daemon, persistent queue, add/list/pause/resume/cancel operations, scheduling concurrent transfers, bandwidth management |
-| v0.3 | TUI, named profiles, richer inspection and history, optional completion hooks |
+| v0.3 | Scope pending the owner's new direction; the TUI has been removed |
 | Later | Optional web UI, other protocols, remote nodes, LAN transfers, scheduling features, sandboxed workflows |
 
 The original draft's detailed CLI and hardening milestone place a per-transfer `--limit` in v0.1, which is implemented. The accepted [v0.2 design](daemon-and-queue.md) adds a separate shared daemon cap and a persistent whole-download concurrency setting: `1` for sequential work, higher values for concurrent downloads. The published Linux `0.2.0-rc.1` prerelease implements these settings and passed [local/hosted qualification and public installation](releases.md#v02-hosted-qualification-and-publication). [Budget composition](concurrency.md#daemon-wide-rate-cap) defines their boundary with the existing cap.
@@ -45,7 +45,7 @@ The original draft's detailed CLI and hardening milestone place a per-transfer `
 - HLS/DASH media streaming, browser automation, scraping, captcha solving, protected-content bypassing, and DRM circumvention.
 - FTP, SFTP, torrents, peer discovery, LAN P2P, and transfers spread across machines.
 - Plugins, scripting engines, arbitrary workflows, automatic unpacking, and automatic execution of downloaded content.
-- A daemon, database server, web dashboard, persistent queue, or TUI as a prerequisite for downloading a file.
+- A daemon, database server, web dashboard, or persistent queue as a prerequisite for downloading a file.
 
 User-supplied checksum verification is also deferred. v0.1 still checks transfer length, range coverage, response validity, and successful completion. Tests compare fixture hashes even before a checksum option exists.
 

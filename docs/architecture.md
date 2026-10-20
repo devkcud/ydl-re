@@ -76,7 +76,7 @@ The CLI constructs a request and owns terminal interaction. The application serv
 | Planner | Sequential/ranged mode selection and non-overlapping intervals |
 | Scheduler | Worker limits, task ownership, retry timing, cancellation |
 | Storage | Destination policy, partial files, transfer identity, locks, checkpoints, final publication |
-| Progress | Events and snapshots suitable for terminal and later daemon/TUI consumers |
+| Progress | Events and snapshots for CLI progress and safe daemon views |
 
 These are responsibilities, not a requirement for a type or interface per row. Add a package only when its ownership is distinct.
 
@@ -131,7 +131,7 @@ The coordinator needs reliable representation metadata, the selected mode, inter
 
 Snapshots should distinguish known and unknown totals and expose enough information for bytes, speed, ETA, and active workers. A progress subscriber must not decide whether a transfer is complete. Terminal success follows verification and final publication.
 
-`cli/events.go` adapts engine snapshots/results into the [version-1 JSON contract](cli.md#json-output). `cli/json.go` cancels the engine on output failure and emits the terminal result only after `Download` returns with worker/storage cleanup complete. JSON output owns duplicated pipe/socket descriptors through `cli/output.go` and `output_unix.go`; writes are synchronous, bounded by deadlines where supported, and never create an event backlog. Generic daemon/TUI subscriptions and retry counters remain [open](decisions.md#command-and-output-decisions).
+`cli/events.go` adapts engine snapshots/results into the [version-1 JSON contract](cli.md#json-output). `cli/json.go` cancels the engine on output failure and emits the terminal result only after `Download` returns with worker/storage cleanup complete. JSON output owns duplicated pipe/socket descriptors through `cli/output.go` and `output_unix.go`; writes are synchronous, bounded by deadlines where supported, and never create an event backlog. Additional subscriptions and retry counters remain [open](decisions.md#command-and-output-decisions), subject to a concrete future requirement.
 
 `cli/text.go` applies the same writer to one-shot replies/diagnostics and text downloads. Progress owns its writer only during the transfer, then releases it before terminal reporting; stdout/stderr handles do not overlap when both refer to the same pipe. `render.go` escapes nonprinting text, and `terminal_unix.go` detects terminal geometry for clipped ANSI frames. Detected terminals also use the owned, cancellable output path.
 
@@ -143,12 +143,11 @@ A context from the CLI signal handler flows through the application, requests, w
 
 See [concurrency](concurrency.md) and [resume and storage](resume-and-storage.md) for the invariants behind these boundaries.
 
-## Future front ends
+## CLI and daemon boundaries
 
 ```mermaid
 flowchart TD
     CLI[Queue CLI] --> IPC[Local IPC and daemon API]
-    TUI[TUI] --> IPC
     IPC --> Queue[Persistent queue manager]
     Queue --> App[Transfer application service]
     Direct[Standalone download CLI] --> App
@@ -157,8 +156,6 @@ flowchart TD
 
 The [accepted v0.2 contract](daemon-and-queue.md) uses `internal/queue` for durable state and scheduling and `internal/daemon` for Linux local control/lifecycle. Both are implemented, including composed shared budgets and CLI adapters. Standalone `transfer.Download` and the retained `Budget.Download` runner share the same engine, pure validation, and body accounting. The engine never imports daemon or CLI code.
 
-The queue coordinator serializes durable mutations and owns transfer contexts. Persist running intent before engine calls, and record outcomes after the engine joins workers and releases storage. Safe status records omit stored source URLs; progress is coalesced and never blocks the engine on a control client. The [initial v0.3 TUI](tui.md) also selects bounded polling; subscriptions remain later work.
-
-The proposed `internal/tui` package will own UI state, selection, confirmations, rendering, and bounded request scheduling over injected IO boundaries. A TUI-specific CLI adapter will reuse daemon calls, safe failure/ID handling, and bounded output; a Linux session helper will own terminal input/restoration. These components are not implemented. They will not open queue storage, inspect transfer artifacts, control worker contexts, or add a generic progress bus. See the [ownership map and ordered slices](tui.md#ownership-in-the-implementation).
+The queue coordinator serializes durable mutations and owns transfer contexts. Persist running intent before engine calls, and record outcomes after the engine joins workers and releases storage. Safe status records omit stored source URLs; progress is coalesced and never blocks the engine on a control client. Existing clients use the safe polling API; future consumers need a separate contract.
 
 Initial control uses a private Linux Unix stream socket with peer-UID checks and separate state/runtime locks. `daemon start` runs in the foreground without automatic startup or service installation. The standalone commands remain independent. Other native daemon transports require their own qualification.

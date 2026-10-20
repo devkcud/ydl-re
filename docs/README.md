@@ -14,7 +14,7 @@ The [getting-started guide](getting-started.md) and [CLI reference](cli.md) docu
 
 These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions. The [v0.2 daemon/queue contract](daemon-and-queue.md) and [ordered plan](roadmap.md#v02-implementation-order) are accepted. E1 through E6 are complete for the Linux/amd64 prerelease: private storage, queue controls/concurrency/recovery, shared bandwidth, Linux IPC, the daemon/queue CLI, and release qualification. The commands are available in published `0.2.0-rc.1`; stable `0.1.0` remains standalone and Latest. E6 crash, capacity, concurrency, and shared-rate process fixtures pass the final native ordinary/race/CGO-disabled gates and six-target compilation. The [published 0.2.0-rc.1 prerelease](releases.md#v02-hosted-qualification-and-publication) passed hosted CI, archive checks, anonymous downloads, and installed-binary verification.
 
-The [first v0.3 TUI slice](tui.md) is specified and awaits implementation. It uses the existing daemon's safe snapshots and controls. Profiles, configuration loading, history, and hooks remain separate work; no published binary contains `yoinkdl tui`.
+The owner removed the TUI from the roadmap before implementation. The next product direction and v0.3 scope await clarification; earlier profile, inspection/history, and hook proposals are not an implementation queue.
 
 ## Start here
 
@@ -37,7 +37,6 @@ The [first v0.3 TUI slice](tui.md) is specified and awaits implementation. It us
 | [Resume and storage](resume-and-storage.md) | Sidecars, manifest, checkpoints, locks, crash recovery |
 | [Concurrency and retries](concurrency.md) | Range planning, workers, backoff, rate limits, progress |
 | [Daemon and queue](daemon-and-queue.md) | Linux daemon/queue commands, private storage/IPC, scheduling, shared budgets, and lifecycle |
-| [Initial TUI](tui.md) | Planned v0.3 interaction, polling/controls, terminal lifetime, implementation order, and acceptance criteria |
 | [Security](security.md) | File safety, credentials, network trust, future daemon risks |
 | [Development](development.md) | Current checkout, proposed build workflow, coding conventions |
 | [Testing](testing.md) | Deterministic tests, fault cases, release evidence |
@@ -49,7 +48,7 @@ The [first v0.3 TUI slice](tui.md) is specified and awaits implementation. It us
 
 ## Design source map
 
-The original design remains the source proposal. This map shows where its subjects are explained in detail.
+The original design is preserved as a historical proposal. Its TUI references are superseded by the owner's removal decision; the current roadmap and decision register govern new work. This map shows where its subjects are explained in detail.
 
 | Original section | Documentation |
 |---|---|
@@ -70,6 +69,6 @@ The original design remains the source proposal. This map shows where its subjec
 
 ## Documentation conventions
 
-`v0.1` is released as `0.1.0`; `v0.2` is available as the `0.2.0-rc.1` prerelease, and `v0.3` remains planned. A specified contract is not an implemented command or runtime proof. “Later” means unscheduled. “Illustrative” means an example is not a stable schema or output contract.
+`v0.1` is released as `0.1.0`; `v0.2` is available as the `0.2.0-rc.1` prerelease, and the scope of `v0.3` is pending. A specified contract is not an implemented command or runtime proof. “Later” means unscheduled. “Illustrative” means an example is not a stable schema or output contract.
 
 Remote example URLs are placeholders. Build commands use the actual repository layout; choose output paths appropriate to your filesystem. A successful-looking progress display is never evidence that a transfer has passed verification.

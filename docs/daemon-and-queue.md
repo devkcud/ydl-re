@@ -10,7 +10,7 @@ The internal daemon runtime runs the existing transfer engine through a retained
 
 Add only `internal/queue` for durable jobs and scheduling, and `internal/daemon` for local control and process lifecycle. Keep CLI adapters in `internal/cli`. Reuse pure transfer request validation, filename rules, cancellation, checkpoints, and body-rate accounting; do not copy the downloader or make it import daemon code.
 
-No network listener, database dependency, service installation, automatic daemon startup, profiles, hooks, event subscription service, or TUI is required. `daemon start` runs in the foreground; an external process supervisor can manage it. Background spawning is separate work.
+No network listener, database dependency, service installation, automatic daemon startup, profiles, hooks, or event subscription service is required. `daemon start` runs in the foreground; an external process supervisor can manage it. Background spawning is separate work.
 
 ## Queue concurrency
 

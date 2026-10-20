@@ -13,7 +13,7 @@ Milestones A through D are complete for the initial Linux/amd64 scope. Stable [0
 | C | Multi-range engine | Safe bounded parallel transfers |
 | D | v0.1 hardening | Validated UX, safety, platform behavior, and distribution |
 
-Complete these in dependency order. A daemon or TUI should not delay the standalone engine.
+Complete these in dependency order. Later features should not delay the standalone engine.
 
 ## Milestone A — Reliable single stream
 
@@ -75,7 +75,7 @@ The [testing matrix](testing.md#required-scenarios) expands these into concrete 
 
 **Status:** E1 through E6 are complete locally: private storage/recovery, FIFO controls and concurrency, composed bandwidth, Linux IPC/lifecycle, and explicit daemon/queue CLI commands with safe text/JSON results. E6 crash, capacity, concurrency, and shared-rate process fixtures pass the final native ordinary/race/CGO-disabled gates and six-target compilation. The [published 0.2.0-rc.1 prerelease](releases.md#v02-hosted-qualification-and-publication) also passed hosted CI and public archive/installation verification. [Daemon and persistent queue](daemon-and-queue.md) owns R04: foreground Linux daemon, private local IPC, durable queue/source records, conservative recovery, and configurable whole-transfer concurrency. [Daemon-wide rate caps](concurrency.md#daemon-wide-rate-cap) owns R03. Neither changes the released standalone CLI or its transfer manifests.
 
-Queue concurrency defaults to one transfer and persists across restarts. `daemon set --parallel N` selects `1..8` live; reductions wait for active work to finish before admitting more. The owner's full-URL persistence choice uses private queue files and redacted public views. Foreground startup is explicit, and no network service, database, TOML loader, TUI, or automatic daemon launch is required.
+Queue concurrency defaults to one transfer and persists across restarts. `daemon set --parallel N` selects `1..8` live; reductions wait for active work to finish before admitting more. The owner's full-URL persistence choice uses private queue files and redacted public views. Foreground startup is explicit, and no network service, database, TOML loader, or automatic daemon launch is required.
 
 Pause/cancel use context cancellation and wait for the engine to release writers. Crash-interrupted attempts do not restart automatically or infer success from file presence. An initial queued transfer never overwrites a completed destination. `forget` explicitly frees a non-running queue record without deleting its data files.
 
@@ -94,19 +94,15 @@ Keep each slice runnable and locally committed with its tests and current STATUS
 
 The [v0.2 validation matrix](testing.md#planned-v02-validation) makes the failure paths concrete. A daemon release requires all slices and evidence, not merely a listener or a queue file.
 
-## v0.3 — TUI and richer local workflows
+## v0.3 — Scope pending
 
-**Status:** the [first TUI slice](tui.md) is specified; implementation has not started. It monitors existing Linux daemon jobs and provides pause/resume/cancel/forget through the current IPC. It consumes safe polled snapshots, keeps terminal lifetime separate from daemon work, and does not require configuration, profiles, new event fields, or a subscription protocol.
+The owner has removed the TUI entirely from the roadmap. Its draft contract and implementation sequence are withdrawn; no TUI code was implemented.
 
-Follow [F1 through F4](tui.md#implementation-order): pure model/rendering, bounded polling/controls, Linux terminal/CLI integration, then real daemon/PTY qualification. The [acceptance criteria](tui.md#acceptance-and-validation) cover selection, unknown outcomes, privacy, terminal restoration, and independent daemon work. Do not advertise `yoinkdl tui` as implemented while only its contract or internal model exists.
+Define the next product direction with the owner before choosing another slice or assigning it to v0.3. Named profiles, richer inspection/history, and optional completion hooks remain earlier proposals, with no selected implementation order. Their configuration, storage, and execution contracts remain unresolved. They are not automatic replacements for the canceled work.
 
-Named profiles, richer inspection/history, and optional completion hooks remain later v0.3 slices. Resolve their configuration, storage, and execution contracts before implementation; the initial TUI does not select the illustrative TOML or directory layout.
+## Existing queue commands
 
-Hooks need a separate opt-in execution policy. Arbitrary workflow languages remain outside this release's required scope.
-
-## Later front ends
-
-The daemon/queue commands below are available in the `0.2.0-rc.1` prerelease and repository builds; `tui` is specified in the [initial TUI contract](tui.md) but remains unimplemented. None are part of published v0.1:
+The daemon/queue commands below are available in the `0.2.0-rc.1` prerelease and repository builds. None are part of published v0.1:
 
 ```text
 yoinkdl daemon start
@@ -116,7 +112,6 @@ yoinkdl list
 yoinkdl pause <id>
 yoinkdl resume <id>
 yoinkdl cancel <id>
-yoinkdl tui
 ```
 
 `daemon start` is the primary name and runs in the foreground. The accepted [v0.2 control contract](daemon-and-queue.md#local-control-protocol) uses a private Linux Unix socket and versioned JSON frames; no TCP port or public HTTP API exists. `daemon set --parallel` and `forget` are also implemented v0.2 controls. The historical `summon` alias remains deferred.
@@ -130,7 +125,7 @@ YoinkDL carries forward the reliability goals of the earlier GoonDL design while
 | Adaptive chunks and round-robin scheduling | Start with static ranges; revisit with measurements |
 | `.goondl-meta` and a custom extension ecosystem | Begin with versioned `.yoinkdl.json`; avoid custom languages |
 | `~/.config/goondl` | Proposed `~/.config/yoinkdl`, with transfer sidecars beside destinations |
-| `goonprofile`, `goonhook`, related profiles/hooks | v0.3 or later, starting with simple declarative formats |
+| `goonprofile`, `goonhook`, related profiles/hooks | Unscheduled proposals; revisit with the owner's next product direction |
 | JavaScript, Lua, or WASM workflows | Unscheduled; requires runtime and security design |
 | HTMX/web monitoring dashboard | Unscheduled optional daemon front end |
 | SFTP, SCP/SSH, torrents, Metalink | Future protocol/transport work; no delivery commitment |

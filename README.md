@@ -105,7 +105,6 @@ The output filesystem must support advisory locking, hard links, and directory s
 | [Configuration](docs/configuration.md) | Current defaults and proposed configuration |
 | [Architecture](docs/architecture.md) | Current packages and target design |
 | [Daemon and queue](docs/daemon-and-queue.md) | Linux v0.2 prerelease daemon, queue commands, private IPC, and shared caps |
-| [Initial TUI](docs/tui.md) | Planned v0.3 terminal interface, implementation steps, and acceptance criteria |
 | [Resume and storage](docs/resume-and-storage.md) | File safety, checkpoints, and recovery |
 | [Development](docs/development.md) | Make targets and contributor workflow |
 | [Testing](docs/testing.md) | Current evidence and remaining scenarios |
