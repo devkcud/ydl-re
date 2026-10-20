@@ -63,10 +63,9 @@ Resolve each decision before the milestone or interface depending on it is decla
 
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
-| C08 | Web telemetry, update delivery, and retry counters | The web app can reuse safe polling; new speed/connection/resource metrics and reconnect behavior need explicit contracts | [Concurrency](concurrency.md), [roadmap](roadmap.md#cross-cutting-acceptance) |
+| C08 | Richer web telemetry, subscriptions, and retry counters | W1 safe polling/reconnect is specified; speed/connection/resource metrics and subscriptions remain deferred | [W1 HTTP interface](local-web.md#http-interface), [concurrency](concurrency.md) |
 | C09 | TOML loader, precedence, and unknown keys | Turns the illustrative configuration into a contract while retaining implemented value validation | [Configuration](configuration.md) |
-| C10 | Local web API, launch/lifetime, authentication, and origin boundaries | Adds browser access around the private daemon without changing standalone ownership or unknown-outcome behavior | [Architecture](architecture.md#planned-web-application) |
-| C11 | Profile ownership/defaults, aggregate limits, and richer job controls | Defines CLI-created job association, immutable effective settings, priorities/reordering, and any safe editing policy | [Profile model](roadmap.md#instance-and-profile-model), [configuration](configuration.md) |
+| C11 | Aggregate profile limits and richer job controls | W1 defaults/association are specified; shared profile budgets, reassignment/deletion, priorities/reordering, and job editing require later contracts | [W1 profiles](local-web.md#profiles-and-effective-settings), [profile model](roadmap.md#instance-and-profile-model) |
 | C12 | Rules, workflow execution, and trigger/schedule semantics | Defines metadata stages/precedence, versioned runs, loops/subflows, cancellation, retries, deduplication, downtime, and overlap behavior | [Build phases](roadmap.md#local-web-delivery-order) |
 | C13 | Later Firefox interception/bridge and hosted-instance transports | Firefox is selected first; define permissions, pairing/authentication, destination selection, supported captures, takeover/recovery, and duplicate/unknown-outcome handling | [Later integration](roadmap.md#later-browser-integration-and-hosted-operation) |
 
@@ -79,7 +78,7 @@ The default worker preference is four, the retry default is three additional att
 | S03 | Windows path normalization, reserved names, reparse points, and artifact collisions | Extends the settled Unix path policy to an unsupported storage platform | [Security](security.md) |
 | S06 | Windows publication and wider durability qualification | Extends the implemented Linux publication and manifest-reconciliation policy safely | [Lifecycle](transfer-lifecycle.md#7-finalize) |
 | S08 | Cross-platform configuration-file discovery | Linux daemon state/runtime paths are settled separately; the optional config loader remains undefined | [Configuration](configuration.md) |
-| S09 | Application metadata, library/history, and portable definitions | Chooses storage/schemas, run/job/file identity, retention, source/credential privacy, duplicate detection, and import/export path mapping | [Application ownership](architecture.md#planned-web-application) |
+| S09 | Metadata evolution, library/history, and portable definitions | W1 profile/submission JSON is specified; migration, run/file schemas, retention, source/credential privacy, duplicate identity, and import/export path mapping remain later work | [W1 metadata](local-web.md#private-application-metadata), [application ownership](architecture.md#planned-web-application) |
 
 Version 1 uses a half-open sequential prefix. Version 2 uses explicit whole-chunk intervals with independent digests and a fixed chunk size. Neither accepts the original illustrative inclusive range-array format. See the [storage contracts](resume-and-storage.md).
 
@@ -115,9 +114,18 @@ The owner approved a local-first web application with hosted operation second. T
 
 Vue 3 + TypeScript is the frontend direction, and **Vue Flow is selected** for the Visual Grabber editor. Go remains the application/daemon integration direction, with an optional Playwright browser worker. The editor choice does not select a workflow execution engine, data schema, or additional runtime dependency for standalone downloads.
 
-An instance identifies an execution host/output filesystem; a profile is a workspace within that instance. Basic local downloads/profiles lead W1, then library/history and rules in W2, schedules and a small browser/workflow runner in W3, and fuller Vue Flow authoring/debugging in W4. Exact first-slice contracts and the decisions above still need resolution; no new application behavior is implemented.
+An instance identifies an execution host/output filesystem; a profile is a workspace within that instance. Basic local downloads/profiles lead W1, then library/history and rules in W2, schedules and a small browser/workflow runner in W3, and fuller Vue Flow authoring/debugging in W4. The first-slice choices are recorded below; no new application behavior is implemented.
 
 The owner explicitly deferred browser integration and hosted targeting to L1/L2 and selected **Firefox as the first extension target**, including opt-in interception of supported downloads. The intended later actions include **Send this link to Yoink** and **Send download to → Home server → Pato**, where Home server is an instance and Pato is a profile. Chromium support can be considered later; the interception mechanism and bridge remain open. These integrations are not prerequisites for W1. Custom hooks, arbitrary scripting, and distributed transfer swarms are separate unscheduled directions.
+
+### W1 contract decisions made
+
+[W1 local web](local-web.md) resolves C10 and the W1 portions of C08, C11, and S09 as implementation contracts, not runtime evidence:
+
+- Run an explicit separate foreground web process on numeric IPv4 loopback, serving built Vue/TypeScript/Vite assets and a versioned API. Use a per-launch bearer token kept in tab memory, exact host/origin checks, and no CORS/cookies. Web shutdown never stops the daemon; Go-only builds remain independent of Node/assets.
+- Reuse existing safe polling and queue controls through `daemon.Call`. Keep nullable outcomes and decimal-string web integers, bound clients/bodies, never retry unknown mutations automatically, and defer speed/ETA/subscriptions, daemon start/stop buttons, and dynamic global caps.
+- Store bounded private JSON profiles and URL-free submission bindings separately from daemon state. Require explicit output-directory setup; freeze defaults plus overrides, persist the binding before Add, and never replay saved intents. CLI jobs are Unassigned, and unmatched bindings remain explicitly unresolved until observed or deliberately dismissed.
+- Keep Linux/amd64 as the first native qualification scope. The [acceptance cases](local-web.md#acceptance-and-failure-cases) establish the next implementation work. TOML/cross-platform config discovery, W2+ metadata evolution, and L1/L2 remain separate.
 
 ## Already established direction
 

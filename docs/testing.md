@@ -236,11 +236,11 @@ Use local deterministic servers and temporary roots. Run focused checks for each
 
 ## Planned application validation
 
-The [web roadmap](roadmap.md#local-web-delivery-order) is selected direction, not implementation evidence. Derive focused acceptance cases before each concrete slice:
+The [web roadmap](roadmap.md#local-web-delivery-order) is selected direction, not implementation evidence. W1 now has a concrete [local contract and acceptance matrix W1-A01–W1-A12](local-web.md#acceptance-and-failure-cases), including reusable daemon APIs. Derive further focused cases before later slices:
 
 | Phase | Required coverage |
 |---|---|
-| W1 | Local API/session and origin boundaries; explicit startup/lifetime; private safe views; job controls and lost acknowledgments; profile association/default snapshots; browser-tab/output failure independent of accepted daemon work; unchanged standalone use |
+| W1 | Token/host/origin and static-file boundaries; explicit independent startup/lifetime; private metadata and integer-safe views; durable binding before Add; lost acknowledgments and no replay; profile revision/default snapshots and Unassigned CLI jobs; orphan cleanup; browser-tab/output failure independent of daemon work; frontend and unchanged standalone gates |
 | W2 | Metadata persistence/migration/retention; cataloged versus moved/missing files; duplicate identity; deterministic rule stages and precedence; compatible priority/reordering/editing and aggregate-profile enforcement; secret-free portable definitions and explicit path mapping |
 | W3 | Stable execution/occurrence identity; duplicate triggers/replies; retries, crash recovery, sleep/downtime, timezones and overlap policies; optional browser lifecycle; distinct public, authenticated/expiring, and browser-managed download capabilities |
 | W4 | Vue Flow editing against versioned definitions; invalid connections/branches/variables/loops/subflows; bounded execution, cancellation, debugging and safe traces; manual/scheduled parity |
@@ -248,6 +248,8 @@ The [web roadmap](roadmap.md#local-web-delivery-order) is selected direction, no
 | L2 — later hosted instance | Pairing, remote transport/authentication, local versus server filesystem meaning, credential scoping, and correct instance/profile targeting through the web UI and Firefox extension |
 
 Retain the [core integrity criteria](#core-integrity-acceptance), focused engine/IPC regressions, and `make check` for Go implementation changes; add the appropriate frontend checks when that code exists. Keep test fixtures deterministic and local where possible. No dependency installation or runtime tests are implied by this documentation-only roadmap work.
+
+The October 20 W1 contract review reran twelve existing focused tests in `internal/daemon`, `internal/queue`, and `internal/transfer`: client no-start/path behavior, unknown mutation replies, unsafe peers/state mismatch, safe protocol views, disconnected admission, conservative recovery, and pure request normalization. They passed. This confirms the reused backend behavior only; W1-A01–W1-A12 remain unimplemented/unqualified, and the full Go/frontend gates were not run for this specification-only change. The exact focused command is in root STATUS.
 
 ## Release evidence
 

@@ -4,7 +4,7 @@ Updated: October 20, 2026 (America/Sao_Paulo).
 
 ## Current state
 
-W1 now defines durable profile binding before Add, CLI-created job handling, and explicit unknown-outcome/cleanup behavior.
+The W1 workflow, process/authentication, metadata, submission recovery, and safe HTTP contracts are defined.
 
 No web command, HTTP endpoint, app store, frontend, or frontend dependency is implemented. Existing standalone/Linux daemon behavior is unchanged. Work stays local/no-push; release preparation is outside this build queue.
 
@@ -14,6 +14,7 @@ No web command, HTTP endpoint, app store, frontend, or frontend dependency is im
 - The planned web process serves built Vue 3 + TypeScript/Vite assets and a bearer-authenticated IPv4-loopback API. It attaches to explicit daemon startup; web/tab shutdown never stops daemon work. Node/assets remain optional for existing Go builds.
 - The planned private `<daemon-state>/web/app.json` and `app.lock` own stable instance identity, profile defaults, and URL-free submission bindings. Default starts with no output directory. Use bounded strict JSON, decimal-string 64-bit values, owned snapshots, atomic saves, and conservative fail-stop; never edit queue/manifest files.
 - Persist a URL-free binding before one daemon Add; never replay it. Freeze profile defaults/overrides, keep CLI jobs Unassigned, and retain unresolved IDs after lost replies. Forget/dismiss preserves transfer files. Reuse `transfer.Normalize`, `queue.NewJob`, `daemon.Resolve`/`Call`, safe views, and existing lifecycle rules.
+- [HTTP operations](docs/local-web.md#http-interface) use bounded safe polling and existing controls, explicit stale/unavailable views, fixed errors, and no automatic mutation retries. C10 and the W1 parts of C08/C11/S09 are specified; speed/ETA, shared profile budgets, richer controls, and library/history remain later work.
 - Vue Flow remains selected for W4. Firefox manual handoff/opt-in interception (L1) and hosted targeting (L2) stay later. Preserve **Send this link to Yoink** and **Send download to → Home server → Pato**; instance and profile are separate identities. The TUI remains canceled.
 
 ## Validation
@@ -31,7 +32,7 @@ go test ./internal/daemon ./internal/queue ./internal/transfer -run '^(TestDaemo
 
 ## Next steps
 
-1. Finish the concrete safe HTTP routes, polling, bounded responses, and matching acceptance cases before implementation.
+1. Split the implementation handoff into small, dependency-ordered changes before starting the private metadata model.
 2. Keep later W1 implementation changes focused by responsibility, with relevant tests/docs and a refreshed handoff in each commit.
 3. Follow W2–W4 after their prerequisites; retain Firefox/hosted tracks L1/L2 as later work.
 

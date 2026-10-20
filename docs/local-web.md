@@ -2,7 +2,7 @@
 
 [Documentation index](README.md) · [Product roadmap](roadmap.md#local-web-delivery-order)
 
-**Status:** selected implementation contract, October 20, 2026. The web command, HTTP API, application store, and frontend described here are not implemented. The remaining W1 contracts are being defined before implementation.
+**Status:** selected implementation contract, October 20, 2026. The web command, HTTP API, application store, and frontend described here are not implemented. The W1 behavior contract is defined; the implementation order is being split into focused changes.
 
 W1 provides a local downloads/queue app and basic profile defaults around the existing Linux daemon. Preserve the [daemon contract](daemon-and-queue.md), independent standalone commands, and [core integrity criteria](testing.md#core-integrity-acceptance). Native qualification starts on Linux/amd64. No daemon protocol or queue schema change is required.
 
@@ -103,6 +103,38 @@ After a lost HTTP or IPC mutation acknowledgment, show **Outcome unknown**, the 
 
 Queue Forget first uses the existing `forget` operation and removes the app binding only after its definitive success. A failed metadata cleanup leaves a recoverable orphan binding, not permission to redo a job. An uncertain forget preserves the binding. A separate explicit **Dismiss submission record** action removes only a currently unmatched local binding, with a warning that it does not cancel a possibly accepted transfer. It requires a successful current queue read and refuses while this process is still dispatching that ID. A delayed job can subsequently appear as Unassigned. As with daemon forget, explicit removal ends retained-ID deduplication; clients still must never replay old requests.
 
+## HTTP interface
+
+All routes below are planned under `/api/v1`. JSON responses have exactly `version: 1`, `result`, and `error`; success has a non-null result and null error, failure has null result and `{code, message, id}`. `id` is the affected ID or null. Codes/messages are fixed and safe; never forward raw parser, filesystem, source, or transport errors. Read and mutation request/response types must be distinct from stored queue requests.
+
+Use the decimal-string integer encoding defined with [application metadata](#private-application-metadata); strict browser-safe encoding is separate from the unchanged daemon wire format.
+
+| Method and path | Input and success result | Existing owner |
+|---|---|---|
+| `GET /state` | Empty body; instance, profiles, safe daemon/jobs, unmatched submissions, and daemon availability | One `list` call plus an owned app snapshot |
+| `POST /profiles` | `id`, `name`, `output_dir`, and all four profile transfer defaults; returns the created profile at revision `"1"` | App store |
+| `PUT /profiles/{id}` | `revision`, `name`, `output_dir`, and all four defaults; returns the committed profile | App store with revision check |
+| `POST /previews` | `url`, `profile_id`, `profile_revision`, `filename` (null for derived), `overrides` (subset of four defaults), `resume`; returns profile references and effective settings | Pure request resolution/validation |
+| `POST /jobs` | `id`, `url`, `profile_id`, `profile_revision`, `settings` from the preview; returns the safe joined job | Persist binding, then IPC `add` |
+| `POST /jobs/{id}/pause` | Empty object; returns the safe joined job | IPC `pause` |
+| `POST /jobs/{id}/resume` | Empty object; returns the safe joined job | IPC `resume`, including explicit retry |
+| `POST /jobs/{id}/cancel` | Empty object; returns the safe joined job | IPC `cancel` |
+| `DELETE /jobs/{id}` | Empty body; returns `id`, `forgotten`, and `association_removed` | IPC `forget`, then app cleanup |
+| `DELETE /submissions/{id}` | Empty body; returns `id` and `removed` | Explicit unmatched-binding dismissal |
+| `PUT /daemon/parallel` | `parallel` in `1..8`; returns safe daemon status | IPC `set_parallel` |
+
+`GET /state` returns exactly `instance`, `profiles`, `daemon`, `jobs`, `submissions`, and `daemon_error` inside result. Instance contains `id` and `name`. On a good poll, daemon/jobs contain current safe values, submissions contains unmatched bindings, and daemon_error is null. On daemon failure, daemon/jobs are null, submissions contains the saved bindings without a missing-job conclusion, and daemon_error contains a fixed `code`/`message`. A stale queue must never look like a healthy empty queue. App-store failure is an HTTP failure, not a synthesized empty instance.
+
+Safe job fields are the existing `id`, `order`, `state`, `output`, `published`, `error`, `bytes`, `total`, and `workers`, plus `profile_id`, `profile_revision`, and `settings` from the binding (all three null for Unassigned). Safe daemon fields remain `state`, `parallel`, `active`, and `limit_bps`. Do not add source URLs/hashes, hostnames, request headers, or inferred transfer statistics. The global daemon cap is read-only in W1; changing it still requires explicit daemon restart through the CLI. There is no web daemon-start/stop endpoint.
+
+Use `201` for a newly admitted job or created profile, and `200` for other successful operations. An accepted pause/cancel response acknowledges intent, not completed draining. Use `400` for invalid input, `401` for missing/invalid credentials, `403` for host/origin refusal, `404` for unknown routes/IDs, `405` for wrong methods, `409` for stale revisions/state/conflicting or retained submission IDs/capacity, `413` for oversized bodies, `415` for unsupported content type/encoding, `429` for exhausted web request slots, and `503` for unavailable/stopping/persistence/unknown-outcome failures. Preserve the distinction in fixed error codes, especially `outcome_unknown`; HTTP status alone is not retry permission. For Forget where daemon success precedes app cleanup failure, return `200` with `association_removed: false` and retain the unmatched binding for explicit cleanup.
+
+Limit request bodies to 64 KiB, header bytes to 16 KiB, replies to 16 MiB, and active HTTP handlers to 16. At most four IPC calls may be in flight, with at most one web mutation; refuse excess work rather than building an unbounded queue. Retain the daemon's 64 KiB encoded-request bound as a separate check. Profile/submission/queue bounds make one full state response sufficient in W1; no unbounded collection or pagination promise is implied.
+
+Use five-second header/body read deadlines, a fifteen-second response-write deadline, and a thirty-second keep-alive idle deadline. Bound accepted connections as well as handlers to 32. IPC retains its existing deadlines. An HTTP deadline can end waiting/output but cannot roll back a filesystem sync or daemon operation. Strictly reject duplicate/unknown fields, missing required fields, invalid UTF-8, unsupported nulls, trailing JSON, and unsupported versions before mutation. Only the declared nullable fields accept null.
+
+The UI polls at most once per second while visible, with one request in flight per tab. Pause polling when hidden; on visibility/reconnect, read immediately. After read failure, use bounded delays of 1, 2, 4, then 5 seconds; reset after success. Discard older responses following a newer read/control result. Mark the last good view stale and disable queue mutations until a successful refresh. Browser selection/filtering never changes daemon policy. Polls are advisory observations across two owners, not a transactional snapshot or event history.
+
 ## Acceptance and failure cases
 
 These are requirements for the new implementation, not completed test claims. Use local HTTP fixtures, private temporary state/runtime directories, controlled IPC replies, and narrow persistence fault injection.
@@ -119,5 +151,7 @@ These are requirements for the new implementation, not completed test claims. Us
 | W1-A08 | All existing state/control rules, late cancel versus publication, failed-but-published and null outcomes, draining slot retention, same-ID explicit retry, global concurrency changes, and terminal source clearing remain authoritative |
 | W1-A09 | App ownership/modes/link checks, strict schema and integer-string boundaries above JavaScript's safe range, corrupt/foreign state preservation, temp/write/sync/rename failures, capacity, revision exhaustion, and store fail-stop |
 | W1-A10 | Lost profile-edit and forget replies; daemon forget success/app cleanup failure; unmatched-binding dismissal with failed read or dispatch in progress; artifacts always preserved; forgotten IDs are not silently reused by the UI |
+| W1-A11 | Request/header/reply/client limits, slow bodies/readers, multiple polling tabs, concurrent CLI access, write deadline during accepted mutation, shutdown with commit/IPC in flight; no unbounded goroutine/response backlog or daemon stall |
+| W1-A12 | Actual Vue flow in Firefox: unlock, configure two profiles, preview/add, switch/filter, pause/resume/retry/cancel/forget, refresh after lost response and daemon restart; keyboard access, mobile width, frontend typecheck/tests/build, and focused engine/IPC plus full Go gate |
 
 Existing evidence to preserve includes `TestDaemonClientNeverStartsOrCreatesState`, `TestDaemonClientLostReplyIsUncertainOnlyForMutations`, `TestProtocolReplyShapesAndPrivacy`, `TestQueueDisconnectedAddSurvivesWithoutAliasingCaller`, `TestRecoveryPreservesUnknownOutcomes`, and the request normalization tests. They establish reusable backend behavior; they do not qualify a web adapter or browser authentication.
