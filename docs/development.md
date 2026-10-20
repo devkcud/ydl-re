@@ -15,6 +15,7 @@ yoink-reborn/
 ├── cmd/yoinkdl/
 ├── docs/
 ├── internal/
+│   ├── app/
 │   ├── cli/
 │   ├── daemon/
 │   ├── queue/
@@ -26,6 +27,8 @@ yoink-reborn/
 ```
 
 The module path is `yoinkdl`, with Go 1.27 as the minimum selected toolchain. All dependencies are from the standard library. The local module name does not imply a published remote package.
+
+`internal/app` currently contains only the pure W1 metadata model. Its storage, web API, and frontend integration are later steps in the [local web contract](local-web.md#delivery-order).
 
 The original [architecture](architecture.md) also describes future boundaries. Add packages only when a distinct responsibility needs them; do not scaffold every proposed component in advance.
 

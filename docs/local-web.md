@@ -6,6 +6,12 @@
 
 W1 provides a local downloads/queue app and basic profile defaults around the existing Linux daemon. Preserve the [daemon contract](daemon-and-queue.md), independent standalone commands, and [core integrity criteria](testing.md#core-integrity-acceptance). Native qualification starts on Linux/amd64. No daemon protocol or queue schema change is required.
 
+## Current implementation
+
+W1.1a has started with the pure metadata model in [internal/app/model.go](../internal/app/model.go). `NewSnapshot` takes explicit instance/profile IDs and an absolute state directory, initializes Default without a destination, and performs no filesystem work. `Snapshot.Validate` checks fields, collection bounds, unique IDs, profile/revision references, and saved transfer settings. IDs are 32 lowercase hexadecimal characters; profiles are nonempty, and submissions must be a non-null array. Historical submissions may retain an older directory/settings snapshot after a profile edit.
+
+Snapshot update/ownership rules, strict JSON decoding and encoded-size enforcement are the remaining W1.1a work. Filesystem storage, HTTP, CLI, and frontend integration remain unimplemented. Model tests cover invalid/default/boundary cases without creating the selected state/output directories.
+
 ## First usable workflow
 
 1. Start the daemon explicitly with the existing CLI, then start the separate web process using the same XDG environment. Open its printed loopback address and enter its access token.
