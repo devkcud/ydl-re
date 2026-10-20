@@ -244,7 +244,8 @@ The [web roadmap](roadmap.md#local-web-delivery-order) is selected direction, no
 | W2 | Metadata persistence/migration/retention; cataloged versus moved/missing files; duplicate identity; deterministic rule stages and precedence; compatible priority/reordering/editing and aggregate-profile enforcement; secret-free portable definitions and explicit path mapping |
 | W3 | Stable execution/occurrence identity; duplicate triggers/replies; retries, crash recovery, sleep/downtime, timezones and overlap policies; optional browser lifecycle; distinct public, authenticated/expiring, and browser-managed download capabilities |
 | W4 | Vue Flow editing against versioned definitions; invalid connections/branches/variables/loops/subflows; bounded execution, cancellation, debugging and safe traces; manual/scheduled parity |
-| L1/L2 — later | Explicit extension handoff, supported capture cases, pairing/permissions, local versus server filesystem meaning, credential scoping, remote transport/authentication, and correct instance/profile targeting |
+| L1 — later Firefox extension | Manual handoff and interception on/off; supported HTTP(S) captures versus authenticated/POST/browser-managed cases; permissions and destination selection; browser completion/cancellation races, unavailable bridge/daemon, lost acknowledgments, duplicate events, and explicit recovery or browser fallback |
+| L2 — later hosted instance | Pairing, remote transport/authentication, local versus server filesystem meaning, credential scoping, and correct instance/profile targeting through the web UI and Firefox extension |
 
 Retain the [core integrity criteria](#core-integrity-acceptance), focused engine/IPC regressions, and `make check` for Go implementation changes; add the appropriate frontend checks when that code exists. Keep test fixtures deterministic and local where possible. No dependency installation or runtime tests are implied by this documentation-only roadmap work.
 

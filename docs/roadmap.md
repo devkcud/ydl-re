@@ -35,7 +35,7 @@ Switching profiles must not restart the daemon, migrate files between machines, 
 | Activity & History | Searchable download, workflow, schedule, and daemon activity with linked run/job/file identities, detailed logs, diagnostics, errors, and transfer statistics |
 | Settings & Daemon Control | Application/profile settings, daemon health, active work, concurrency/bandwidth settings, aggregate bandwidth usage, and qualified connection/resource telemetry |
 | Import & Export | Versioned download lists, profiles, workflows/templates, rules, and settings; credential references and destination-path remapping for portability |
-| Browser Integration — later | Explicit link handoff to a selected instance/profile, followed by separately qualified interception of supported browser downloads |
+| Browser Integration — later | Firefox extension first: explicit link handoff and opt-in interception of supported downloads to a selected instance/profile |
 
 Organize the UI around **Downloads**, **Library**, **Automations** (Grabber, schedules, rules), **Activity**, and **Settings**, with instance/profile selectors above them. Import/export and browser integration can live in their relevant settings/actions rather than requiring separate primary destinations.
 
@@ -66,8 +66,12 @@ The owner explicitly deferred the extension and server-target selection. They ar
 
 | Later track | Intended behavior | Dependencies |
 |---|---|---|
-| L1 — Browser extension | **Send this link to Yoink** to an explicitly selected local instance/profile; explore a native bridge or authenticated local communication; optional interception only for qualified download types | Stable intake/profile/rule contracts from the local app; browser permissions, duplicate handling, and credential-transfer policy |
+| L1 — Firefox extension | **Send this link to Yoink** to an explicitly selected local instance/profile, followed by opt-in automatic interception of supported downloads; explore a native bridge or authenticated local communication | Stable intake/profile/rule contracts from the local app; Firefox permissions, safe takeover/recovery, duplicate handling, and credential-transfer policy |
 | L2 — Self-hosted instance | Use the same application model on an explicitly configured server; let the web UI/extension choose a remote instance and profile | Qualified local behavior, remote authentication/transport, instance discovery/pairing, and server-side file/credential ownership |
+
+**Firefox is the first browser target**, matching the owner's daily browser. Chromium support can be considered later. Include an interception toggle and an explicit destination instance/profile, while retaining manual send-to actions.
+
+Firefox's [downloads API](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads) provides download events and pause/cancel/resume controls; [webRequest](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/webRequest) supports request interception with the appropriate API/host permissions. Choose the takeover mechanism during L1 design. The [onCreated event](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/onCreated) observes a download after it begins, so capture does not guarantee zero browser-side bytes. Qualify cancellation/admission ordering, downloads completing during handoff, unavailable bridges/daemons, lost acknowledgments, and duplicate events. Unsupported downloads must remain in Firefox; failed or uncertain handoffs need explicit recovery without silent loss or duplicate work.
 
 The desired later flow is **Send download to → Home server → Pato**: **Home server** is the instance and **Pato** is its profile. The selected instance determines the output filesystem. A server-accessible link can be fetched directly by that server; browser-bound authentication, POST-generated downloads, and `blob:` content require separate handling. Universal interception or zero client-side transfer is not promised for every browser download.
 
@@ -83,7 +87,7 @@ Use [open decisions](decisions.md#web-application-direction) to settle the exact
 
 ### Research references
 
-The approved direction was informed by [Vue Flow](https://vueflow.dev/guide/), [Vue application approaches](https://vuejs.org/guide/extras/ways-of-using-vue), [Go embedded assets](https://pkg.go.dev/embed#hdr-File_Systems), [Playwright downloads](https://playwright.dev/docs/downloads) and [tracing](https://playwright.dev/docs/trace-viewer), [browser native messaging](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging), and [scheduling policies](https://docs.temporal.io/schedule). These are capability references, not evidence that Yoink implements the planned features. Recheck exact versions and integration behavior when implementing each phase.
+The approved direction was informed by [Vue Flow](https://vueflow.dev/guide/), [Vue application approaches](https://vuejs.org/guide/extras/ways-of-using-vue), [Go embedded assets](https://pkg.go.dev/embed#hdr-File_Systems), [Playwright downloads](https://playwright.dev/docs/downloads) and [tracing](https://playwright.dev/docs/trace-viewer), [Firefox native messaging](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_messaging), and [scheduling policies](https://docs.temporal.io/schedule). These are capability references, not evidence that Yoink implements the planned features. Recheck exact versions and integration behavior when implementing each phase.
 
 ## Other directions
 

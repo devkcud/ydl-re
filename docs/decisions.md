@@ -68,7 +68,7 @@ Resolve each decision before the milestone or interface depending on it is decla
 | C10 | Local web API, launch/lifetime, authentication, and origin boundaries | Adds browser access around the private daemon without changing standalone ownership or unknown-outcome behavior | [Architecture](architecture.md#planned-web-application) |
 | C11 | Profile ownership/defaults, aggregate limits, and richer job controls | Defines CLI-created job association, immutable effective settings, priorities/reordering, and any safe editing policy | [Profile model](roadmap.md#instance-and-profile-model), [configuration](configuration.md) |
 | C12 | Rules, workflow execution, and trigger/schedule semantics | Defines metadata stages/precedence, versioned runs, loops/subflows, cancellation, retries, deduplication, downtime, and overlap behavior | [Build phases](roadmap.md#local-web-delivery-order) |
-| C13 | Later extension and hosted-instance transports | Defines permissions, pairing/authentication, destination selection, and supported browser-download handoffs without assuming universal interception | [Later integration](roadmap.md#later-browser-integration-and-hosted-operation) |
+| C13 | Later Firefox interception/bridge and hosted-instance transports | Firefox is selected first; define permissions, pairing/authentication, destination selection, supported captures, takeover/recovery, and duplicate/unknown-outcome handling | [Later integration](roadmap.md#later-browser-integration-and-hosted-operation) |
 
 The default worker preference is four, the retry default is three additional attempts, and the rate is unlimited unless a cap is configured.
 
@@ -117,7 +117,7 @@ Vue 3 + TypeScript is the frontend direction, and **Vue Flow is selected** for t
 
 An instance identifies an execution host/output filesystem; a profile is a workspace within that instance. Basic local downloads/profiles lead W1, then library/history and rules in W2, schedules and a small browser/workflow runner in W3, and fuller Vue Flow authoring/debugging in W4. Exact first-slice contracts and the decisions above still need resolution; no new application behavior is implemented.
 
-The owner explicitly deferred browser integration and hosted targeting to L1/L2. The intended later actions include **Send this link to Yoink** and **Send download to → Home server → Pato**, where Home server is an instance and Pato is a profile. They are not prerequisites for W1. Custom hooks, arbitrary scripting, and distributed transfer swarms are separate unscheduled directions.
+The owner explicitly deferred browser integration and hosted targeting to L1/L2 and selected **Firefox as the first extension target**, including opt-in interception of supported downloads. The intended later actions include **Send this link to Yoink** and **Send download to → Home server → Pato**, where Home server is an instance and Pato is a profile. Chromium support can be considered later; the interception mechanism and bridge remain open. These integrations are not prerequisites for W1. Custom hooks, arbitrary scripting, and distributed transfer swarms are separate unscheduled directions.
 
 ## Already established direction
 

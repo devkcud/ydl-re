@@ -167,7 +167,7 @@ The owner selected Vue 3 + TypeScript for the local web app and Vue Flow for its
 ```mermaid
 flowchart LR
     UI[Vue web UI] --> App[Go application API]
-    Extension[Later browser extension] --> Bridge[Later local bridge or remote HTTPS]
+    Extension[Later Firefox extension] --> Bridge[Later local bridge or remote HTTPS]
     Bridge --> App
     App --> IPC[Existing private daemon IPC]
     CLI[Existing queue CLI] --> IPC

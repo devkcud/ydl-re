@@ -36,7 +36,7 @@ The standalone CLI runs in the foreground. Interrupting that process is its paus
 | Implemented standalone engine | `download`, `inspect`, `version`; safe HTTP(S) streaming/ranges, resume, retries, progress, rate caps, JSON output, and verified publication |
 | Implemented daemon/queue | Private local IPC, durable admission and controls, bounded concurrency, shared bandwidth, and conservative restart behavior |
 | Planned local web app | Vue 3 + TypeScript; downloads/queue, profiles, library/history, rules, schedules, Vue Flow Visual Grabber, activity/settings, and portable definitions in [ordered feature phases](roadmap.md#local-web-delivery-order) |
-| Explicitly later integration | Browser link handoff, supported download interception, and self-hosted instance/profile selection such as Home server → Pato |
+| Explicitly later integration | Firefox extension first, with link handoff and opt-in download interception; self-hosted instance/profile selection such as Home server → Pato |
 | Unscheduled directions | Other protocols, distributed transfers, peer discovery, and custom script/hooks |
 
 The app is local-first and hosted-second. An instance selects the machine/output filesystem; a profile is a workspace within that instance. The extension and hosted targeting are not prerequisites for the initial web app. The TUI remains canceled, and versioning/publication is separate from the build roadmap.
