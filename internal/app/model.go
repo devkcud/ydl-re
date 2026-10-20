@@ -77,7 +77,8 @@ func NewSnapshot(id, profile, dir string) (Snapshot, error) {
 }
 
 func (s Snapshot) Validate() error {
-	return s.validate()
+	_, err := encodeSnapshot(s)
+	return err
 }
 
 func (s Snapshot) validate() error {

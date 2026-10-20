@@ -2,17 +2,19 @@
 
 [Documentation index](README.md) · [Product roadmap](roadmap.md#local-web-delivery-order)
 
-**Status:** selected implementation contract, October 20, 2026. The web command, HTTP API, application store, and frontend described here are not implemented. This completes the W1 definition step; the [delivery order](#delivery-order) governs implementation.
+**Status:** selected implementation contract, October 20, 2026. W1.1a's pure metadata model/codec is implemented. The web command, HTTP API, filesystem store, and frontend remain unimplemented; the [delivery order](#delivery-order) governs the next work.
 
 W1 provides a local downloads/queue app and basic profile defaults around the existing Linux daemon. Preserve the [daemon contract](daemon-and-queue.md), independent standalone commands, and [core integrity criteria](testing.md#core-integrity-acceptance). Native qualification starts on Linux/amd64. No daemon protocol or queue schema change is required.
 
 ## Current implementation
 
-W1.1a has started with the pure metadata model in [internal/app/model.go](../internal/app/model.go). `NewSnapshot` takes explicit instance/profile IDs and an absolute state directory, initializes Default without a destination, and performs no filesystem work. `Snapshot.Validate` checks fields, collection bounds, unique IDs, profile/revision references, and saved transfer settings. IDs are 32 lowercase hexadecimal characters; profiles are nonempty, and submissions must be a non-null array. Historical submissions may retain an older directory/settings snapshot after a profile edit.
+W1.1a is complete in [internal/app/model.go](../internal/app/model.go), [codec.go](../internal/app/codec.go), and the update guards below. `NewSnapshot` takes explicit instance/profile IDs and an absolute state directory, initializes Default without a destination, and performs no filesystem work. `Snapshot.Validate` checks fields, collection bounds, unique IDs, profile/revision references, saved transfer settings, and encoded size. IDs are 32 lowercase hexadecimal characters; profiles are nonempty, and submissions must be a non-null array. Historical submissions may retain an older directory/settings snapshot after a profile edit.
 
 The pure update guards in [internal/app/update.go](../internal/app/update.go) preserve instance/state-path identity, prevent profile deletion, and keep retained submissions unchanged. New profiles start at revision 1; edited profiles advance exactly once, unchanged profiles retain their revision, and exhausted revisions refuse edits. New submissions reference the current profile revision. Snapshot copies own their slices and nullable directory values; explicit submission removal is permitted without any file action.
 
-Strict JSON decoding and encoded-size enforcement are the remaining W1.1a work. Filesystem storage, HTTP, CLI, and frontend integration remain unimplemented. Model/update tests cover invalid/default/boundary cases, preserved history, and copy ownership without creating the selected state/output directories.
+`encodeSnapshot` emits newline-terminated version-1 JSON; `decodeSnapshot` requires exact unique fields and declared types/nullability at every level. The codec rejects lossy UTF-8/surrogate input, noncanonical or overflowing decimal strings, trailing JSON, oversized collections, and input or canonical output beyond 4 MiB. Rejections return a fixed error and no partial snapshot/output. Later store code must use these helpers rather than plain JSON unmarshalling. Directory existence, actual owner/path binding, locks, and atomic persistence remain W1.1b/W1.1c work.
+
+Model/update/codec tests, bounded fuzzing, and `make check` pass locally. They exercise pure metadata behavior; filesystem storage, HTTP, CLI, and frontend integration remain unimplemented.
 
 ## First usable workflow
 
@@ -168,7 +170,7 @@ Existing evidence to preserve includes `TestDaemonClientNeverStartsOrCreatesStat
 
 | Step | Focus of one reviewable change, with its tests and docs |
 |---|---|
-| W1.1a | Pure app metadata model and strict codec: IDs, initial profile defaults, URL-free bindings, references, decimal strings, bounds, and immutable snapshot validation. No disk or HTTP work. |
+| W1.1a — complete | Pure app metadata model and strict codec: IDs, initial profile defaults, URL-free bindings, references, decimal strings, bounds, and immutable snapshot validation. No disk or HTTP work. |
 | W1.1b | Linux app-directory/lock ownership and strict existing-snapshot loading, including foreign/corrupt artifact preservation. |
 | W1.1c | Atomic initialization/saves, owned snapshots, canonical identity checks, commit failures, and fail-stop recovery. |
 | W1.2a | HTTP bearer/host/origin boundary and request/connection limits, tested without frontend or daemon mutations. |
@@ -184,4 +186,4 @@ Existing evidence to preserve includes `TestDaemonClientNeverStartsOrCreatesStat
 | W1.4b | Forget/dismiss metadata cleanup and partial-failure semantics; add the UI confirmations/recovery in a following focused commit. |
 | W1.5 | Remaining process/browser acceptance and usability fixes, each committed by the behavior it qualifies; run the full frontend and Go gates and update current user docs. |
 
-The owner requested smaller commits. These steps set dependency order, not permission to bundle all work in a row: split further when responsibilities differ. Keep each commit buildable, include its behavior tests/docs and STATUS update, and leave unfinished controls disabled. Never combine the metadata model, filesystem persistence, HTTP boundary, and frontend into one commit. No push or release step is part of this sequence. W2–W4 and later Firefox/hosted tracks retain their [roadmap order](roadmap.md#local-web-delivery-order); no further product decision blocks W1.1a.
+The owner requested smaller commits. These steps set dependency order, not permission to bundle all work in a row: split further when responsibilities differ. Keep each commit buildable, include its behavior tests/docs and STATUS update, and leave unfinished controls disabled. Never combine the metadata model, filesystem persistence, HTTP boundary, and frontend into one commit. No push or release step is part of this sequence. W2–W4 and later Firefox/hosted tracks retain their [roadmap order](roadmap.md#local-web-delivery-order); no further product decision blocks W1.1b.
