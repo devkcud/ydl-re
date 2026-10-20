@@ -39,6 +39,7 @@ The standalone CLI comes first. Daemons, queues, TUIs, extra protocols, and work
 ## Commits
 
 - Always split changes into small, focused commits by responsibility and dependency order. Keep the implementation, tests, and documentation for each behavior together.
+- A milestone or handoff step is not a commit boundary. Separate model/codec, filesystem persistence, HTTP/API, and frontend responsibilities; split further when one change has more than one independently reviewable behavior. Keep each commit buildable.
 - Stage explicit paths or hunks, inspect the staged and remaining diffs, and validate each commit's changes before committing.
 - Never push commits, branches, or tags to any remote.
 

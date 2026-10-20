@@ -2,7 +2,7 @@
 
 [Documentation index](README.md) · [Product roadmap](roadmap.md#local-web-delivery-order)
 
-**Status:** selected implementation contract, October 20, 2026. The web command, HTTP API, application store, and frontend described here are not implemented. The W1 behavior contract is defined; the implementation order is being split into focused changes.
+**Status:** selected implementation contract, October 20, 2026. The web command, HTTP API, application store, and frontend described here are not implemented. This completes the W1 definition step; the [delivery order](#delivery-order) governs implementation.
 
 W1 provides a local downloads/queue app and basic profile defaults around the existing Linux daemon. Preserve the [daemon contract](daemon-and-queue.md), independent standalone commands, and [core integrity criteria](testing.md#core-integrity-acceptance). Native qualification starts on Linux/amd64. No daemon protocol or queue schema change is required.
 
@@ -155,3 +155,25 @@ These are requirements for the new implementation, not completed test claims. Us
 | W1-A12 | Actual Vue flow in Firefox: unlock, configure two profiles, preview/add, switch/filter, pause/resume/retry/cancel/forget, refresh after lost response and daemon restart; keyboard access, mobile width, frontend typecheck/tests/build, and focused engine/IPC plus full Go gate |
 
 Existing evidence to preserve includes `TestDaemonClientNeverStartsOrCreatesState`, `TestDaemonClientLostReplyIsUncertainOnlyForMutations`, `TestProtocolReplyShapesAndPrivacy`, `TestQueueDisconnectedAddSurvivesWithoutAliasingCaller`, `TestRecoveryPreservesUnknownOutcomes`, and the request normalization tests. They establish reusable backend behavior; they do not qualify a web adapter or browser authentication.
+
+## Delivery order
+
+| Step | Focus of one reviewable change, with its tests and docs |
+|---|---|
+| W1.1a | Pure app metadata model and strict codec: IDs, initial profile defaults, URL-free bindings, references, decimal strings, bounds, and immutable snapshot validation. No disk or HTTP work. |
+| W1.1b | Linux app-directory/lock ownership and strict existing-snapshot loading, including foreign/corrupt artifact preservation. |
+| W1.1c | Atomic initialization/saves, owned snapshots, canonical identity checks, commit failures, and fail-stop recovery. |
+| W1.2a | HTTP bearer/host/origin boundary and request/connection limits, tested without frontend or daemon mutations. |
+| W1.2b | Read-only `/state` adapter over the app store and safe IPC, including Unassigned jobs, unavailable reads, and exact integer projection. |
+| W1.2c | Explicit foreground `web` CLI, validated static assets, independent shutdown, and failed startup/output cleanup. |
+| W1.2d | Locked Vue/TypeScript/Vite scaffold, explicit build/check targets, and unlock shell; keep the Go-only build independent. |
+| W1.2e | Read-only Downloads UI, polling/stale behavior, profile filters, and daemon status. |
+| W1.3a | Profile create/edit API with revision checks, plus pure effective-setting/filename previews. |
+| W1.3b | Profile Settings and preview form UI; Add remains disabled. |
+| W1.3c | Durable binding before one daemon Add, collision checks, unknown replies, crash/restart behavior, and no replay. |
+| W1.3d | Enable Add in the UI with submitted-ID retention, stale-profile handling, and explicit unknown-outcome recovery. |
+| W1.4a | Queue pause/resume/cancel and parallel adapters with state/publication-race coverage; wire corresponding UI controls in a following focused commit. |
+| W1.4b | Forget/dismiss metadata cleanup and partial-failure semantics; add the UI confirmations/recovery in a following focused commit. |
+| W1.5 | Remaining process/browser acceptance and usability fixes, each committed by the behavior it qualifies; run the full frontend and Go gates and update current user docs. |
+
+The owner requested smaller commits. These steps set dependency order, not permission to bundle all work in a row: split further when responsibilities differ. Keep each commit buildable, include its behavior tests/docs and STATUS update, and leave unfinished controls disabled. Never combine the metadata model, filesystem persistence, HTTP boundary, and frontend into one commit. No push or release step is part of this sequence. W2–W4 and later Firefox/hosted tracks retain their [roadmap order](roadmap.md#local-web-delivery-order); no further product decision blocks W1.1a.

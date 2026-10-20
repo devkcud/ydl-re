@@ -236,7 +236,7 @@ Use local deterministic servers and temporary roots. Run focused checks for each
 
 ## Planned application validation
 
-The [web roadmap](roadmap.md#local-web-delivery-order) is selected direction, not implementation evidence. W1 now has a concrete [local contract and acceptance matrix W1-A01–W1-A12](local-web.md#acceptance-and-failure-cases), including reusable daemon APIs. Derive further focused cases before later slices:
+The [web roadmap](roadmap.md#local-web-delivery-order) is selected direction, not implementation evidence. W1 now has a concrete [local contract and acceptance matrix W1-A01–W1-A12](local-web.md#acceptance-and-failure-cases), including reusable daemon APIs and a dependency-ordered implementation plan. Derive further focused cases before later slices:
 
 | Phase | Required coverage |
 |---|---|

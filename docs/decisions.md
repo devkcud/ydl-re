@@ -125,7 +125,7 @@ The owner explicitly deferred browser integration and hosted targeting to L1/L2 
 - Run an explicit separate foreground web process on numeric IPv4 loopback, serving built Vue/TypeScript/Vite assets and a versioned API. Use a per-launch bearer token kept in tab memory, exact host/origin checks, and no CORS/cookies. Web shutdown never stops the daemon; Go-only builds remain independent of Node/assets.
 - Reuse existing safe polling and queue controls through `daemon.Call`. Keep nullable outcomes and decimal-string web integers, bound clients/bodies, never retry unknown mutations automatically, and defer speed/ETA/subscriptions, daemon start/stop buttons, and dynamic global caps.
 - Store bounded private JSON profiles and URL-free submission bindings separately from daemon state. Require explicit output-directory setup; freeze defaults plus overrides, persist the binding before Add, and never replay saved intents. CLI jobs are Unassigned, and unmatched bindings remain explicitly unresolved until observed or deliberately dismissed.
-- Keep Linux/amd64 as the first native qualification scope. The [acceptance cases](local-web.md#acceptance-and-failure-cases) establish the next implementation work. TOML/cross-platform config discovery, W2+ metadata evolution, and L1/L2 remain separate.
+- Keep Linux/amd64 as the first native qualification scope. The [acceptance cases](local-web.md#acceptance-and-failure-cases) and [delivery slices](local-web.md#delivery-order) establish the next implementation work. TOML/cross-platform config discovery, W2+ metadata evolution, and L1/L2 remain separate.
 
 ## Already established direction
 

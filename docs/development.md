@@ -82,6 +82,8 @@ The [platform report](platforms.md) records native Linux/amd64 checks on ext4/tm
 
 Update the handoff after every implementation step, even when work is incomplete or a check fails. Keep unrelated changes intact and replace stale next steps instead of accumulating a session log.
 
+Keep commits smaller than milestone slices. Review one behavior at a time with its tests and docs; separate schema/model, filesystem persistence, API, and frontend changes in dependency order. Each commit must build, and unfinished features should remain disabled until their own checks pass. The [W1 delivery order](local-web.md#delivery-order) follows this granularity.
+
 ## Code and package boundaries
 
 `cmd/yoinkdl` owns process signals and the entry point. `internal/cli` owns parsing, local inspection, stdout/stderr, and progress rendering. `internal/transfer` owns request/response identity, resume validation, transfer completion, and snapshots. `internal/ranges` owns chunk arithmetic and coverage. `internal/storage` owns stable locks, versioned manifest validation, prefix/chunk hashing, checkpoints, and publication recovery. `internal/queue` owns private queue storage, lifecycle transitions, FIFO dispatch, durable controls, safe views, and draining shutdown. `internal/daemon` owns Linux paths/private IPC, peer checks, bounded clients, safe replies, and lifecycle integration with one retained shared transfer budget. The CLI exposes explicit daemon/queue commands through that runtime with safe text/JSON results.

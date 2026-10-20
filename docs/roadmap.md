@@ -12,7 +12,7 @@ Preserve those responsibilities as the app grows. The [core integrity criteria](
 
 ## Local web application
 
-**Status:** the owner approved a local-first web application direction on October 20, 2026. Implementation has not started. Begin with downloads/queue management and basic profiles around the existing Go daemon. Hosted operation and browser integration come later. The TUI remains canceled.
+**Status:** the owner approved a local-first web application direction on October 20, 2026. The [W1 local contract](local-web.md) now defines downloads/queue management and basic profiles around the existing Go daemon; implementation has not started. Hosted operation and browser integration come later. The TUI remains canceled.
 
 W1–W4 are implementation phases. The capability list describes the long-term direction; define a concrete slice and its acceptance tests before adding each behavior.
 
@@ -43,7 +43,7 @@ Organize the UI around **Downloads**, **Library**, **Automations** (Grabber, sch
 
 The selected frontend direction is **Vue 3 + TypeScript**, with **Vue Flow selected for the Visual Grabber editor**. Vue Flow supplies node/edge interaction and visualization; workflow validation, execution, retries, persistence, scheduling, and debugging state remain separate application responsibilities. Do not make executable workflow definitions depend on the editor's transient component state or layout.
 
-Plan an optional **Go application API** that serves the frontend and talks to the existing private daemon IPC. The daemon remains authoritative for admission, byte transfer, checkpoints, locking, and final publication. Application metadata owns profiles, rules, workflow versions, runs, the library, and history; its storage format and schemas still need a contract. Preserve independent standalone CLI use, and do not edit private queue snapshots from the web layer.
+Plan an optional **Go application API** that serves the frontend and talks to the existing private daemon IPC. The daemon remains authoritative for admission, byte transfer, checkpoints, locking, and final publication. W1 selects a separate foreground web process, static Vue/Vite assets, and a private bounded JSON store for profiles and URL-free submission bindings. Rules, workflow versions, runs, library, and history schemas remain later contracts. Preserve independent standalone CLI use, and do not edit private queue snapshots from the web layer.
 
 Use an optional **Playwright browser worker** for the browser-automation direction. Browser processes and their resource limits are separate from download workers and bandwidth accounting. Go can serve built frontend assets without a Node web server; browser automation introduces its own runtime/browser installation only when that feature is enabled. The [architecture boundaries](architecture.md#planned-web-application) describe these planned components; none are implemented.
 
@@ -51,7 +51,7 @@ Use an optional **Playwright browser worker** for the browser-automation directi
 
 | Phase | Outcome | Required boundary before advancing |
 |---|---|---|
-| W1 | Local web app for downloads/queue and basic profile defaults | Define the first usable UI flow, authenticated local API/lifetime, profile association, effective-setting snapshots, and explicit handling of daemon failures/unknown outcomes; reuse existing controls and retain standalone compatibility |
+| W1 | Local web app for downloads/queue and basic profile defaults | Implement the [selected contract and ordered slices](local-web.md#delivery-order): private profile/intent metadata, authenticated local process/read-only UI, preview/add, controls/recovery, then full acceptance; retain standalone compatibility |
 | W2 | Durable library/activity, download rules, and richer job/profile management | Define metadata ownership/retention, rule stages/precedence, duplicate identity, and portable definitions; qualify any daemon changes for priorities, reordering, job edits, aggregate profile limits, and new telemetry |
 | W3 | Schedules and a small typed workflow/browser runner | Durable run identity, missed/overlapping execution policies, safe retries/deduplication, and three representative browser-to-downloader handoff cases; execution must continue independently of the UI tab |
 | W4 | Vue Flow Visual Grabber and richer workflow authoring/debugging | Versioned definitions independent of canvas state, validated branches/variables/loops/subflows, bounded execution, cancellation ownership, diagnostics, and manual/scheduled parity |
@@ -83,7 +83,7 @@ Schedulers must run outside the browser tab and define behavior after sleep, dow
 
 Profile aggregate limits must be enforced across jobs rather than inferred from identical per-job caps. File actions must respect whether a file is local or on a hosted instance. Portable definitions must keep credentials and browser state separate by default, map machine-specific paths explicitly, and avoid treating active queue/manifest files as interchangeable configuration exports. Source tracking must preserve the current secret-free views and terminal source-clearing policy unless a separate retention contract is deliberately adopted.
 
-Use [open decisions](decisions.md#web-application-direction) to settle the exact API, persistence, telemetry, automation, and extension contracts. Planning does not install dependencies or add commands, services, endpoints, schemas, or runtime support. Keep the original design as historical context and preserve the existing transfer and storage guarantees.
+The [W1 contract](local-web.md) settles the first local API, persistence, polling, and build/lifetime choices. Use [open decisions](decisions.md#web-application-direction) for richer telemetry, automation, library/history, and extension/hosting contracts. These specifications do not install dependencies or implement commands, services, endpoints, storage, or runtime support. Keep the original design as historical context and preserve the existing transfer and storage guarantees.
 
 ### Research references
 

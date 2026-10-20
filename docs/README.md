@@ -16,7 +16,7 @@ These pages distinguish the implementation from the original design. The [decisi
 
 The owner selected a [local-first web application](roadmap.md#local-web-application), using Vue 3 + TypeScript and Vue Flow for the Visual Grabber editor. The roadmap now tracks feature phases rather than version targets. Downloads/basic profiles come first, followed by library/history, rules, schedules, and browser workflows. A Firefox extension with link handoff and opt-in download interception, plus hosted-instance/profile targeting, are explicitly later. None of these application features are implemented; the TUI remains canceled.
 
-The [W1 contract](local-web.md) now selects the local process/build/authentication boundary, safe HTTP operations, basic profile store, immutable submission associations, and focused acceptance cases. The private metadata model is the first implementation dependency; the specification does not add working commands or endpoints.
+The [W1 contract](local-web.md) now selects the local process/build/authentication boundary, safe HTTP operations, basic profile store, immutable submission associations, and focused acceptance cases. Start implementation with its private metadata slice; the specification does not add working commands or endpoints.
 
 ## Start here
 
