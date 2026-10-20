@@ -86,6 +86,23 @@ Strictly validate versions, field sets, duplicate keys, nullability, UTF-8, nume
 
 A pre-rename failure preserves the old committed snapshot. A post-rename directory-sync failure or detected ownership change stops web mutations and closes the web process after handler cleanup; it never writes an older snapshot back. Restart validates canonical state under the lock. Previously accepted daemon jobs continue independently. Reuse established storage patterns where their boundaries fit, without coupling app metadata lifetime to the queue owner. W2 must define any schema migration before adding library/history or replacing this store.
 
+## Submission, association, and recovery
+
+The browser generates a random job ID before sending Add and retains that ID across a failed reply. The API performs the following ordered operation under its app mutation ownership:
+
+1. Validate the complete add body, profile revision, normalized request, metadata capacity, and encoded daemon request size. A known retained submission ID returns a reconciliation conflict without issuing another daemon `add`, even for identical input. Read the current queue and refuse a job ID already present there before creating a binding; never adopt a CLI job through Add. An unavailable preflight read sends no mutation. IDs must be freshly random, not selected from existing jobs; this check is not a transaction against other trusted same-user clients.
+2. Durably save the URL-free submission binding before any daemon mutation. If this save fails or is uncertain, do not call the daemon.
+3. Call `daemon.Call` once with `add`, that ID, and the normalized immutable request. The source exists in transient request memory and the daemon's existing private source store only. Verify that a successful reply returns the submitted ID.
+4. Return the daemon's safe job view, joined to the binding. No second app commit is needed to claim admission: only the successful daemon response proves it. Preserve the binding on an error, timeout, disconnect, or process crash. Never replay saved bindings on startup.
+
+For reads, join current daemon jobs and app submissions by job ID within the selected instance. A match supplies the profile and effective settings. A daemon job with no binding is **Unassigned**, including CLI-created jobs; never guess its profile from output path, selected tab, or creation time. Its request/settings remain unavailable through the current safe IPC. It can use the same queue controls. Standalone `download` work is outside the daemon and does not appear here.
+
+A binding absent from a successful queue list appears separately as **Not observed in queue**. It might precede admission, have been rejected, or have been forgotten by another client. Absence does not prove failure or authorize replay. An unavailable daemon instead means the observation is unknown; do not classify every binding as missing. Matching a later job establishes current association/state, not the outcome of every prior control.
+
+After a lost HTTP or IPC mutation acknowledgment, show **Outcome unknown**, the ID where applicable, and a refresh action. Read retries are safe; mutation retries are never automatic, including after reconnect, timeout, page reload, or duplicate form submission. A failed HTTP response body can follow a durable daemon mutation. Do not cancel an admitted job because the response or tab disappeared. IPC cancellation only ends waiting; it is not rollback.
+
+Queue Forget first uses the existing `forget` operation and removes the app binding only after its definitive success. A failed metadata cleanup leaves a recoverable orphan binding, not permission to redo a job. An uncertain forget preserves the binding. A separate explicit **Dismiss submission record** action removes only a currently unmatched local binding, with a warning that it does not cancel a possibly accepted transfer. It requires a successful current queue read and refuses while this process is still dispatching that ID. A delayed job can subsequently appear as Unassigned. As with daemon forget, explicit removal ends retained-ID deduplication; clients still must never replay old requests.
+
 ## Acceptance and failure cases
 
 These are requirements for the new implementation, not completed test claims. Use local HTTP fixtures, private temporary state/runtime directories, controlled IPC replies, and narrow persistence fault injection.
@@ -97,6 +114,10 @@ These are requirements for the new implementation, not completed test claims. Us
 | W1-A03 | Source/query-token fixture stays out of HTTP replies, app JSON/temp files, browser persistence, static assets, and errors/logs; untrusted profile/path text cannot execute markup; traversal/symlink/static-file exposure refused |
 | W1-A04 | Default directory unset; profile create/edit/restart; duplicate names/IDs; stale revisions in two tabs; all default/override bounds; zero cap and retry count; automatic versus required resume; exact saved effective settings after later edits |
 | W1-A05 | Derived and explicit filenames; output stays inside selected directory; no directory creation or preview transfer work; queue size/output conflicts, incompatible sidecars, already-complete output, path replacement, and engine no-overwrite refusal |
+| W1-A06 | Binding committed before IPC; failed/uncertain app commit sends nothing; kill after binding commit and after daemon admission; lost/malformed IPC and HTTP replies; duplicate add ID; restart never replays; later matching poll restores profile attribution |
+| W1-A07 | CLI jobs stay Unassigned; standalone jobs stay outside the list; empty versus unavailable/stale polls; absent binding/job after CLI forget; explicit dismissal can leave a delayed job Unassigned; no inferred completion or automatic resubmission |
+| W1-A08 | All existing state/control rules, late cancel versus publication, failed-but-published and null outcomes, draining slot retention, same-ID explicit retry, global concurrency changes, and terminal source clearing remain authoritative |
 | W1-A09 | App ownership/modes/link checks, strict schema and integer-string boundaries above JavaScript's safe range, corrupt/foreign state preservation, temp/write/sync/rename failures, capacity, revision exhaustion, and store fail-stop |
+| W1-A10 | Lost profile-edit and forget replies; daemon forget success/app cleanup failure; unmatched-binding dismissal with failed read or dispatch in progress; artifacts always preserved; forgotten IDs are not silently reused by the UI |
 
 Existing evidence to preserve includes `TestDaemonClientNeverStartsOrCreatesState`, `TestDaemonClientLostReplyIsUncertainOnlyForMutations`, `TestProtocolReplyShapesAndPrivacy`, `TestQueueDisconnectedAddSurvivesWithoutAliasingCaller`, `TestRecoveryPreservesUnknownOutcomes`, and the request normalization tests. They establish reusable backend behavior; they do not qualify a web adapter or browser authentication.

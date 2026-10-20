@@ -58,7 +58,7 @@ Queue corruption and uncertain storage commits stop dispatch rather than resetti
 
 Optional completion hooks require explicit enablement and a separate execution/security design. They must not make arbitrary downloaded content executable by default. Arbitrary scripting runtimes remain unscheduled. The planned typed browser workflows need their own credential, session, and resource boundaries; the existing CLI/IPC evidence does not qualify an unimplemented web API or browser worker.
 
-The [W1 local web contract](local-web.md#local-authentication-and-origin-checks) specifies a separate IPv4-loopback HTTP process with per-launch bearer access, exact host/origin checks, no CORS, bounded requests, and static assets separated from private state/files. These boundaries require their own [acceptance tests](local-web.md#acceptance-and-failure-cases); the currently implemented daemon still has no HTTP listener. Hosted and extension access remain later contracts.
+The [W1 local web contract](local-web.md#local-authentication-and-origin-checks) specifies a separate IPv4-loopback HTTP process with per-launch bearer access, exact host/origin checks, no CORS, bounded requests, and static assets separated from private state/files. It also specifies a URL-free app store and conservative submission recovery. These boundaries require their own [acceptance tests](local-web.md#acceptance-and-failure-cases); the currently implemented daemon still has no HTTP listener. Hosted and extension access remain later contracts.
 
 ## Review evidence
 
