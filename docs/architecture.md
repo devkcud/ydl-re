@@ -159,3 +159,27 @@ The [accepted v0.2 contract](daemon-and-queue.md) uses `internal/queue` for dura
 The queue coordinator serializes durable mutations and owns transfer contexts. Persist running intent before engine calls, and record outcomes after the engine joins workers and releases storage. Safe status records omit stored source URLs; progress is coalesced and never blocks the engine on a control client. Existing clients use the safe polling API; future consumers need a separate contract.
 
 Initial control uses a private Linux Unix stream socket with peer-UID checks and separate state/runtime locks. `daemon start` runs in the foreground without automatic startup or service installation. The standalone commands remain independent. Other native daemon transports require their own qualification.
+
+## Planned web application
+
+The owner selected Vue 3 + TypeScript for the local web app and Vue Flow for its Visual Grabber editor. The [product roadmap](roadmap.md) is feature-based: build the local application first, with browser-extension and hosted-instance targeting explicitly later. These components are unimplemented; the diagram describes responsibility boundaries rather than a required process or package per box.
+
+```mermaid
+flowchart LR
+    UI[Vue web UI] --> App[Go application API]
+    Extension[Later browser extension] --> Bridge[Later local bridge or remote HTTPS]
+    Bridge --> App
+    App --> IPC[Existing private daemon IPC]
+    CLI[Existing queue CLI] --> IPC
+    IPC --> Daemon[Download daemon and engine]
+    App --> Data[Profiles, rules, library and history]
+    App --> Runs[Schedules and workflow runs]
+    Runs --> Browser[Optional Playwright worker]
+    Browser -->|Download candidates| App
+```
+
+The application API can serve built frontend assets while the daemon retains exclusive authority over transfers, checkpoints, and final publication. App metadata must not become a second writable queue store. Define local API authentication/origin boundaries, lifecycle, and persistence before exposing controls; hosted access adds its own transport/identity contract later.
+
+Vue Flow supplies editor interaction. Versioned workflow definitions, run state, cancellation, retries, loop/subflow bounds, and debugging belong to the execution model. An optional Playwright worker handles browser sessions and must qualify the handoff of public, authenticated/expiring, and browser-managed downloads separately. Neither frontend libraries nor browser tooling establish the Go engine's integrity guarantees for a new download path.
+
+Keep instance location, profile/workspace identity, workflow versions, execution runs, download jobs, and library entries distinct. Share their stable references across rules, schedules, history, and import/export. Schema choice, telemetry, priority/reordering APIs, aggregate profile limits, and credential handling remain [open contracts](decisions.md#web-application-direction). This diagram does not install dependencies or change the daemon wire format.

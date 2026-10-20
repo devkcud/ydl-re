@@ -108,6 +108,8 @@ The text CLI renders snapshots at most every 200 ms while data arrives, plus a f
 
 `--json` emits advisory progress at the same interval and one terminal result after transfer cleanup. `--quiet` suppresses progress only. The CLI writes synchronously with bounded memory; a slow consumer applies backpressure, while deadline-capable output can time out or be interrupted. Output errors cancel the transfer and join its workers before reporting known preserved/published paths. The [JSON schema](cli.md#json-output) does not introduce a replay log or a general subscriber bus.
 
+The [planned web app](roadmap.md#local-web-delivery-order) can reuse existing safe polling, but new speed/connection/resource telemetry needs an explicit sampling and update contract. Aggregate profile limits also require shared enforcement across that profile's jobs; per-job caps are not a substitute. Browser automation traffic has its own resource boundary. None of these planned extensions changes current admission or budget semantics.
+
 ## Deferred tuning
 
 Static scheduling comes first. Adaptive chunk sizing, dynamic redistribution, round-robin heuristics, and multi-machine work distribution need measurements and separate scope decisions.

@@ -73,7 +73,7 @@ The publicly downloaded archives passed checksum verification, exact source-snap
 
 The candidate review on October 12, 2026 (America/Sao_Paulo) found no GitHub Issues in any state. This provides no independent field-testing evidence and supplies no reported regression to reproduce. [CI run 38337336004](https://github.com/devkcud/ydl-re/actions/runs/38337336004) passed both jobs at `48299669d3e930d18d296c1568b82807d370152e`. The production, build, packaging, workflow, and license sources match `v0.1.0-rc.1`; later changes add documentation and HTTPS qualification tests.
 
-The [seven acceptance criteria](roadmap.md#v010-acceptance) have the following evidence within the existing Linux/amd64 platform limits:
+The [seven acceptance criteria](testing.md#core-integrity-acceptance) have the following evidence within the existing Linux/amd64 platform limits:
 
 | Criterion | Reviewed evidence |
 |---|---|

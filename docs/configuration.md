@@ -4,6 +4,8 @@
 
 The current CLI uses built-in defaults and flags. No configuration loader exists yet; the TOML format below remains a proposal.
 
+The [planned web app](roadmap.md#instance-and-profile-model) distinguishes an instance from profiles inside it. Profile defaults should be resolved into accepted-job settings so switching/editing a profile does not restart the daemon or silently mutate existing jobs. Aggregate profile limits require enforcement beyond the current per-job cap. Profile/app persistence, path discovery, and CLI-created job association remain open; this direction does not adopt the illustrative TOML schema or add a configuration loader.
+
 ## Current defaults
 
 The engine defaults to up to four workers, three additional attempts for transient failures, automatic compatible resume, no overwrite, and no rate cap. `--connections`/`-c` accepts 1 through 32; `--retries` accepts 0 through 10, with zero disabling repeats. `--limit` sets an aggregate body rate using the units below. One connection streams new files directly and resumes saved range tasks with one worker. The network inactivity timeout is `30s` and excludes throttle/backoff waits. See [CLI](cli.md) for all flags. Explicit `--resume` requires saved state.

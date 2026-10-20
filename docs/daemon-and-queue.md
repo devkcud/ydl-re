@@ -164,4 +164,15 @@ The internal integration uses `transfer.NewBudget(rate)` once, then passes `budg
 
 ## Delivery and validation
 
-Follow the [ordered v0.2 plan](roadmap.md#v02-implementation-order), beginning with shared input validation and the strict private queue store. The [daemon validation matrix](testing.md#planned-v02-validation) covers durability, concurrency changes, privacy, crash ambiguity, IPC ownership, and budget composition. The [CLI controls](cli.md#daemon-and-queue) are implemented in the repository build. Document each completed slice and its actual evidence in root STATUS before advancing to release qualification.
+The daemon foundation and [CLI controls](cli.md#daemon-and-queue) are implemented. The completed dependency order below is retained as implementation context; it is not the next-work queue. The [daemon validation matrix](testing.md#planned-v02-validation) records durability, concurrency, privacy, crash ambiguity, IPC ownership, and budget coverage.
+
+| Order | Complete slice | Required proof before moving on |
+|---|---|---|
+| E1 | Shared pure request validation; `internal/queue` job model, strict snapshot codec, and private Linux atomic store/lock | Same standalone validation behavior; exact schema/URL privacy rules; refused unsafe/corrupt state; durable mutations; uncertain-commit fail-stop; competing writers excluded |
+| E2 | Queue coordinator, FIFO dispatcher, persisted concurrency setting, pause/resume/cancel/forget, and restart reconciliation | Fake-runner deterministic transitions; `1` serializes jobs; higher settings bound whole transfers; live increases/decreases and slot retention; persistence before side effects; publication/cancellation races |
+| E3 | Optional shared transfer body budget with per-transfer composition | Combined cap across independent transfers/probes/retries; cancellation without refunds; unchanged standalone rate/timeout behavior; no credit reset when job/concurrency state changes |
+| E4 | Linux state/runtime resolution, private Unix IPC, peer checks, both ownership locks, and safe startup/shutdown | Bounded strict protocol; state-directory mismatch refusal; stale/live/foreign socket preservation; peer/permission refusal; blocked/disconnected clients cannot stall or cancel jobs |
+| E5 | CLI daemon/queue adapters and safe text/JSON views | Complete add/list/control path through real transfers; caller-relative output resolution; explicit startup; no source leakage; ambiguous acknowledgments; existing direct commands remain independent |
+| E6 | Process-crash qualification, release docs, and platform gates | Real kill/restart and publication-boundary cases; queue-full/forget recovery; concurrency and shared-rate process tests; native Linux full/race/CGO-disabled gates and six-target compilation |
+
+New application work follows the feature-based [product roadmap](roadmap.md) and current root STATUS. Preserve these established guarantees and record focused implementation/validation evidence after each change.

@@ -56,7 +56,7 @@ The owner explicitly selected full source-URL persistence, including query token
 
 Queue corruption and uncertain storage commits stop dispatch rather than resetting state. After a process crash, interrupted work requires explicit resume; output presence never proves completion. Initial queue transfers do not permit overwrite. Existing transfer identity, locking, TLS, redirect, private-partial, and publication rules remain authoritative.
 
-Optional v0.3 hooks require explicit enablement and a separate execution/security design. They must not make arbitrary downloaded content executable by default. Scripting runtimes and sandboxed workflows remain unscheduled.
+Optional completion hooks require explicit enablement and a separate execution/security design. They must not make arbitrary downloaded content executable by default. Arbitrary scripting runtimes remain unscheduled. The planned typed browser workflows need their own credential, session, and resource boundaries; the existing CLI/IPC evidence does not qualify an unimplemented web API or browser worker.
 
 ## Review evidence
 

@@ -102,4 +102,4 @@ Check local links, anchors, code fences, structured examples, shell syntax, and 
 
 Milestone D is complete for stable `0.1.0` on Linux/amd64 under MPL 2.0. The [release guide](releases.md) defines version/tag grammar, source/checksum assets, changelog requirements, draft creation, and installation. Hosted CI, packaging, public downloads, unchanged assets, and HTTP/HTTPS installation checks passed. Native qualification beyond Linux/amd64 remains open. Validate every claimed platform before distribution.
 
-Preserve the published `v0.1.0` tag and assets. Future releases need fresh evidence for changed behavior under the [acceptance criteria](roadmap.md#v010-acceptance), including parallel transfers, retries, and every claimed native platform.
+Preserve the published `v0.1.0` tag and assets. Future releases need fresh evidence for changed behavior under the [acceptance criteria](testing.md#core-integrity-acceptance), including parallel transfers, retries, and every claimed native platform.

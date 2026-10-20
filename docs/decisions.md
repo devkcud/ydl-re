@@ -63,8 +63,12 @@ Resolve each decision before the milestone or interface depending on it is decla
 
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
-| C08 | Future retry counters and push subscriptions | Existing clients use safe polling; richer events need a concrete consumer and separate scope | [Concurrency](concurrency.md) |
+| C08 | Web telemetry, update delivery, and retry counters | The web app can reuse safe polling; new speed/connection/resource metrics and reconnect behavior need explicit contracts | [Concurrency](concurrency.md), [roadmap](roadmap.md#cross-cutting-acceptance) |
 | C09 | TOML loader, precedence, and unknown keys | Turns the illustrative configuration into a contract while retaining implemented value validation | [Configuration](configuration.md) |
+| C10 | Local web API, launch/lifetime, authentication, and origin boundaries | Adds browser access around the private daemon without changing standalone ownership or unknown-outcome behavior | [Architecture](architecture.md#planned-web-application) |
+| C11 | Profile ownership/defaults, aggregate limits, and richer job controls | Defines CLI-created job association, immutable effective settings, priorities/reordering, and any safe editing policy | [Profile model](roadmap.md#instance-and-profile-model), [configuration](configuration.md) |
+| C12 | Rules, workflow execution, and trigger/schedule semantics | Defines metadata stages/precedence, versioned runs, loops/subflows, cancellation, retries, deduplication, downtime, and overlap behavior | [Build phases](roadmap.md#local-web-delivery-order) |
+| C13 | Later extension and hosted-instance transports | Defines permissions, pairing/authentication, destination selection, and supported browser-download handoffs without assuming universal interception | [Later integration](roadmap.md#later-browser-integration-and-hosted-operation) |
 
 The default worker preference is four, the retry default is three additional attempts, and the rate is unlimited unless a cap is configured.
 
@@ -75,6 +79,7 @@ The default worker preference is four, the retry default is three additional att
 | S03 | Windows path normalization, reserved names, reparse points, and artifact collisions | Extends the settled Unix path policy to an unsupported storage platform | [Security](security.md) |
 | S06 | Windows publication and wider durability qualification | Extends the implemented Linux publication and manifest-reconciliation policy safely | [Lifecycle](transfer-lifecycle.md#7-finalize) |
 | S08 | Cross-platform configuration-file discovery | Linux daemon state/runtime paths are settled separately; the optional config loader remains undefined | [Configuration](configuration.md) |
+| S09 | Application metadata, library/history, and portable definitions | Chooses storage/schemas, run/job/file identity, retention, source/credential privacy, duplicate detection, and import/export path mapping | [Application ownership](architecture.md#planned-web-application) |
 
 Version 1 uses a half-open sequential prefix. Version 2 uses explicit whole-chunk intervals with independent digests and a fixed chunk size. Neither accepts the original illustrative inclusive range-array format. See the [storage contracts](resume-and-storage.md).
 
@@ -102,13 +107,17 @@ The owner selected full URL/query-token storage in private local queue files and
 
 R03 is settled by [daemon-wide budgeting](concurrency.md#daemon-wide-rate-cap): one process-lifetime body budget shared across managed jobs, composed with each job's existing cap. Charge both before waiting, wait for all applicable reservations, preserve shared credit/debt across job lifecycle and concurrency changes, and retain existing burst/timeouts/accounting boundaries. `daemon start --limit` is fixed until restart; cross-process caps and dynamic rate changes are deferred.
 
-Linux XDG state/runtime selection is settled for the daemon; this does not implement a general configuration loader or qualify other native platforms. The [ordered implementation plan](roadmap.md#v02-implementation-order) and [validation matrix](testing.md#planned-v02-validation) are accepted. E1 through E6 are complete with local Linux tests, final ordinary/race/CGO-disabled gates, six-target compilation, and [local candidate archive/installation verification](releases.md#v02-local-qualification). [Hosted qualification and publication](releases.md#v02-hosted-qualification-and-publication) passed for `0.2.0-rc.1`; stable `0.1.0` remains Latest. The owner authorized pushes/publication for this named prerelease only.
+Linux XDG state/runtime selection is settled for the daemon; this does not implement a general configuration loader or qualify other native platforms. The [ordered implementation plan](daemon-and-queue.md#delivery-and-validation) and [validation matrix](testing.md#planned-v02-validation) are accepted. E1 through E6 are complete with local Linux tests, final ordinary/race/CGO-disabled gates, six-target compilation, and [local candidate archive/installation verification](releases.md#v02-local-qualification). [Hosted qualification and publication](releases.md#v02-hosted-qualification-and-publication) passed for `0.2.0-rc.1`; stable `0.1.0` remains Latest. The owner authorized pushes/publication for this named prerelease only.
 
-## v0.3 scope reset
+## Web application direction
 
-The owner removed the TUI completely before implementation. Its draft contract and implementation sequence are withdrawn, including the terminal-specific polling, input, and rendering policies. The existing daemon/queue CLI and safe polling API remain implemented.
+The owner approved a local-first web application with hosted operation second. The roadmap now tracks feature-building phases rather than version targets or release preparation. The TUI remains canceled; its input/rendering/polling contract is not reused as a requirement for the web app.
 
-C08 remains open for any future consumer; the canceled TUI does not select a refresh policy or subscription design for other clients. C09/S08 and the earlier profile, inspection/history, and hook proposals remain unresolved and unscheduled. Obtain the owner's new direction before selecting another implementation slice or redefining the v0.3 milestone.
+Vue 3 + TypeScript is the frontend direction, and **Vue Flow is selected** for the Visual Grabber editor. Go remains the application/daemon integration direction, with an optional Playwright browser worker. The editor choice does not select a workflow execution engine, data schema, or additional runtime dependency for standalone downloads.
+
+An instance identifies an execution host/output filesystem; a profile is a workspace within that instance. Basic local downloads/profiles lead W1, then library/history and rules in W2, schedules and a small browser/workflow runner in W3, and fuller Vue Flow authoring/debugging in W4. Exact first-slice contracts and the decisions above still need resolution; no new application behavior is implemented.
+
+The owner explicitly deferred browser integration and hosted targeting to L1/L2. The intended later actions include **Send this link to Yoink** and **Send download to → Home server → Pato**, where Home server is an instance and Pato is a profile. They are not prerequisites for W1. Custom hooks, arbitrary scripting, and distributed transfer swarms are separate unscheduled directions.
 
 ## Already established direction
 

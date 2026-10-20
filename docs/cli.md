@@ -268,4 +268,4 @@ Output uses the existing bounded writer. Broken/blocked client output can fail o
 
 ## Planned additions
 
-Configuration loading, profiles, history, and optional hooks remain unimplemented proposals. The next scope awaits the owner's direction; these features are not selected as the next work. No automatic startup, background spawning, or service installation is required. See [open decisions](decisions.md) and the [roadmap](roadmap.md).
+The [selected web direction](roadmap.md#local-web-application) begins with a local downloads/queue UI and basic profiles, then adds library/history, rules, schedules, and Vue Flow Visual Grabber workflows. Extension handoff and hosted targeting are explicitly later. These are planned application capabilities, not new implemented CLI commands or flags. Configuration loading and custom hooks still need separate contracts; standalone commands remain independent.

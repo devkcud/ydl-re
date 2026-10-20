@@ -10,6 +10,8 @@ Milestones A through D are complete for the initial Linux/amd64 release. `downlo
 
 [YoinkDL 0.1.0](https://github.com/devkcud/ydl-re/releases/tag/v0.1.0) is the latest stable release. It includes aggregate rate caps, versioned JSON output, checked text/terminal output, a completed local [security review](docs/security.md), and passing hosted CI. Public downloads, checksums, source identity, and HTTP/HTTPS installation tests passed. Native qualification beyond Linux/amd64 remains open. Read [STATUS.md](STATUS.md) for the handoff and next steps.
 
+The [product roadmap](docs/roadmap.md) now focuses on a local-first web app using Vue 3 + TypeScript, with Vue Flow selected for a later Visual Grabber. Profiles, library/history, rules, scheduling, and browser workflows are planned around the existing daemon. The extension and hosted-server selection come later; these features are not implemented. The TUI remains canceled.
+
 ## Build and test
 
 Install Go 1.27 or newer and GNU Make, then run from the repository root:
@@ -110,7 +112,7 @@ The output filesystem must support advisory locking, hard links, and directory s
 | [Testing](docs/testing.md) | Current evidence and remaining scenarios |
 | [Platforms](docs/platforms.md) | Native evidence, cross-build matrix, and support limits |
 | [Releases](docs/releases.md) | CI, packaging, draft releases, and binary installation |
-| [Roadmap](docs/roadmap.md) | Milestones and release scope |
+| [Roadmap](docs/roadmap.md) | Feature phases, local web direction, and deferred browser/server integration |
 | [Original design](yoinkdl-design.md) | Unmodified engineering proposal |
 
 ## Contributing

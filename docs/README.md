@@ -12,9 +12,9 @@ Use the root [README](../README.md) for an introduction, [STATUS.md](../STATUS.m
 
 The [getting-started guide](getting-started.md) and [CLI reference](cli.md) document working commands, including connection/retry limits, aggregate rate caps, JSON events, resume, and local inspection. Milestones A through D are complete for the initial Linux/amd64 scope, with a local [security review](security.md), [platform evidence](platforms.md), and verified [stable public downloads and installation](releases.md#stable-publication). MPL 2.0, GitHub Releases, and public issue reporting remain the policies. Native qualification beyond Linux/amd64 remains future work.
 
-These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions. The [v0.2 daemon/queue contract](daemon-and-queue.md) and [ordered plan](roadmap.md#v02-implementation-order) are accepted. E1 through E6 are complete for the Linux/amd64 prerelease: private storage, queue controls/concurrency/recovery, shared bandwidth, Linux IPC, the daemon/queue CLI, and release qualification. The commands are available in published `0.2.0-rc.1`; stable `0.1.0` remains standalone and Latest. E6 crash, capacity, concurrency, and shared-rate process fixtures pass the final native ordinary/race/CGO-disabled gates and six-target compilation. The [published 0.2.0-rc.1 prerelease](releases.md#v02-hosted-qualification-and-publication) passed hosted CI, archive checks, anonymous downloads, and installed-binary verification.
+These pages distinguish the implementation from the original design. The [decision register](decisions.md) records adopted choices and remaining questions. The [v0.2 daemon/queue contract](daemon-and-queue.md) and [ordered plan](daemon-and-queue.md#delivery-and-validation) are accepted. E1 through E6 are complete for the Linux/amd64 prerelease: private storage, queue controls/concurrency/recovery, shared bandwidth, Linux IPC, the daemon/queue CLI, and release qualification. The commands are available in published `0.2.0-rc.1`; stable `0.1.0` remains standalone and Latest. E6 crash, capacity, concurrency, and shared-rate process fixtures pass the final native ordinary/race/CGO-disabled gates and six-target compilation. The [published 0.2.0-rc.1 prerelease](releases.md#v02-hosted-qualification-and-publication) passed hosted CI, archive checks, anonymous downloads, and installed-binary verification.
 
-The owner removed the TUI from the roadmap before implementation. The next product direction and v0.3 scope await clarification; earlier profile, inspection/history, and hook proposals are not an implementation queue.
+The owner selected a [local-first web application](roadmap.md#local-web-application), using Vue 3 + TypeScript and Vue Flow for the Visual Grabber editor. The roadmap now tracks feature phases rather than version targets. Downloads/basic profiles come first, followed by library/history, rules, schedules, and browser workflows. Extension handoff and hosted-instance/profile targeting are explicitly later. None of these application features are implemented; the TUI remains canceled.
 
 ## Start here
 
@@ -27,7 +27,7 @@ The owner removed the TUI from the roadmap before implementation. The next produ
 
 | Page | Covers |
 |---|---|
-| [Overview](overview.md) | Product goals, release scope, non-goals, terminology |
+| [Overview](overview.md) | Product goals, implemented foundation, planned capabilities, and terminology |
 | [Getting started](getting-started.md) | Availability, planned first download, interruption and recovery |
 | [CLI reference](cli.md) | Commands, flags, output, exit behavior |
 | [Configuration](configuration.md) | Defaults, proposed TOML, paths, units |
@@ -43,7 +43,7 @@ The owner removed the TUI from the roadmap before implementation. The next produ
 | [Platforms](platforms.md) | Native Linux evidence, cross-build results, reproduction commands, and limits |
 | [Releases](releases.md) | CI, clean-snapshot packaging, draft workflow, and installation |
 | [Troubleshooting](troubleshooting.md) | Expected failures and safe recovery guidance |
-| [Roadmap](roadmap.md) | Milestones, acceptance criteria, deferred features |
+| [Roadmap](roadmap.md) | Feature delivery order and later browser/server integration |
 | [Open decisions](decisions.md) | Unsettled interfaces and implementation policies |
 
 ## Design source map
@@ -53,7 +53,7 @@ The original design is preserved as a historical proposal. Its TUI references ar
 | Original section | Documentation |
 |---|---|
 | 1. Summary | [Overview](overview.md) |
-| 2. Release boundaries | [Overview](overview.md), [roadmap](roadmap.md) |
+| 2. Release boundaries | [Overview](overview.md), [release history](releases.md) |
 | 3. Product behavior and CLI | [Getting started](getting-started.md), [CLI](cli.md) |
 | 4. Architecture | [Architecture](architecture.md), [development](development.md) |
 | 5. Download lifecycle | [Lifecycle](transfer-lifecycle.md), [HTTP](http.md) |
@@ -69,6 +69,6 @@ The original design is preserved as a historical proposal. Its TUI references ar
 
 ## Documentation conventions
 
-`v0.1` is released as `0.1.0`; `v0.2` is available as the `0.2.0-rc.1` prerelease, and the scope of `v0.3` is pending. A specified contract is not an implemented command or runtime proof. “Later” means unscheduled. “Illustrative” means an example is not a stable schema or output contract.
+Versioned release history is maintained in the [release guide](releases.md); the [product roadmap](roadmap.md) tracks building independently of release preparation or version targets. A selected direction or specified contract is not an implemented command or runtime proof. “Later” means deferred without an assigned delivery date. “Illustrative” means an example is not a stable schema or output contract.
 
 Remote example URLs are placeholders. Build commands use the actual repository layout; choose output paths appropriate to your filesystem. A successful-looking progress display is never evidence that a transfer has passed verification.

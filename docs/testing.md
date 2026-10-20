@@ -4,6 +4,20 @@
 
 Milestones A, B, and C plus Milestone D rate, JSON, text-output, security regression, and packaging work pass the local full gate on Go 1.27.2 and hosted Ubuntu 24.04.5 CI on Go 1.27.0, Linux/amd64. The matrix below also covers remaining platform/release work and must not be read as fully implemented.
 
+## Core integrity acceptance
+
+Changes to the engine or its application front ends must preserve these established properties:
+
+- A direct HTTP(S) download produces the expected file.
+- A supporting server resumes a compatible transfer across process termination.
+- Range transfers never silently combine different resource versions.
+- Wrong lengths and incomplete responses are detected.
+- Verified files are published atomically under the qualified platform policy.
+- Simultaneous writers cannot corrupt data or metadata.
+- Integration and race tests pass on the required environments.
+
+The [required scenarios](#required-scenarios) provide concrete coverage. These are continuing implementation guarantees, independent of software versioning or distribution.
+
 ## Current evidence
 
 | Test file | Coverage |
@@ -203,7 +217,7 @@ The [CI/release workflows](releases.md) passed local actionlint v1.7.12 checks a
 
 ## Planned v0.2 validation
 
-These are required checks for the [accepted daemon design](daemon-and-queue.md). E1 storage, E2 coordinator/controls, E3 shared budgets, and E4 IPC/lifecycle tests are recorded above, including safe internal/IPC views. E5 also covers CLI privacy, real signals, clean restart, and failed output. E6 covers forced CLI death, saved FIFO/settings, explicit checkpoint resume, publication ambiguity, pending controls, retained capacity/forget recovery, live process concurrency, and shared-rate process behavior. Final native, compilation, and local candidate packaging/installation gates pass. The [delivery order](roadmap.md#v02-implementation-order) determines the remaining qualification work.
+These are required checks for the [accepted daemon design](daemon-and-queue.md). E1 storage, E2 coordinator/controls, E3 shared budgets, and E4 IPC/lifecycle tests are recorded above, including safe internal/IPC views. E5 also covers CLI privacy, real signals, clean restart, and failed output. E6 covers forced CLI death, saved FIFO/settings, explicit checkpoint resume, publication ambiguity, pending controls, retained capacity/forget recovery, live process concurrency, and shared-rate process behavior. Final native, compilation, and local candidate packaging/installation gates pass. The [completed foundation order](daemon-and-queue.md#delivery-and-validation) records the dependency sequence behind this evidence.
 
 | Group | Required evidence |
 |---|---|
@@ -220,6 +234,20 @@ These are required checks for the [accepted daemon design](daemon-and-queue.md).
 
 Use local deterministic servers and temporary roots. Run focused checks for each slice, then `make check` for implementation changes. Native Linux and CGO-disabled process coverage is required; foreign compilation alone never proves daemon support. Existing v0.1 transfer, output, storage, TLS, and packaging suites remain regression gates.
 
+## Planned application validation
+
+The [web roadmap](roadmap.md#local-web-delivery-order) is selected direction, not implementation evidence. Derive focused acceptance cases before each concrete slice:
+
+| Phase | Required coverage |
+|---|---|
+| W1 | Local API/session and origin boundaries; explicit startup/lifetime; private safe views; job controls and lost acknowledgments; profile association/default snapshots; browser-tab/output failure independent of accepted daemon work; unchanged standalone use |
+| W2 | Metadata persistence/migration/retention; cataloged versus moved/missing files; duplicate identity; deterministic rule stages and precedence; compatible priority/reordering/editing and aggregate-profile enforcement; secret-free portable definitions and explicit path mapping |
+| W3 | Stable execution/occurrence identity; duplicate triggers/replies; retries, crash recovery, sleep/downtime, timezones and overlap policies; optional browser lifecycle; distinct public, authenticated/expiring, and browser-managed download capabilities |
+| W4 | Vue Flow editing against versioned definitions; invalid connections/branches/variables/loops/subflows; bounded execution, cancellation, debugging and safe traces; manual/scheduled parity |
+| L1/L2 — later | Explicit extension handoff, supported capture cases, pairing/permissions, local versus server filesystem meaning, credential scoping, remote transport/authentication, and correct instance/profile targeting |
+
+Retain the [core integrity criteria](#core-integrity-acceptance), focused engine/IPC regressions, and `make check` for Go implementation changes; add the appropriate frontend checks when that code exists. Keep test fixtures deterministic and local where possible. No dependency installation or runtime tests are implied by this documentation-only roadmap work.
+
 ## Release evidence
 
 The [first candidate report](releases.md#first-candidate-verification) records `0.1.0-rc.1` at `5fae374cd31429f5d8653c6c497dcf0d21865c7e`: the full local packaging gate, archive checksums and exact source identity, isolated installation, and sequential/parallel fixture downloads passed. The hosted candidate passed the same downloaded-archive and installed-binary checks with Go 1.27.0; its source archive matches the local archive exactly. After publication, [unauthenticated public access and installation](releases.md#publication-and-public-downloads) passed with all three assets byte-identical to the verified draft.
@@ -232,4 +260,4 @@ For every release, record the revision, toolchain, native platform/filesystem, c
 
 A test report should distinguish a build from a runtime test and a normal interruption from a crash-recovery exercise. Cross-platform builds alone are insufficient evidence for all filesystem guarantees.
 
-See [v0.1 acceptance](roadmap.md#v010-acceptance) and the [open decisions](decisions.md) that must be resolved to turn this matrix into executable assertions.
+See [core integrity acceptance](#core-integrity-acceptance) and the [open decisions](decisions.md) that must be resolved to turn this matrix into executable assertions.

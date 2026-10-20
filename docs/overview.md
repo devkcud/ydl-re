@@ -27,16 +27,19 @@ Stable `0.1.0` is published for Linux/amd64. Milestones A through D deliver sequ
 4. On interruption, retain safe progress for a later compatible resume.
 5. Verify the completed transfer and publish the final file.
 
-The CLI runs in the foreground. Interrupting that process is the initial pause mechanism. Persistent queue commands and background transfers arrive in a later release.
+The standalone CLI runs in the foreground. Interrupting that process is its pause mechanism. The implemented [daemon and queue](daemon-and-queue.md) provide managed jobs with explicit pause/resume controls.
 
-## Release scope
+## Product scope
 
-| Release | Intended capabilities |
+| State | Capabilities |
 |---|---|
-| v0.1 | `download`, `inspect`, `version`; HTTP(S); safe streaming and parallel ranges; local resume; retries; progress; aggregate transfer cap; JSON output; completion checks |
-| v0.2 | Local daemon, persistent queue, add/list/pause/resume/cancel operations, scheduling concurrent transfers, bandwidth management |
-| v0.3 | Scope pending the owner's new direction; the TUI has been removed |
-| Later | Optional web UI, other protocols, remote nodes, LAN transfers, scheduling features, sandboxed workflows |
+| Implemented standalone engine | `download`, `inspect`, `version`; safe HTTP(S) streaming/ranges, resume, retries, progress, rate caps, JSON output, and verified publication |
+| Implemented daemon/queue | Private local IPC, durable admission and controls, bounded concurrency, shared bandwidth, and conservative restart behavior |
+| Planned local web app | Vue 3 + TypeScript; downloads/queue, profiles, library/history, rules, schedules, Vue Flow Visual Grabber, activity/settings, and portable definitions in [ordered feature phases](roadmap.md#local-web-delivery-order) |
+| Explicitly later integration | Browser link handoff, supported download interception, and self-hosted instance/profile selection such as Home server → Pato |
+| Unscheduled directions | Other protocols, distributed transfers, peer discovery, and custom script/hooks |
+
+The app is local-first and hosted-second. An instance selects the machine/output filesystem; a profile is a workspace within that instance. The extension and hosted targeting are not prerequisites for the initial web app. The TUI remains canceled, and versioning/publication is separate from the build roadmap.
 
 The original draft's detailed CLI and hardening milestone place a per-transfer `--limit` in v0.1, which is implemented. The accepted [v0.2 design](daemon-and-queue.md) adds a separate shared daemon cap and a persistent whole-download concurrency setting: `1` for sequential work, higher values for concurrent downloads. The published Linux `0.2.0-rc.1` prerelease implements these settings and passed [local/hosted qualification and public installation](releases.md#v02-hosted-qualification-and-publication). [Budget composition](concurrency.md#daemon-wide-rate-cap) defines their boundary with the existing cap.
 

@@ -1,139 +1,100 @@
-# Roadmap
+# Product roadmap
 
 [Documentation index](README.md)
 
-Milestones A through D are complete for the initial Linux/amd64 scope. Stable [0.1.0](https://github.com/devkcud/ydl-re/releases/tag/v0.1.0) is published with verified public downloads and installation. v0.2 is published as the [0.2.0-rc.1 prerelease](releases.md#v02-hosted-qualification-and-publication) after local and hosted qualification; stable `0.1.0` remains Latest. There is no promised release date for later milestones.
+Build a local-first web application around Yoink's existing download engine, then add automation and later browser/server integration. This roadmap tracks feature dependencies and useful increments; it does not assign version targets or publication steps. The TUI remains canceled.
 
-## Delivery sequence
+## Implemented foundation
 
-| Order | Milestone | Result |
-|---|---|---|
-| A | Reliable single stream | A useful foreground download command |
-| B | Persistence and resume | Recovery from compatible local checkpoints |
-| C | Multi-range engine | Safe bounded parallel transfers |
-| D | v0.1 hardening | Validated UX, safety, platform behavior, and distribution |
+The [standalone CLI](cli.md) already provides HTTP(S) transfers, safe sequential/parallel resume, bounded retries, progress, rate caps, cancellation, and verified file publication. The [Linux daemon and queue](daemon-and-queue.md) add private local IPC, durable admission/control, configurable concurrency, shared budgets, and conservative recovery.
 
-Complete these in dependency order. Later features should not delay the standalone engine.
+Preserve those responsibilities as the app grows. The [core integrity criteria](testing.md#core-integrity-acceptance) and existing tests remain the baseline; new interfaces must not bypass response validation, ownership, checkpoints, or overwrite protection.
 
-## Milestone A — Reliable single stream
+## Local web application
 
-**Status:** implemented and tested on Linux/amd64. See [testing](testing.md) for the evidence and [CLI](cli.md) for working commands.
+**Status:** the owner approved a local-first web application direction on October 20, 2026. Implementation has not started. Begin with downloads/queue management and basic profiles around the existing Go daemon. Hosted operation and browser integration come later. The TUI remains canceled.
 
-Deliver `download` and `version`, HTTP(S) streaming into a partial file, progress, cancellation, and verified final publication.
+W1–W4 are implementation phases. The capability list describes the long-term direction; define a concrete slice and its acceptance tests before adding each behavior.
 
-Reject bad HTTP responses, incomplete bodies, and destination conflicts. Use local-server integration tests with deterministic content.
+### Instance and profile model
 
-Completion evidence: a direct download produces exactly the expected file; failed or interrupted transfers do not appear as completed output; publication obeys the chosen filesystem and overwrite policy.
+An **instance** identifies where Yoink runs and where files are stored: initially **This computer**, later an explicitly configured **Home server**. A **profile** is a workspace inside that instance, such as **Pato**, with its own defaults and associations. Instance selection and profile switching are separate operations; a profile name does not imply a separate user account or security tenant.
 
-The initial choices are Go 1.27, local module `yoinkdl`, standard-library parsing, exclusive partial creation, and hard-link/rename publication with syncs. Other platforms and broader crash-durability qualification remain release work.
+Switching profiles must not restart the daemon, migrate files between machines, or silently change accepted jobs. Capture effective settings when submitting a job. Distinguish a workflow definition/version, an execution run, its download jobs, and the resulting library files so their histories can be correlated.
 
-## Milestone B — Persistence and resume
+### Planned application areas
 
-**Status:** implemented and tested on Linux/amd64, including actual forced-process termination and validated suffix recovery. The current CLI supports automatic compatible resume, explicit `--resume`, and read-only `inspect`.
-
-Define the versioned manifest, interval convention, transfer identity, checkpoints, and exclusive ownership. Add server metadata probing, validator logic, safe sequential resumption when supported, and `inspect`.
-
-Specify refusal or deliberate restart when state or server behavior is incompatible. Test normal interruption, process termination, malformed state, and recovery ordering.
-
-Completion evidence: local-server tests resume terminated transfers to exact fixture hashes, reject changed identity/bounds without altering saved artifacts, and recover ready publication checkpoints. Kernel locks prevent competing writers and release after process death. Native macOS, Windows, network-filesystem, and power-loss qualification remain release work.
-
-## Milestone C — Multi-range engine
-
-**Status:** implemented and tested on Linux/amd64. Fresh/resumed transfers have strict identity validation, bounded workers and retries, exclusive offset writes, conservative checkpoints, cancellation, and verified publication. `--connections` accepts 1..32 (default four); `--retries` accepts 0..10 additional attempts (default three). Sequential and parallel resume have forced-process-termination evidence.
-
-Plan disjoint chunks, bound worker concurrency, and write only assigned offsets. Validate every response's range, length, encoding, and compatible representation identity.
-
-Add interval retries, bounded backoff, and safe sequential fallback. Exercise failures during concurrent transfer and run the race detector on meaningful paths.
-
-Completion evidence: parallel, resumed, and retried outputs match exact fixtures. Tests verify shared attempt budgets, Retry-After/backoff bounds, whole-chunk replacement, unchanged completed coverage, terminal identity/storage failures, progress rollback, and cancellation while workers wait. The full gate, race checks, CLI process checks, and documentation audit pass. See [testing](testing.md).
-
-## Milestone D — v0.1 hardening
-
-**Status:** complete for the initial Linux/amd64 release. Stable `0.1.0` is published as Latest. Rate caps, JSON/text output, security regression fixes, native platform evidence, six-target compilation, all seven acceptance criteria, and real HTTPS subprocess tests are recorded. Hosted Ubuntu 24.04.5 CI passed with Go 1.27.0; [public stable downloads and installation](releases.md#stable-publication) passed. Native qualification beyond Linux/amd64 remains separate work.
-
-Qualify native behavior and CI for any additional platform before claiming support, preserving the reviewed security contracts and documented trust boundaries. Cross-build success alone is insufficient; Windows storage remains unsupported.
-
-The [stable review](releases.md#stable-readiness-review) found no reported regressions and checked actual acceptance evidence. The [0.1.0 release](releases.md#stable-publication) uses revision `31330c6b07d33af148341bdfb346c0e139082fdb`, preserving the candidate's runtime behavior and adding HTTPS qualification. Public files match the verified hosted assets exactly. The [changelog](../CHANGELOG.md#010) preserves both version sections and an Unreleased section; stable readiness was not inferred from lack of reports alone.
-
-Completion evidence: all release acceptance criteria have recorded results, documented platform limits, and no unresolved integrity failure.
-
-## v0.1.0 acceptance
-
-The published Linux/amd64 release has recorded evidence for these criteria; future changes must preserve them:
-
-- A direct HTTP(S) download produces the expected file.
-- A supporting server resumes a compatible transfer across process termination.
-- Range transfers never silently combine different resource versions.
-- Wrong lengths and incomplete responses are detected.
-- Verified files are published atomically under the qualified platform policy.
-- Simultaneous writers cannot corrupt data or metadata.
-- Integration and race tests pass on the required environments.
-
-The [testing matrix](testing.md#required-scenarios) expands these into concrete scenarios. Installation examples and platform support claims need real verification before publication.
-
-## v0.2 — Daemon and persistent queue
-
-**Status:** E1 through E6 are complete locally: private storage/recovery, FIFO controls and concurrency, composed bandwidth, Linux IPC/lifecycle, and explicit daemon/queue CLI commands with safe text/JSON results. E6 crash, capacity, concurrency, and shared-rate process fixtures pass the final native ordinary/race/CGO-disabled gates and six-target compilation. The [published 0.2.0-rc.1 prerelease](releases.md#v02-hosted-qualification-and-publication) also passed hosted CI and public archive/installation verification. [Daemon and persistent queue](daemon-and-queue.md) owns R04: foreground Linux daemon, private local IPC, durable queue/source records, conservative recovery, and configurable whole-transfer concurrency. [Daemon-wide rate caps](concurrency.md#daemon-wide-rate-cap) owns R03. Neither changes the released standalone CLI or its transfer manifests.
-
-Queue concurrency defaults to one transfer and persists across restarts. `daemon set --parallel N` selects `1..8` live; reductions wait for active work to finish before admitting more. The owner's full-URL persistence choice uses private queue files and redacted public views. Foreground startup is explicit, and no network service, database, TOML loader, or automatic daemon launch is required.
-
-Pause/cancel use context cancellation and wait for the engine to release writers. Crash-interrupted attempts do not restart automatically or infer success from file presence. An initial queued transfer never overwrites a completed destination. `forget` explicitly frees a non-running queue record without deleting its data files.
-
-### v0.2 implementation order
-
-| Order | Complete slice | Required proof before moving on |
-|---|---|---|
-| E1 | Shared pure request validation; `internal/queue` job model, strict snapshot codec, and private Linux atomic store/lock | Same standalone validation behavior; exact schema/URL privacy rules; refused unsafe/corrupt state; durable mutations; uncertain-commit fail-stop; competing writers excluded |
-| E2 | Queue coordinator, FIFO dispatcher, persisted concurrency setting, pause/resume/cancel/forget, and restart reconciliation | Fake-runner deterministic transitions; `1` serializes jobs; higher settings bound whole transfers; live increases/decreases and slot retention; persistence before side effects; publication/cancellation races |
-| E3 | Optional shared transfer body budget with per-transfer composition | Combined cap across independent transfers/probes/retries; cancellation without refunds; unchanged standalone rate/timeout behavior; no credit reset when job/concurrency state changes |
-| E4 | Linux state/runtime resolution, private Unix IPC, peer checks, both ownership locks, and safe startup/shutdown | Bounded strict protocol; state-directory mismatch refusal; stale/live/foreign socket preservation; peer/permission refusal; blocked/disconnected clients cannot stall or cancel jobs |
-| E5 | CLI daemon/queue adapters and safe text/JSON views | Complete add/list/control path through real transfers; caller-relative output resolution; explicit startup; no source leakage; ambiguous acknowledgments; existing direct commands remain independent |
-| E6 | Process-crash qualification, release docs, and platform gates | Real kill/restart and publication-boundary cases; queue-full/forget recovery; concurrency and shared-rate process tests; native Linux full/race/CGO-disabled gates and six-target compilation |
-
-Keep each slice runnable and locally committed with its tests and current STATUS handoff. Use a narrow callable transfer runner for coordinator tests and retain one `transfer.Budget.Download` runner for the daemon lifetime. Do not add a generic job framework or duplicate the downloader. E6 qualification and `0.2.0-rc.1` publication are complete. Preserve source revision `34041c372519ac751bb9d6ec1ecda56184d13161`, tag, release notes, and assets. The release-specific push exception is complete; future work remains local under the repository rules.
-
-The [v0.2 validation matrix](testing.md#planned-v02-validation) makes the failure paths concrete. A daemon release requires all slices and evidence, not merely a listener or a queue file.
-
-## v0.3 — Scope pending
-
-The owner has removed the TUI entirely from the roadmap. Its draft contract and implementation sequence are withdrawn; no TUI code was implemented.
-
-Define the next product direction with the owner before choosing another slice or assigning it to v0.3. Named profiles, richer inspection/history, and optional completion hooks remain earlier proposals, with no selected implementation order. Their configuration, storage, and execution contracts remain unresolved. They are not automatic replacements for the canceled work.
-
-## Existing queue commands
-
-The daemon/queue commands below are available in the `0.2.0-rc.1` prerelease and repository builds. None are part of published v0.1:
-
-```text
-yoinkdl daemon start
-yoinkdl daemon stop
-yoinkdl add <url>
-yoinkdl list
-yoinkdl pause <id>
-yoinkdl resume <id>
-yoinkdl cancel <id>
-```
-
-`daemon start` is the primary name and runs in the foreground. The accepted [v0.2 control contract](daemon-and-queue.md#local-control-protocol) uses a private Linux Unix socket and versioned JSON frames; no TCP port or public HTTP API exists. `daemon set --parallel` and `forget` are also implemented v0.2 controls. The historical `summon` alias remains deferred.
-
-## Deferred concepts
-
-YoinkDL carries forward the reliability goals of the earlier GoonDL design while keeping its initial implementation small.
-
-| Earlier or proposed concept | Current disposition |
+| Area | Planned capabilities |
 |---|---|
-| Adaptive chunks and round-robin scheduling | Start with static ranges; revisit with measurements |
-| `.goondl-meta` and a custom extension ecosystem | Begin with versioned `.yoinkdl.json`; avoid custom languages |
-| `~/.config/goondl` | Proposed `~/.config/yoinkdl`, with transfer sidecars beside destinations |
-| `goonprofile`, `goonhook`, related profiles/hooks | Unscheduled proposals; revisit with the owner's next product direction |
-| JavaScript, Lua, or WASM workflows | Unscheduled; requires runtime and security design |
-| HTMX/web monitoring dashboard | Unscheduled optional daemon front end |
-| SFTP, SCP/SSH, torrents, Metalink | Future protocol/transport work; no delivery commitment |
-| Remote nodes, LAN swarm, P2P, peer discovery | Separate future transfer architecture |
-| Scheduling and sandboxed automation | Unscheduled beyond the initial queue scope |
-| Browser automation and protected-content handling | Out of scope |
-| Paranoia Mode, voice notifications, mobile UI | Not on the delivery roadmap |
-| Arbitrary-precision size-expression parser | Separate optional utility; not a v0.1 blocker |
-| User checksum flag, cleanup command, short URL alias | Deferred until their interfaces are justified and specified |
+| Downloads & Queue | Add/configure jobs; show live progress, speeds, states, connection activity, and statistics; pause/resume/cancel/retry; organize jobs and eventually change priorities/order |
+| Profiles | Independent defaults, output directories, connection preferences, bandwidth policies, rules, schedules, workflows, and browser-session associations; switch without restarting the daemon |
+| Download Rules | Match URLs/domains, extensions, MIME types, sizes, and other metadata; choose destinations, names, profiles, priorities, and settings with deterministic precedence and a preview of resolved choices |
+| Download Library | Browse/search/filter completed files; tags, collections, metadata, source tracking, duplicate detection, and explicit file actions appropriate to the selected instance |
+| Schedulers | One-time/recurring execution and event triggers for downloads or workflows; execution history, retry policies, timezones, missed-run handling, and overlap policies |
+| Visual Grabber | Drag, drop, connect, and configure browser-action, scraping, link-extraction, and download nodes; saved/reusable workflows, variables, conditional branches, loops, subflows, and live execution debugging |
+| Activity & History | Searchable download, workflow, schedule, and daemon activity with linked run/job/file identities, detailed logs, diagnostics, errors, and transfer statistics |
+| Settings & Daemon Control | Application/profile settings, daemon health, active work, concurrency/bandwidth settings, aggregate bandwidth usage, and qualified connection/resource telemetry |
+| Import & Export | Versioned download lists, profiles, workflows/templates, rules, and settings; credential references and destination-path remapping for portability |
+| Browser Integration — later | Explicit link handoff to a selected instance/profile, followed by separately qualified interception of supported browser downloads |
 
-Track unresolved implementation contracts in [open decisions](decisions.md), rather than treating a deferred feature as an implicit dependency of v0.1.
+Organize the UI around **Downloads**, **Library**, **Automations** (Grabber, schedules, rules), **Activity**, and **Settings**, with instance/profile selectors above them. Import/export and browser integration can live in their relevant settings/actions rather than requiring separate primary destinations.
+
+### Technology and ownership
+
+The selected frontend direction is **Vue 3 + TypeScript**, with **Vue Flow selected for the Visual Grabber editor**. Vue Flow supplies node/edge interaction and visualization; workflow validation, execution, retries, persistence, scheduling, and debugging state remain separate application responsibilities. Do not make executable workflow definitions depend on the editor's transient component state or layout.
+
+Plan an optional **Go application API** that serves the frontend and talks to the existing private daemon IPC. The daemon remains authoritative for admission, byte transfer, checkpoints, locking, and final publication. Application metadata owns profiles, rules, workflow versions, runs, the library, and history; its storage format and schemas still need a contract. Preserve independent standalone CLI use, and do not edit private queue snapshots from the web layer.
+
+Use an optional **Playwright browser worker** for the browser-automation direction. Browser processes and their resource limits are separate from download workers and bandwidth accounting. Go can serve built frontend assets without a Node web server; browser automation introduces its own runtime/browser installation only when that feature is enabled. The [architecture boundaries](architecture.md#planned-web-application) describe these planned components; none are implemented.
+
+### Local web delivery order
+
+| Phase | Outcome | Required boundary before advancing |
+|---|---|---|
+| W1 | Local web app for downloads/queue and basic profile defaults | Define the first usable UI flow, authenticated local API/lifetime, profile association, effective-setting snapshots, and explicit handling of daemon failures/unknown outcomes; reuse existing controls and retain standalone compatibility |
+| W2 | Durable library/activity, download rules, and richer job/profile management | Define metadata ownership/retention, rule stages/precedence, duplicate identity, and portable definitions; qualify any daemon changes for priorities, reordering, job edits, aggregate profile limits, and new telemetry |
+| W3 | Schedules and a small typed workflow/browser runner | Durable run identity, missed/overlapping execution policies, safe retries/deduplication, and three representative browser-to-downloader handoff cases; execution must continue independently of the UI tab |
+| W4 | Vue Flow Visual Grabber and richer workflow authoring/debugging | Versioned definitions independent of canvas state, validated branches/variables/loops/subflows, bounded execution, cancellation ownership, diagnostics, and manual/scheduled parity |
+
+Capture representative browser-download journeys early enough to test authenticated requests and browser-generated files before investing in the full editor. Ordinary HTTP(S) links, expiring/authenticated requests, and browser-managed files are distinct capabilities. Unsupported handoffs must be explicit; a separate browser download path does not inherit the Go engine's resume/publication guarantees automatically.
+
+The [current daemon contract](daemon-and-queue.md) already supports safe polling and core queue controls. Priorities/reordering, mutable job settings, aggregate profile budgets, first-class speed/connection/resource metrics, and permanent history are **not implemented**. Worker counts are not a connection inspector, and the 256-record retained queue is not a library/history database. Each extension needs its own compatible contract and tests.
+
+### Later browser integration and hosted operation
+
+The owner explicitly deferred the extension and server-target selection. They are not W1 requirements or prerequisites for building the local app:
+
+| Later track | Intended behavior | Dependencies |
+|---|---|---|
+| L1 — Browser extension | **Send this link to Yoink** to an explicitly selected local instance/profile; explore a native bridge or authenticated local communication; optional interception only for qualified download types | Stable intake/profile/rule contracts from the local app; browser permissions, duplicate handling, and credential-transfer policy |
+| L2 — Self-hosted instance | Use the same application model on an explicitly configured server; let the web UI/extension choose a remote instance and profile | Qualified local behavior, remote authentication/transport, instance discovery/pairing, and server-side file/credential ownership |
+
+The desired later flow is **Send download to → Home server → Pato**: **Home server** is the instance and **Pato** is its profile. The selected instance determines the output filesystem. A server-accessible link can be fetched directly by that server; browser-bound authentication, POST-generated downloads, and `blob:` content require separate handling. Universal interception or zero client-side transfer is not promised for every browser download.
+
+The extension depends on stable intake contracts, not on completion of every graph-editor feature. Both tracks remain deferred; detailed sequencing will be chosen after the local foundation is qualified. They do not imply a multi-user service, cloud account requirement, distributed transfer swarm, or exposure of the daemon's private socket.
+
+### Cross-cutting acceptance
+
+Schedulers must run outside the browser tab and define behavior after sleep, downtime, retries, and duplicate triggers. Rules must distinguish immediately known URL metadata from response metadata that may arrive later or remain unknown. History must distinguish an accepted request from completed publication; a later read cannot resolve every lost acknowledgment. Preserve the existing rule that retrying an unknown mutation is not automatic.
+
+Profile aggregate limits must be enforced across jobs rather than inferred from identical per-job caps. File actions must respect whether a file is local or on a hosted instance. Portable definitions must keep credentials and browser state separate by default, map machine-specific paths explicitly, and avoid treating active queue/manifest files as interchangeable configuration exports. Source tracking must preserve the current secret-free views and terminal source-clearing policy unless a separate retention contract is deliberately adopted.
+
+Use [open decisions](decisions.md#web-application-direction) to settle the exact API, persistence, telemetry, automation, and extension contracts. Planning does not install dependencies or add commands, services, endpoints, schemas, or runtime support. Keep the original design as historical context and preserve the existing transfer and storage guarantees.
+
+### Research references
+
+The approved direction was informed by [Vue Flow](https://vueflow.dev/guide/), [Vue application approaches](https://vuejs.org/guide/extras/ways-of-using-vue), [Go embedded assets](https://pkg.go.dev/embed#hdr-File_Systems), [Playwright downloads](https://playwright.dev/docs/downloads) and [tracing](https://playwright.dev/docs/trace-viewer), [browser native messaging](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging), and [scheduling policies](https://docs.temporal.io/schedule). These are capability references, not evidence that Yoink implements the planned features. Recheck exact versions and integration behavior when implementing each phase.
+
+## Other directions
+
+| Direction | Current disposition |
+|---|---|
+| Custom completion hooks and arbitrary JavaScript/Lua/WASM execution | Unscheduled; separate execution contract from typed browser workflows and event triggers |
+| Other protocols, torrents, Metalink, distributed transfers, LAN swarm, and peer discovery | Unscheduled; not implied by a self-hosted web instance |
+| Adaptive chunking and advanced fairness | Revisit with measurements after concrete scheduling needs are defined |
+| General plugin/workflow DSL | No selected implementation; avoid making a framework a prerequisite for the app |
+| Protected-content bypassing | Out of scope |
+| Voice notifications, mobile UI, and other speculative interfaces | Unscheduled |
+| User checksum flag, cleanup command, and short URL aliases | Separate interface decisions when justified |
+
+Track unresolved contracts in [open decisions](decisions.md). Keep each implemented slice focused, validated, and documented in root STATUS before continuing.
