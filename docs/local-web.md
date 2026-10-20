@@ -10,7 +10,9 @@ W1 provides a local downloads/queue app and basic profile defaults around the ex
 
 W1.1a has started with the pure metadata model in [internal/app/model.go](../internal/app/model.go). `NewSnapshot` takes explicit instance/profile IDs and an absolute state directory, initializes Default without a destination, and performs no filesystem work. `Snapshot.Validate` checks fields, collection bounds, unique IDs, profile/revision references, and saved transfer settings. IDs are 32 lowercase hexadecimal characters; profiles are nonempty, and submissions must be a non-null array. Historical submissions may retain an older directory/settings snapshot after a profile edit.
 
-Snapshot update/ownership rules, strict JSON decoding and encoded-size enforcement are the remaining W1.1a work. Filesystem storage, HTTP, CLI, and frontend integration remain unimplemented. Model tests cover invalid/default/boundary cases without creating the selected state/output directories.
+The pure update guards in [internal/app/update.go](../internal/app/update.go) preserve instance/state-path identity, prevent profile deletion, and keep retained submissions unchanged. New profiles start at revision 1; edited profiles advance exactly once, unchanged profiles retain their revision, and exhausted revisions refuse edits. New submissions reference the current profile revision. Snapshot copies own their slices and nullable directory values; explicit submission removal is permitted without any file action.
+
+Strict JSON decoding and encoded-size enforcement are the remaining W1.1a work. Filesystem storage, HTTP, CLI, and frontend integration remain unimplemented. Model/update tests cover invalid/default/boundary cases, preserved history, and copy ownership without creating the selected state/output directories.
 
 ## First usable workflow
 
