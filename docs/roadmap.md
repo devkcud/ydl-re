@@ -96,13 +96,17 @@ The [v0.2 validation matrix](testing.md#planned-v02-validation) makes the failur
 
 ## v0.3 — TUI and richer local workflows
 
-Add a TUI, named profiles, richer inspection/history, and optional completion hooks. The TUI consumes snapshots/events rather than worker internals.
+**Status:** the [first TUI slice](tui.md) is specified; implementation has not started. It monitors existing Linux daemon jobs and provides pause/resume/cancel/forget through the current IPC. It consumes safe polled snapshots, keeps terminal lifetime separate from daemon work, and does not require configuration, profiles, new event fields, or a subscription protocol.
+
+Follow [F1 through F4](tui.md#implementation-order): pure model/rendering, bounded polling/controls, Linux terminal/CLI integration, then real daemon/PTY qualification. The [acceptance criteria](tui.md#acceptance-and-validation) cover selection, unknown outcomes, privacy, terminal restoration, and independent daemon work. Do not advertise `yoinkdl tui` as implemented while only its contract or internal model exists.
+
+Named profiles, richer inspection/history, and optional completion hooks remain later v0.3 slices. Resolve their configuration, storage, and execution contracts before implementation; the initial TUI does not select the illustrative TOML or directory layout.
 
 Hooks need a separate opt-in execution policy. Arbitrary workflow languages remain outside this release's required scope.
 
 ## Later front ends
 
-The daemon/queue commands below are available in the `0.2.0-rc.1` prerelease and repository builds; `tui` remains proposed. None are part of published v0.1:
+The daemon/queue commands below are available in the `0.2.0-rc.1` prerelease and repository builds; `tui` is specified in the [initial TUI contract](tui.md) but remains unimplemented. None are part of published v0.1:
 
 ```text
 yoinkdl daemon start

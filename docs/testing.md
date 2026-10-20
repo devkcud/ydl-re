@@ -220,6 +220,12 @@ These are required checks for the [accepted daemon design](daemon-and-queue.md).
 
 Use local deterministic servers and temporary roots. Run focused checks for each slice, then `make check` for implementation changes. Native Linux and CGO-disabled process coverage is required; foreign compilation alone never proves daemon support. Existing v0.1 transfer, output, storage, TLS, and packaging suites remain regression gates.
 
+## Planned initial v0.3 TUI validation
+
+The [TUI contract](tui.md#acceptance-and-validation) is specified but has no implementation evidence yet. F1 tests pure selection/rendering with safe snapshots, all queue states, unknown values, malicious display text, and strict viewport/frame bounds. F2 uses fake time and controlled call completions for bounded polling, confirmations, identity checks, stale views, unknown mutation outcomes, and joined cancellation. F3/F4 add Linux PTY and real daemon processes for preflight, restoration, resize, suspend/resume, signals/output failures, and exact transfer/artifact preservation.
+
+Run focused tests and relevant CLI/IPC regressions for each implementation step, then `make check`; the completed interactive path additionally needs native CGO-disabled execution and six-target compilation. The TUI must not create daemon state, implicitly start an owner, retry mutations automatically, or let terminal failure cancel accepted jobs. No production tests or runtime claims arise from documenting the plan alone.
+
 ## Release evidence
 
 The [first candidate report](releases.md#first-candidate-verification) records `0.1.0-rc.1` at `5fae374cd31429f5d8653c6c497dcf0d21865c7e`: the full local packaging gate, archive checksums and exact source identity, isolated installation, and sequential/parallel fixture downloads passed. The hosted candidate passed the same downloaded-archive and installed-binary checks with Go 1.27.0; its source archive matches the local archive exactly. After publication, [unauthenticated public access and installation](releases.md#publication-and-public-downloads) passed with all three assets byte-identical to the verified draft.

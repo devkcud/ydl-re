@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-The original proposal leaves several implementation contracts unsettled. These are explicit gaps, not implemented behaviors. Recommendations in the topic guides remain recommendations until adopted with code and tests.
+The original proposal leaves several implementation contracts unsettled. These are explicit gaps, not implemented behaviors. A selected contract can guide implementation; only code and its required validation establish working behavior.
 
 Resolve each decision before the milestone or interface depending on it is declared complete. Update the owning page when a choice is made; preserve the design's no-corruption and no-silent-overwrite requirements.
 
@@ -63,7 +63,7 @@ Resolve each decision before the milestone or interface depending on it is decla
 
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
-| C08 | Future retry counters and daemon/TUI subscriptions | Extends the settled CLI event format without assuming a general event bus | [Concurrency](concurrency.md) |
+| C08 | Later retry counters and push subscriptions | The first TUI uses existing safe snapshots with bounded polling; richer events need separate evidence and scope | [TUI boundary](tui.md#decision-boundaries), [concurrency](concurrency.md) |
 | C09 | TOML loader, precedence, and unknown keys | Turns the illustrative configuration into a contract while retaining implemented value validation | [Configuration](configuration.md) |
 
 The default worker preference is four, the retry default is three additional attempts, and the rate is unlimited unless a cap is configured.
@@ -103,6 +103,12 @@ The owner selected full URL/query-token storage in private local queue files and
 R03 is settled by [daemon-wide budgeting](concurrency.md#daemon-wide-rate-cap): one process-lifetime body budget shared across managed jobs, composed with each job's existing cap. Charge both before waiting, wait for all applicable reservations, preserve shared credit/debt across job lifecycle and concurrency changes, and retain existing burst/timeouts/accounting boundaries. `daemon start --limit` is fixed until restart; cross-process caps and dynamic rate changes are deferred.
 
 Linux XDG state/runtime selection is settled for the daemon; this does not implement a general configuration loader or qualify other native platforms. The [ordered implementation plan](roadmap.md#v02-implementation-order) and [validation matrix](testing.md#planned-v02-validation) are accepted. E1 through E6 are complete with local Linux tests, final ordinary/race/CGO-disabled gates, six-target compilation, and [local candidate archive/installation verification](releases.md#v02-local-qualification). [Hosted qualification and publication](releases.md#v02-hosted-qualification-and-publication) passed for `0.2.0-rc.1`; stable `0.1.0` remains Latest. The owner authorized pushes/publication for this named prerelease only.
+
+## Initial v0.3 decisions made
+
+The [initial TUI contract](tui.md) selects a Linux client for existing daemon jobs: safe list/detail views, stable ID selection, and pause/resume/cancel/forget. Use protocol-v1 polling with one in-flight request, bounded local state, explicit uncertainty after lost mutation replies, and terminal restoration independent of daemon work. No TUI implementation or runtime qualification is claimed by this contract.
+
+C08 is settled for this slice by polling; subscriptions and richer counters remain later work. C09 and S08 remain open for configuration/profiles, and do not block this TUI: it loads no configuration file, persists no preferences/history, and uses the existing Linux daemon paths. URL entry, daemon settings, profiles, history, and hooks require separate later slices. [F1 through F4](tui.md#implementation-order) is the implementation dependency order.
 
 ## Already established direction
 

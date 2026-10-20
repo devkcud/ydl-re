@@ -4,6 +4,8 @@
 
 The current CLI uses built-in defaults and flags. No configuration loader exists yet; the TOML format below remains a proposal.
 
+The [planned initial TUI](tui.md#decision-boundaries) adds no configuration file or preferences store. Its fixed polling policy and existing Linux daemon paths avoid making C09/S08 prerequisites. Configuration/profiles work must settle discovery, precedence, unknown keys, and preservation behavior separately.
+
 ## Current defaults
 
 The engine defaults to up to four workers, three additional attempts for transient failures, automatic compatible resume, no overwrite, and no rate cap. `--connections`/`-c` accepts 1 through 32; `--retries` accepts 0 through 10, with zero disabling repeats. `--limit` sets an aggregate body rate using the units below. One connection streams new files directly and resumes saved range tasks with one worker. The network inactivity timeout is `30s` and excludes throttle/backoff waits. See [CLI](cli.md) for all flags. Explicit `--resume` requires saved state.

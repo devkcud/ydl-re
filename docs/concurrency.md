@@ -108,6 +108,8 @@ The text CLI renders snapshots at most every 200 ms while data arrives, plus a f
 
 `--json` emits advisory progress at the same interval and one terminal result after transfer cleanup. `--quiet` suppresses progress only. The CLI writes synchronously with bounded memory; a slow consumer applies backpressure, while deadline-capable output can time out or be interrupted. Output errors cancel the transfer and join its workers before reporting known preserved/published paths. The [JSON schema](cli.md#json-output) does not introduce a replay log or a general subscriber bus.
 
+The [planned first TUI](tui.md#polling-and-reconnects) uses bounded protocol-v1 list polling, with one in-flight request and no frame/event backlog. It displays only existing safe view fields, including unknown or decreasing counters; speed, ETA, retry counts, and push subscriptions remain outside that slice. Its polling/output contexts belong to the interface, so closing or failing the TUI cannot cancel daemon-owned transfers. This contract is not yet implemented.
+
 ## Deferred tuning
 
 Static scheduling comes first. Adaptive chunk sizing, dynamic redistribution, round-robin heuristics, and multi-machine work distribution need measurements and separate scope decisions.
