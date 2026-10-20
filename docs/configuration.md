@@ -4,7 +4,7 @@
 
 The current CLI uses built-in defaults and flags. No configuration loader exists yet; the TOML format below remains a proposal.
 
-The [planned web app](roadmap.md#instance-and-profile-model) distinguishes an instance from profiles inside it. Profile defaults should be resolved into accepted-job settings so switching/editing a profile does not restart the daemon or silently mutate existing jobs. Aggregate profile limits require enforcement beyond the current per-job cap. Profile/app persistence, path discovery, and CLI-created job association remain open; this direction does not adopt the illustrative TOML schema or add a configuration loader.
+The [W1 web contract](local-web.md#profiles-and-effective-settings) specifies profiles inside a local instance. Store explicit output-directory and transfer defaults in a separate private `<daemon-state>/web/app.json`, freeze effective settings when submitting, and keep CLI-created jobs Unassigned. The initial Default profile requires directory setup; profile switching/editing never changes accepted jobs. This app store is planned, not implemented, and does not adopt the illustrative TOML schema or add a CLI configuration loader. Shared profile budgets remain a later contract.
 
 ## Current defaults
 

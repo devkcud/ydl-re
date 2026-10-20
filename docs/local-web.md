@@ -47,6 +47,45 @@ Serve `Cache-Control: no-store` for HTML/API responses, `Referrer-Policy: no-ref
 
 These checks protect the local browser boundary; profiles are not security tenants and same-user processes remain trusted. Private/loopback source URLs keep the existing owner-directed downloader policy. Network binding, forwarding through a reverse proxy, extension access, and remote authentication require the later L1/L2 contracts. Browser behavior references: [Authorization](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Authorization), [CORS/preflight](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS), and [Sec-Fetch-Site](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-Fetch-Site).
 
+## Profiles and effective settings
+
+An app instance gets a random stable 32-character lowercase hex ID and the display label **This computer**. Bind its metadata to the resolved daemon state directory; refuse a stored path mismatch rather than silently attaching it to another queue. A profile has its own random ID, a revision, a name, an output directory, and defaults. It is a workspace within this instance, not a user account.
+
+Initialize one **Default** profile with `output_dir: null`. Require the owner to choose a directory before adding from it; never infer a download directory from the web process's cwd or create one silently. Allow up to 32 profiles. Names are trimmed nonempty UTF-8 text of at most 80 bytes without control characters. IDs establish identity; duplicate display names are permitted and distinguished in the UI. W1 supports create/edit/select, with profile deletion and reassignment of existing jobs deferred.
+
+| Profile field | Contract |
+|---|---|
+| `id`, `revision`, `name` | Stable ID; positive monotonic revision; display name |
+| `output_dir` | Null until configured, otherwise a clean absolute existing directory; output paths remain subject to engine checks |
+| `connections` | Integer `1..32`, default `4` |
+| `retries` | Integer `0..10`, default `3` |
+| `timeout_ns` | Positive duration in nanoseconds, default `30000000000`; network inactivity, not a total deadline |
+| `limit_bps` | Nonnegative per-download body cap, default `0` for unlimited; not a shared profile budget |
+
+Revision starts at `1`, increases only after a durable edit, and never wraps. Profile edits require the observed revision and reject stale writes. Profile creation takes a client-generated ID; a duplicate ID is a conflict, not another profile. After a lost edit/create acknowledgment, read back the profile before any deliberate retry.
+
+Check directory existence when configuring or submitting, not when loading historical metadata. A removed directory must leave profiles readable/editable while new submissions fail safely. Retained submissions keep their original output/settings even when the profile now points elsewhere.
+
+Resolve built-in defaults into complete profile defaults, then apply explicit per-add overrides. Input forms accept the existing duration/rate grammar; wire/storage settings use the normalized numeric units above. An override's omission means inherit, while explicit `limit_bps: "0"` means unlimited. Resume automatically reuses compatible checkpoints as today; the per-add `resume` boolean defaults to false and means **require an existing checkpoint** when true. It is not a switch for disabling safe reuse. W1 never accepts overwrite.
+
+For an omitted filename, use `transfer.Normalize`'s existing URL-basename behavior. An explicit filename is one nonempty basename, excluding `.`, `..`, `/`, `\`, NUL, and reserved transfer-artifact names. Join it to the selected profile directory and validate the full absolute output with `queue.NewJob`; do not accept a caller-supplied directory override. Preview does no network or transfer-file work and does not reserve the path. Engine checks at actual dispatch/publication still decide existence, ownership, compatible resume, and no-overwrite outcomes.
+
+Preview captures `profile_id`, `profile_revision`, and the complete URL-free effective settings: `output`, `connections`, `retries`, `timeout_ns`, `limit_bps`, and `resume`. Add submits those settings with the URL. The API validates the revision and all settings again, including that the output is directly inside that profile's configured directory. A stale revision forces a new preview; edited form inputs invalidate the displayed preview. Once admitted, profile switching/editing never changes the daemon's stored request or the saved effective snapshot.
+
+## Private application metadata
+
+Use a bounded version-1 JSON snapshot at `<daemon-state>/web/app.json` with a persistent `<daemon-state>/web/app.lock`. The directory is `0700`, files are `0600`, and ownership must match the effective user. This small W1 store needs no database or TOML loader. Do not open or edit `queue.json`, transfer manifests, or the daemon's locks from the app.
+
+The snapshot has exactly `version`, `instance_id`, `state_dir`, `profiles`, and `submissions`. Profiles use the fields above. A submission has exactly `id`, `profile_id`, `profile_revision`, and `settings`, where settings are the URL-free effective snapshot. All referenced profiles must exist; a saved profile revision may be older than its current revision. IDs must be unique within each collection. Permit at most 512 submission records and a 4 MiB encoded snapshot. This covers the daemon's 256 retained jobs plus bounded unresolved submissions; exhaustion refuses new adds without evicting metadata or queue jobs.
+
+Represent all 64-bit integers as canonical decimal strings in the app snapshot and web API: revisions/orders are positive, byte counters/rates are nonnegative, and values must fit signed 64 bits. Null remains null for unknown telemetry. Bounded values (`version`, `connections`, `retries`, `parallel`, `active`, `workers`) remain JSON numbers. Convert validated IPC integers in Go before JSON encoding so the browser never rounds file sizes or FIFO orders. This does not change existing CLI/IPC encoding.
+
+Never persist sources, query tokens, headers, cookies, auth tokens, request hashes, progress, or copies of daemon job state in this file. A submission is a durable association/intent, not a queue, history entry, or proof of admission. Browser storage may retain only selected profile IDs and unresolved submission IDs for reconnect; URLs, settings drafts, tokens, and private views stay in memory. Clear the URL draft after an accepted or uncertain add, and never reflect it in a response.
+
+Strictly validate versions, field sets, duplicate keys, nullability, UTF-8, numeric bounds, path bindings, collection sizes, and references on load and before save. Reject unsafe owners/modes, symlinks, hard-linked mutable files, corrupt snapshots, or changed canonical artifacts without repairing/removing them. One serialized writer owns candidate snapshots; reads return owned copies. Preserve instance/profile identity, monotonic profile revisions, and immutable retained submission bindings across saves. Write an exclusively created private temp file, sync it, rename, sync the directory, then acknowledge/expose the committed state. Check canonical file and lock identity before replacement. Keep failed/foreign artifacts intact; never promote leftover temps or initialize empty state over ambiguous leftovers.
+
+A pre-rename failure preserves the old committed snapshot. A post-rename directory-sync failure or detected ownership change stops web mutations and closes the web process after handler cleanup; it never writes an older snapshot back. Restart validates canonical state under the lock. Previously accepted daemon jobs continue independently. Reuse established storage patterns where their boundaries fit, without coupling app metadata lifetime to the queue owner. W2 must define any schema migration before adding library/history or replacing this store.
+
 ## Acceptance and failure cases
 
 These are requirements for the new implementation, not completed test claims. Use local HTTP fixtures, private temporary state/runtime directories, controlled IPC replies, and narrow persistence fault injection.
@@ -56,3 +95,8 @@ These are requirements for the new implementation, not completed test claims. Us
 | W1-A01 | Clean standalone build/check without Node/assets; absent assets fail only web startup; separate daemon/web lifetime; duplicate web owner refused; web/tab exit leaves exact daemon transfer bytes intact |
 | W1-A02 | Missing/wrong/rotated token; foreign/null/missing mutation Origin; alternate Host and rebinding-style host; another localhost port; cross-site forms/preflight/fetch; no private data or side effects; fresh same-origin unlock works |
 | W1-A03 | Source/query-token fixture stays out of HTTP replies, app JSON/temp files, browser persistence, static assets, and errors/logs; untrusted profile/path text cannot execute markup; traversal/symlink/static-file exposure refused |
+| W1-A04 | Default directory unset; profile create/edit/restart; duplicate names/IDs; stale revisions in two tabs; all default/override bounds; zero cap and retry count; automatic versus required resume; exact saved effective settings after later edits |
+| W1-A05 | Derived and explicit filenames; output stays inside selected directory; no directory creation or preview transfer work; queue size/output conflicts, incompatible sidecars, already-complete output, path replacement, and engine no-overwrite refusal |
+| W1-A09 | App ownership/modes/link checks, strict schema and integer-string boundaries above JavaScript's safe range, corrupt/foreign state preservation, temp/write/sync/rename failures, capacity, revision exhaustion, and store fail-stop |
+
+Existing evidence to preserve includes `TestDaemonClientNeverStartsOrCreatesState`, `TestDaemonClientLostReplyIsUncertainOnlyForMutations`, `TestProtocolReplyShapesAndPrivacy`, `TestQueueDisconnectedAddSurvivesWithoutAliasingCaller`, `TestRecoveryPreservesUnknownOutcomes`, and the request normalization tests. They establish reusable backend behavior; they do not qualify a web adapter or browser authentication.
