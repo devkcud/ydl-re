@@ -268,6 +268,6 @@ Output uses the existing bounded writer. Broken/blocked client output can fail o
 
 ## Planned additions
 
-The [planned configuration CLI](configuration.md#planned-cli-configuration) provides `config list/get/set/unset` with explicit global/profile scope, an effective-value view with origins, and validated durable edits shared with the web UI. It must work with the web UI closed and daemon stopped. These commands, their illustrated flags, and configuration loading are not implemented; finalize their contract before adding the adapter.
+The [planned configuration CLI](configuration.md#planned-cli-configuration) selects `config init/list/get/set/unset` with explicit global/profile scope, an effective-value view with origins, and validated durable edits shared with the web UI. It must work with the web UI closed and daemon stopped. The command/output contract is selected, but these commands and configuration loading are not implemented. Build the shared config model/store before its CLI adapter. Profile-aware download/add adapters and managed storage have separate qualification gates.
 
 The [selected web direction](roadmap.md#local-web-application) begins with a local downloads/queue UI and basic profiles, then adds library/history, rules, schedules, and Vue Flow Visual Grabber workflows. Extension handoff and hosted targeting are explicitly later. These are planned application capabilities, not new implemented CLI commands or flags. Custom hooks still need a separate contract; standalone commands remain independent.

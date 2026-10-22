@@ -64,12 +64,17 @@ Resolve each decision before the milestone or interface depending on it is decla
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
 | C08 | Richer web telemetry, subscriptions, and retry counters | W1 safe polling/reconnect is specified; speed/connection/resource metrics and subscriptions remain deferred | [W1 HTTP interface](local-web.md#http-interface), [concurrency](concurrency.md) |
-| C09 | XDG configuration, CLI editing, profile authority, precedence, and file format | Reconcile CLI/web/manual writes and revisions before W1.1b; define scoped list/get/set/unset, inheritance, and output conventions; TOML and keys remain proposed | [Configuration checkpoint](configuration.md#configuration-and-storage-design-checkpoint), [planned CLI](configuration.md#planned-cli-configuration) |
 | C11 | Aggregate profile limits and richer job controls | W1 defaults/association are specified; shared profile budgets, reassignment/deletion, priorities/reordering, and job editing require later contracts | [W1 profiles](local-web.md#profiles-and-effective-settings), [profile model](roadmap.md#instance-and-profile-model) |
 | C12 | Rules, workflow execution, and trigger/schedule semantics | Defines metadata stages/precedence, versioned runs, loops/subflows, cancellation, retries, deduplication, downtime, and overlap behavior | [Build phases](roadmap.md#local-web-delivery-order) |
 | C13 | Later Firefox interception/bridge and hosted-instance transports | Firefox is selected first; define permissions, pairing/authentication, destination selection, supported captures, takeover/recovery, and duplicate/unknown-outcome handling | [Later integration](roadmap.md#later-browser-integration-and-hosted-operation) |
 
 The default worker preference is four, the retry default is three additional attempts, and the rate is unlimited unless a cap is configured.
+
+## Configuration decisions made
+
+C09 and Linux config discovery in S08 are selected in [Configuration](configuration.md): one strict optional XDG `config.json`, sparse global/profile overrides, shared CLI/web transactions, exact profile selectors, content tokens for stale writes/previews, and `config init/list/get/set/unset` with defined JSON/text results. No configuration implementation exists yet. The earlier TOML proposal is superseded; other platform discovery remains deferred.
+
+The app ledger must become version 2 and retain frozen submission data without editable profiles. Config and app locks are per transaction; a separate lock owns the web process lifetime. Managed CLI/web edits serialize; manual editing is supported offline, with explicit advisory-lock limits. Config changes never retarget accepted jobs or change daemon policy. The [implementation order](configuration.md#delivery-and-validation) begins with a pure config model/resolver, not filesystem or HTTP code.
 
 ## Storage and recovery decisions
 
@@ -77,7 +82,7 @@ The default worker preference is four, the retry default is three additional att
 |---|---|---|---|
 | S03 | Windows path normalization, reserved names, reparse points, and artifact collisions | Extends the settled Unix path policy to an unsupported storage platform | [Security](security.md) |
 | S06 | Windows publication and wider durability qualification | Extends the implemented Linux publication and manifest-reconciliation policy safely | [Lifecycle](transfer-lifecycle.md#7-finalize) |
-| S08 | Cross-platform configuration-file discovery | Linux daemon state/runtime paths are settled separately; the optional config loader remains undefined | [Configuration](configuration.md) |
+| S08 | Non-Linux configuration discovery and storage | Linux user config/state/runtime selection is specified; other native platforms remain deferred | [Configuration](configuration.md) |
 | S09 | Metadata evolution, library/history, and portable definitions | W1 profile/submission JSON is specified; migration, run/file schemas, retention, source/credential privacy, duplicate identity, and import/export path mapping remain later work | [W1 metadata](local-web.md#private-application-metadata), [application ownership](architecture.md#planned-web-application) |
 | S10 | Profile-aware download state and partial-data placement | Settle metadata/staging roots, destination-wide ownership, same/cross-filesystem publication, and old-job discovery before relocating sidecars | [Configuration checkpoint](configuration.md#configuration-and-storage-design-checkpoint), [current storage](resume-and-storage.md) |
 
@@ -125,8 +130,8 @@ The owner explicitly deferred browser integration and hosted targeting to L1/L2 
 
 - Run an explicit separate foreground web process on numeric IPv4 loopback, serving built Vue/TypeScript/Vite assets and a versioned API. Use a per-launch bearer token kept in tab memory, exact host/origin checks, and no CORS/cookies. Web shutdown never stops the daemon; Go-only builds remain independent of Node/assets.
 - Reuse existing safe polling and queue controls through `daemon.Call`. Keep nullable outcomes and decimal-string web integers, bound clients/bodies, never retry unknown mutations automatically, and defer speed/ETA/subscriptions, daemon start/stop buttons, and dynamic global caps.
-- Store bounded private JSON profiles and URL-free submission bindings separately from daemon state. Require explicit output-directory setup; freeze defaults plus overrides, persist the binding before Add, and never replay saved intents. CLI jobs are Unassigned, and unmatched bindings remain explicitly unresolved until observed or deliberately dismissed.
-- Keep Linux/amd64 as the first native qualification scope. The [acceptance cases](local-web.md#acceptance-and-failure-cases) and [delivery slices](local-web.md#delivery-order) establish implementation work after the October 22 [configuration/CLI ownership checkpoint](configuration.md#configuration-and-storage-design-checkpoint). W2+ metadata evolution and L1/L2 remain separate.
+- Store editable profiles only in config.json; keep URL-free immutable submission bindings in the separate version-2 app ledger. Require output-directory setup, freeze settings plus config token, persist before Add, and never replay intents. Unprofiled CLI jobs remain Unassigned; profiled CLI admission must share the binding service. These choices supersede the earlier version-1 app-store plan, not the already tested version-1 pure implementation.
+- Keep Linux/amd64 as the first native qualification scope. The [acceptance cases](local-web.md#acceptance-and-failure-cases) and [delivery slices](local-web.md#delivery-order) follow the October 22 [selected configuration foundation](configuration.md#delivery-and-validation) and required ledger revision. W2+ metadata evolution and L1/L2 remain separate.
 
 ## Already established direction
 

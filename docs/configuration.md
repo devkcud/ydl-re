@@ -2,120 +2,120 @@
 
 [Documentation index](README.md)
 
-The current CLI uses built-in defaults and flags. No configuration loader exists yet; the TOML format below remains a proposal.
-
-The [W1 web contract](local-web.md#profiles-and-effective-settings) currently specifies profile defaults in a private `<daemon-state>/web/app.json`, with effective settings frozen at submission and CLI-created jobs Unassigned. Its pure model/codec exists; the filesystem store and configuration loader do not. The new [design checkpoint](#configuration-and-storage-design-checkpoint) must reconcile profile configuration ownership before W1.1b. The initial Default profile still requires directory setup, and profile switching/editing must never change accepted jobs. Shared profile budgets remain a later contract.
+**Contract selected October 22, 2026; not implemented.** The current binary uses built-in defaults and flags. It has no configuration loader or configuration commands. The pure W1.1a app model remains the earlier implementation baseline; the selected configuration/state split below requires a model revision before filesystem persistence.
 
 ## Current defaults
 
-The engine defaults to up to four workers, three additional attempts for transient failures, automatic compatible resume, no overwrite, and no rate cap. `--connections`/`-c` accepts 1 through 32; `--retries` accepts 0 through 10, with zero disabling repeats. `--limit` sets an aggregate body rate using the units below. One connection streams new files directly and resumes saved range tasks with one worker. The network inactivity timeout is `30s` and excludes throttle/backoff waits. See [CLI](cli.md) for all flags. Explicit `--resume` requires saved state.
-
-No configuration directories or files are created or read. Transfer artifacts are the partial data file, versioned JSON manifest, and persistent lock file beside the output. Temporary manifest names can remain after a crash and are never trusted for recovery.
-
-## Transfer defaults
-
-| Setting | Value | Meaning |
-|---|---|---|
-| Connections | `4` | Desired range-worker count, reduced when necessary |
-| Retries | `3` additional attempts | Separate request/probe budgets and one shared request/body budget per range; sequential bodies use later resume |
-| Resume | Enabled for compatible partial state | Revalidate before trusting saved bytes |
-| Rate limit | Absent | No configured transfer cap |
-| Overwrite | Disabled | Preserve a completed destination unless explicitly allowed |
-| Timeout | `30s` | Current network inactivity timeout; no total transfer deadline |
-
-The standalone CLI must work with defaults and no configuration file, daemon, or database.
+The engine uses four connections, three additional retries, a `30s` network inactivity timeout, no rate cap, automatic compatible resume, and no overwrite. `--resume` requires an existing checkpoint. Existing standalone commands do not read configuration files. Transfer sidecars and daemon policy still follow the [current storage](resume-and-storage.md) and [daemon contract](daemon-and-queue.md).
 
 ## Configuration and storage design checkpoint
 
-Requested direction, October 22, 2026: provide an optional XDG configuration file with CLI editing, make download settings and state placement follow the selected profile, and keep per-transfer bookkeeping out of the destination's file listing. This is planning work before W1.1b, not a configuration loader, implemented command, or storage-layout change. Additional settings can be added when concrete workflows need them.
+The checkpoint selects one optional user configuration file shared by CLI and web editing, sparse global/profile overrides, immutable settings captured for each accepted request, and separate recovery state. JSON is selected instead of the earlier illustrative TOML proposal: the existing strict JSON approach and standard library are sufficient, and CLI commands provide everyday editing. There is no parser dependency, second editable profile store, or general plugin/settings framework.
 
-Separate these scopes:
+Instance identity and daemon locations belong to the instance. A profile selects output, transfer defaults, and transfer metadata/staging locations inside that instance; selecting it never switches or restarts a daemon. Download state means checkpoint metadata and partial bytes, not the daemon's queue or the app's submission ledger. File placement and legacy compatibility are specified separately before storage integration.
 
-| Scope | Responsibility |
-|---|---|
-| Instance | Configuration discovery, base state/runtime locations, and shared daemon policy; selecting a profile must not select or restart a different daemon |
-| Profile | Output directory, transfer defaults, and the proposed download-state/staging location within that instance |
-| Accepted job | Captured effective settings and artifact locations; later profile edits or root changes must not redirect recovery or move its files |
+## Paths and identity
 
-Proposed precedence is built-in defaults, user defaults, selected profile, then allowed explicit invocation overrides. Preserve omission versus explicit unlimited values and existing validation. This does not enable new W1 request overrides or overwrite behavior. Define CLI profile selection and association explicitly; do not infer it from output paths.
+Use `$XDG_CONFIG_HOME/yoinkdl/config.json`, falling back to `$HOME/.config/yoinkdl/config.json`. Ignore an empty or relative XDG base and use the fallback; reject invalid UTF-8/NUL paths and require an absolute usable HOME when needed. Clean absolute paths once. Only this user file is loaded: no working-directory search, system-file merging, config-path flag, or setting-specific environment overrides. This follows the [XDG configuration/state separation](https://specifications.freedesktop.org/basedir/latest/).
 
-The configuration file and web editor must share one authority for profile settings. Decide how manual edits, web edits, stable IDs, and revisions interact with the current `app.json` model before persisting it. Do not maintain independently editable TOML and JSON copies of the same defaults. Keep preferences separate from checkpoint progress, submission intents, and other recovery state.
+Daemon state/runtime paths continue to come from `daemon.Resolve`, including its existing runtime fallback. Configuration records the selected daemon state path in a read-only identity header; mismatch is an error, not an implicit instance switch. `storage.state_dir` below changes only per-transfer checkpoint placement. A daemon-state-root migration is outside this contract.
 
-Small recovery metadata belongs under the selected persistent state root, with XDG state as the proposed default. Partial download bytes need a separate staging policy: the current atomic hard-link/rename publication requires the destination filesystem. A private hidden staging directory on that filesystem is a candidate. A configured directory on another filesystem must either be refused explicitly or use a separately qualified copy, sync, verification, and final publication path. It cannot be handled as a simple rename.
+`config init` explicitly creates a random instance ID and one random **Default** profile ID without an output directory. IDs are 32 lowercase hexadecimal characters. Initialization requires an absent config, no ambiguous config temps, and no existing app ledger bound to a missing config. It creates only its private config directory/files, never queue or transfer artifacts. An existing file is preserved and reported, even if valid; initialization is not reset.
 
-Before implementation, settle profile ownership and file format, root discovery and precedence, metadata versus partial-data placement, and compatibility with existing sidecars. Resume and `inspect` must still find old jobs after settings change. Writers targeting the same destination must contend on one stable ownership mechanism even when they use different profiles or state roots. Preserve existing partials/manifests and lock identity; deleting leftover locks is not a cleanup strategy. Keep loader, storage relocation, and web integration in separate focused changes.
+A missing file allows unprofiled standalone/queue requests to use built-in defaults. Read-only config commands do not initialize it. Profile selection requires an initialized file. Web startup and profiled queue admission require the config and matching instance/state binding. Deleting or moving the config is not a state migration or a way to reset retained jobs.
+
+## Configuration file
+
+Version 1 has exactly `version`, `instance_id`, `state_dir`, `defaults`, and `profiles`. `defaults` and each profile's `settings` contain optional `download` and `storage` objects with the keys below. A profile has exactly `id`, `name`, and `settings`. Empty objects mean inherit. The following is a valid selected-format example, not a file read by today's binary:
+
+```json
+{
+  "version": 1,
+  "instance_id": "11111111111111111111111111111111",
+  "state_dir": "/home/pato/.local/state/yoinkdl",
+  "defaults": {
+    "download": {"connections": 4, "retries": 3, "timeout": "30s", "limit": "unlimited"}
+  },
+  "profiles": [
+    {"id": "22222222222222222222222222222222", "name": "Default", "settings": {}},
+    {
+      "id": "33333333333333333333333333333333",
+      "name": "Pato",
+      "settings": {
+        "download": {"output_dir": "/home/pato/Downloads", "connections": 8},
+        "storage": {"state_dir": "/home/pato/.local/state/yoink-work", "staging_dir": "destination"}
+      }
+    }
+  ]
+}
+```
+
+Require 1..32 profiles, unique IDs, and unique case-sensitive names. Names are trimmed, nonempty UTF-8 text of at most 80 bytes without control characters; names matching the 32-lowercase-hex ID grammar are reserved to avoid selector ambiguity. `--profile` resolves an exact ID or exact name, never a prefix or fuzzy match. Initial CLI scope covers settings on existing profiles; profile create/rename APIs follow later. Manual removal leaves existing submission records intact, with their captured names and IDs; it never reassigns them.
+
+Bound raw and canonical configuration to 256 KiB. Reject unsupported versions, duplicate/unknown/missing required fields, null values, wrong types, lossy Unicode, invalid paths, and trailing JSON. Counts are JSON integers, not floats, exponents, strings, or booleans. Sparse settings preserve absence separately from explicit zero/unlimited. Canonical writes use two-space indentation, fixed field/key order, existing profile order, and one final newline. Comments are not part of this JSON format. No URLs, credentials, progress, submission records, or queue policy belong here.
+
+## Settings and precedence
+
+| Key | Value | Built-in value |
+|---|---|---|
+| `download.output_dir` | Clean absolute existing directory | Unconfigured; unprofiled CLI retains cwd/output-flag behavior |
+| `download.connections` | Integer `1..32` | `4` |
+| `download.retries` | Integer `0..10` | `3` |
+| `download.timeout` | Positive duration using the existing CLI grammar, fitting signed int64 nanoseconds | `"30s"` |
+| `download.limit` | Existing positive rate grammar or the exact string `"unlimited"` | `"unlimited"` |
+| `storage.state_dir` | Clean absolute private checkpoint root | `<daemon-state>/transfers` |
+| `storage.staging_dir` | `"destination"` or a clean absolute private staging root on the output filesystem | `"destination"` |
+
+All seven settings support global and profile scope. A custom storage root must already exist, be owned by the effective user, and be private; the engine creates only its own children. Built-in private roots may be created on actual transfer use. Check configured directories on set/admission/use, not while decoding historical data; unavailable disks must leave config readable/editable. Staging/output filesystem compatibility is checked when both locations are known, before transfer bytes or incompatible partials are touched.
+
+Resolve built-ins, then global overrides, then selected-profile overrides, then permitted invocation overrides. Persist only overrides in config; capture complete normalized settings for an accepted request. `unset` removes one override and restores inheritance, including a visibly unconfigured value when no fallback exists. Explicit `"unlimited"` overrides an inherited cap. Configuration does not add persistent resume or overwrite switches: safe resume remains automatic, `--resume` remains per-invocation require-resume, and overwrite remains an explicit standalone flag.
+
+`download` and `add` will accept explicit `--profile <id-or-name>` once their adapters are qualified. Without it, use global defaults and retain unassigned queue attribution. An explicit CLI output flag retains its existing meaning; a selected profile supplies the default directory when no output flag is given. Web intake keeps its stricter selected-directory/basename policy. Profiled CLI Add must use the same binding-before-admission service as web Add; it cannot silently produce an Unassigned job. `inspect <output>` discovers pinned artifacts from the output, independent of today's profile selection.
+
+The daemon never reloads profile defaults for queued/resumed jobs. Global/profile edits affect future requests only. Changes to inherited globals invalidate all observed config tokens, including previews, even for profiles whose effective values happened to stay equal.
+
+## Shared editing and content tokens
+
+Use a persistent private `config.lock` next to `config.json`. Each managed mutation acquires a nonblocking lock, reloads/validates the current file, applies only the requested change, validates the full result, verifies canonical artifact identity/content, and atomically writes/syncs/renames/syncs before acknowledging. Release ownership after that transaction; the web process must not monopolize this lock. Reads open bounded validated snapshots without creating directories or locks. Use `0700` for owned directories, `0600` for files, matching effective UID, no symlinks or hard-linked mutable files, and owned copies.
+
+The concurrency token is lowercase SHA-256 of the exact loaded config bytes. It is not stored in the file and contains no source URL information. Web writes and previews carry `config_token`; compare it under config ownership before committing a change or freezing a submission. Any file change, including formatting or a global edit, makes an older token stale. This replaces the earlier proposed monotonic profile revision, which could not reliably detect manual edits. CLI set/unset applies to the latest file under the lock; it never saves an earlier whole-file copy. A no-op preserves the file and token.
+
+Manual JSON editing is supported while managed writers are stopped. Advisory locks cannot exclude arbitrary editors; identity/content checks detect observed changes but cannot promise an atomic transaction against an editor ignoring the lock. There is no file watcher: each operation reloads/validates the file. A valid offline edit naturally changes the token; corrupt files are preserved and refused.
+
+Pre-rename failure preserves the committed config. Post-rename sync failure reports `outcome_unknown`, stops that writer, and requires a fresh validated read before another write; never roll back by overwriting with an old snapshot or retry automatically. Output failure can follow a successful commit. A busy lock is a bounded error, not an unbounded wait.
 
 ## Planned CLI configuration
 
-Configuration must be readable and editable from the CLI without opening the web UI or running the transfer daemon. The initial proposed commands are `config list`, `config get`, `config set`, and `config unset`. Syntax and key names below are illustrative and unavailable in the current binary:
+These are selected command contracts, not implemented commands:
 
 ```sh
+yoinkdl config init
 yoinkdl config list --global
 yoinkdl config list --profile Pato --effective
 yoinkdl config get download.connections --profile Pato --effective
 yoinkdl config set download.connections 4 --global
 yoinkdl config set download.connections 8 --profile Pato
+yoinkdl config set download.limit unlimited --profile Pato
 yoinkdl config unset download.connections --profile Pato
 ```
 
-- Require exactly one target: `--global` for this instance's user defaults or `--profile <id-or-name>` for an existing profile. Resolve names to stable IDs; refuse unknown or ambiguous names without creating a profile or changing a different target. Browser selection must not silently choose a CLI target.
-- `list` and `get` show values explicitly stored in that scope. `--effective` additionally resolves inheritance and shows each value's origin: built-in, user default, or profile. These reads must not create files or start services. Per-download overrides remain invocation input, not saved configuration.
-- `set` validates the key, type, scope, bounds, and complete candidate before committing. `unset` removes only that scope's explicit value, restoring inheritance or leaving a setting visibly unconfigured if no fallback exists. It never deletes a profile, accepted job, or transfer artifact. It is distinct from explicitly selecting an unlimited value.
-- CLI and web edits must use the same configuration authority, validation, writer coordination, and revision rules. Serialize updates against current state and refuse stale/manual-edit conflicts instead of overwriting unrelated changes. A successful write means a durable commit; failed or uncertain commits preserve recovery evidence. Do not add a CLI path that blindly rewrites the planned app snapshot while the web process owns it.
-- Changes govern future requests. Report whether a setting applies to new jobs or a later process start; saving configuration must not restart the daemon, change accepted requests, move existing partials, or silently switch an active instance's state root. Root changes remain subject to the storage checkpoint above.
+Except `init`, require exactly one of `--global` or `--profile`. Set/unset requires an existing initialized config; unknown profiles are errors. `list`/`get` without `--effective` show explicit values in that scope; effective reads show resolved values and origin (`builtin`, `global`, or `profile`). List keys in lexical order. A missing explicit value makes `get` report `unset` with exit 1; effective output-directory reads can return null/unconfigured. Unsetting an already absent known key is a successful no-op. CLI values are parsed by the key's type, not as arbitrary JSON fragments.
 
-Deliver shared configuration resolution and safe persistence before the CLI adapter, with the CLI available before frontend configuration editing. Test inheritance/unset, explicit unlimited values, invalid inputs with no writes, unknown/ambiguous profiles, concurrent CLI/web/manual edits, failed/uncertain commits, and preservation of accepted jobs. Finalize command output/exit conventions and scripting support with the schema; profile lifecycle commands and extra convenience commands remain separate work.
+All operations accept `--json`. Emit one newline-terminated record with exactly `version: 1`, `command: "config"`, `operation`, `scope`, `profile_id`, `config_token`, `values`, `changed`, `exit_code`, and `error`. Scope is `global` or `profile` (`global` for init); profile ID is null for global. Token is null for an absent/unreadable config. Values is a sorted array of `{key, value, source}`; source is one of the origins above, value is the setting's integer/string or null for an unconfigured effective value. Successful writes return the affected effective entry and new token; init returns an empty values array. Failed operations return an empty values array and `{code, message}` with fixed safe text. Never echo invalid values or raw parser errors. Text output presents the same values, origins, and whether a write changed anything.
 
-## Proposed configuration file
+Exit 0 for success/no-op, 2 for invalid invocation/key/type/scope, 1 for unset/missing profile, config/ownership/conflict/IO/output/uncertain failure, and 130 after interruption cleanup. Missing or invalid configuration is never treated as an empty file to overwrite. Commands do not start services, mutate daemon policy, move files, or rewrite accepted requests. Build the shared config store and CLI before frontend editing; enable request consumers and storage keys only after their dependent behavior is qualified.
 
-The existing TOML proposal would live at `$XDG_CONFIG_HOME/yoinkdl/config.toml`, falling back to `~/.config/yoinkdl/config.toml`. Format and keys remain to be settled; this example does not yet describe profiles:
+## Application metadata boundary
 
-```toml
-[download]
-connections = 4
-retries = 3
-resume = true
+The planned `app.json` becomes a version-2 recovery ledger with exactly `version`, `instance_id`, `state_dir`, and `submissions`; it no longer stores editable profiles. Each submission captures `id`, `profile_id`, `profile_name`, `config_token`, and complete URL-free normalized `settings`. There is no live-profile membership or revision-order requirement: accepted records survive profile removal/editing. Preserve the 512-record/4 MiB bounds, stable instance/state identity, owned copies, and immutable retained submissions.
 
-[network]
-limit = "5MB/s"
-```
+The current version-1 pure model/codec must be revised explicitly before W1.1b; it has never had a production filesystem store. Reject encountered version-1 files without rewriting them; there is no silent migration. Config and ledger are separate commits, never a claimed two-file transaction. Under config ownership, freeze/validate a candidate and acquire the ledger transaction lock; durably save the binding before releasing config ownership and issuing the single daemon Add. Hold ledger ownership through the bounded Add reply so cross-process dismissal cannot race active dispatch. Other operations acquire config before ledger when both are needed, never the reverse. Ordinary config edits need no ledger write.
 
-This example enables a cap. Omit `network.limit` for the proposed unlimited default. The configuration schema is illustrative; supported keys, strictness, and parser dependency have not been selected.
-
-The profile-aware precedence above still needs to be adopted and tested. Environment-variable setting overrides, system-wide configuration merging, and a custom config-path flag are not specified.
-
-## Paths
-
-The proposed separation follows the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir/latest/):
-
-| Purpose | Base directory | Standard fallback |
-|---|---|---|
-| User configuration | `$XDG_CONFIG_HOME` | `~/.config` |
-| Persistent recovery state | `$XDG_STATE_HOME` | `~/.local/state` |
-| Disposable cache | `$XDG_CACHE_HOME` | `~/.cache` |
-| Live IPC/runtime objects | `$XDG_RUNTIME_DIR` | No standard fixed fallback |
-
-XDG directory overrides must be absolute. Resume metadata and partial bytes are not disposable cache and must survive logout/restart. The existing [Linux daemon path contract](daemon-and-queue.md#paths-and-access), including its private runtime fallback, remains implemented behavior. Profile subdirectories, configurable roots, config discovery/invalid-path handling, and cross-platform support still need their own contract. Do not create directories until the owning feature needs them.
-
-Transfer sidecars are stored beside the destination, outside this configuration root:
-
-```text
-archive.zip.yoinkdl.part
-archive.zip.yoinkdl.json
-archive.zip.yoinkdl.lock
-```
-
-This current layout makes interrupted CLI transfers discoverable without a central service. After successful publication and cleanup, the partial and manifest are removed; the empty persistent `.yoinkdl.lock` remains to prevent competing lock inodes. An empty JSON manifest is not an expected successful-download artifact. Relocation is proposed above; deleting the configuration folder must not be described as deleting every transfer artifact.
+Use a short-lived `app.lock` per ledger transaction and a separate `web.lock` for the web process lifetime. Config commands work with both services stopped and with a live web process. Web/CLI profiled admission, forget, and dismiss share ledger validation and lock rules; busy operations fail explicitly. Read-only views load independent bounded snapshots and label unavailable reads rather than inventing empty state. No profile change retroactively edits a binding or authorizes replay.
 
 ## Daemon settings
 
-The repository build implements these v0.2 daemon/queue settings and CLI commands. Published `0.1.0` remains standalone. No TOML loader is required. The daemon alone creates its private state/runtime roots; standalone commands retain the current no-config-directory behavior.
-
-Queue `parallel` is durable, defaults to `1`, and accepts `1..8`. One means sequential downloads; larger values admit concurrent transfers. It is independent of per-transfer `--connections`. An optional `daemon start --parallel N` overrides the saved setting; omission keeps it. `daemon set --parallel N` changes it live and acknowledges only after persistence. Reducing the limit does not stop current downloads; it gates new admissions until the active count fits.
-
-`daemon start --limit R` is a process-lifetime cap across all its jobs. Omission is unlimited; it is not stored with queue policy and cannot be changed through `daemon set`. Each job's own `--limit` remains durable request input. Shared and per-transfer caps compose according to [daemon-wide budgeting](concurrency.md#daemon-wide-rate-cap), without multiplying the configured rate by the concurrent-job count.
-
-Each queued request stores resolved connection/retry/timeout/per-transfer-limit values and an absolute destination. The daemon never resolves a client's relative destination against its own working directory. Full source URLs, including query tokens, are retained in permission-protected queue files by the owner's selected policy; display responses omit them. See [queue requests and persistence](daemon-and-queue.md#source-urls-and-immutable-requests).
+The implemented `daemon start/set --parallel` policy remains durable queue state (`1..8`, default `1`); `daemon start --limit` remains a process-lifetime cap. They are not keys in the initial config schema. Saving profile settings cannot claim to apply a shared daemon cap or a live parallel change. Effective per-job limits continue to compose with the daemon budget. See [daemon settings](daemon-and-queue.md#queue-concurrency).
 
 ## Units
 
@@ -137,10 +137,12 @@ For rates, `/s` means per second. Thus `5MB/s` is 5,000,000 bytes per second and
 
 Omitting `--limit` means unlimited; explicit zero is invalid CLI rate syntax. The library's `Request.Limit` is a byte-per-second integer, with zero meaning unlimited and negative values rejected before file/network work. Arbitrary size expressions remain outside v0.1.
 
-## Validation to define
+## Delivery and validation
 
-Invalid CLI values are rejected before network or file work. Workers accept decimal integers from 1 through 32 and retries from 0 through 10; the future configuration loader must preserve those contracts and the rate grammar above.
+The first implementation slice is a pure `internal/config` model, key catalog, scoped set/unset, profile lookup, inheritance with origins, and effective-setting resolution. It performs no filesystem or daemon work. Preserve the existing engine's normalization and validation responsibilities. A second focused slice adds the strict bounded JSON codec and token computation; separate Linux discovery/loading, durable edits/init, and CLI adapters after that.
 
-Configuration errors should name the offending setting without exposing credentials or URL tokens. Unknown-key handling and the meaning of `resume = false` alongside existing sidecars remain open; it must never imply silent destruction of partial data.
+Before filesystem work, revise the app ledger model/codec and W1 API from profile revisions to config tokens. Preserve the existing W1.1b ownership/loading and W1.1c atomic persistence split under the new transaction lifetime. Request integration, storage relocation, and queue/IPC changes have their own ordered slices; no frontend dependency is required for config work.
 
-See the [CLI reference](cli.md), [concurrency model](concurrency.md), and [open decisions](decisions.md) for related behavior.
+Test precedence, provenance, missing versus explicit values, unconfigured output, unlimited limits, exact selectors, bounds/types/Unicode, wrong-state binding, absent/corrupt/foreign files, no-op edits, concurrent writers, stale tokens after global/manual edits, failed/uncertain commits, CLI output failures, and immutable accepted requests. Use temporary roots and existing deterministic fixtures. Each implementation gets focused checks, `make check`, its documentation, and a STATUS update. Documentation-only contract work checks local links/anchors, examples, and whitespace; it establishes no runtime evidence.
+
+Linux/amd64 is the first native target. Other platform configuration discovery/storage, daemon-state relocation, system-wide config, profile lifecycle CLI commands, generic environment overrides, richer budgets, and arbitrary extra settings remain deferred.

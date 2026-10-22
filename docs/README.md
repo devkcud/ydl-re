@@ -16,7 +16,7 @@ These pages distinguish the implementation from the original design. The [decisi
 
 The owner selected a [local-first web application](roadmap.md#local-web-application), using Vue 3 + TypeScript and Vue Flow for the Visual Grabber editor. The roadmap now tracks feature phases rather than version targets. Downloads/basic profiles come first, followed by library/history, rules, schedules, and browser workflows. A Firefox extension with link handoff and opt-in download interception, plus hosted-instance/profile targeting, are explicitly later. None of these application features are implemented; the TUI remains canceled.
 
-The [W1 contract](local-web.md) selects the local process/build/authentication boundary, safe HTTP operations, basic profile store, immutable submission associations, and focused acceptance cases. Its pure metadata model/codec is implemented; Linux ownership/loading is next. The web command, endpoints, and frontend remain unavailable.
+The [W1 contract](local-web.md) selects the local process/build/authentication boundary, safe HTTP operations, basic profile store, immutable submission associations, and focused acceptance cases. Its earlier pure metadata model/codec is implemented. The selected JSON configuration/shared-editing contract requires a pure config foundation and ledger revision before Linux ownership/loading. The web command, endpoints, and frontend remain unavailable.
 
 ## Start here
 
@@ -32,7 +32,7 @@ The [W1 contract](local-web.md) selects the local process/build/authentication b
 | [Overview](overview.md) | Product goals, implemented foundation, planned capabilities, and terminology |
 | [Getting started](getting-started.md) | Availability, planned first download, interruption and recovery |
 | [CLI reference](cli.md) | Commands, flags, output, exit behavior |
-| [Configuration](configuration.md) | Defaults, proposed TOML, paths, units |
+| [Configuration](configuration.md) | Selected JSON config, scoped CLI editing, inheritance, paths, units |
 | [Architecture](architecture.md) | Components, package boundaries, future front ends |
 | [Transfer lifecycle](transfer-lifecycle.md) | States, verification, final publication |
 | [HTTP handling](http.md) | Probing, ranges, validators, fallback, redirects |

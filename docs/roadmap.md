@@ -12,7 +12,7 @@ Preserve those responsibilities as the app grows. The [core integrity criteria](
 
 ## Local web application
 
-**Status:** the owner approved a local-first web application direction on October 20, 2026. The [W1 local contract](local-web.md) defines downloads/queue management and basic profiles around the existing Go daemon. W1.1a's pure metadata model, update rules, and strict codec are complete; Linux ownership/loading is next, with persistence and runtime/UI integration still unfinished. Hosted operation and browser integration come later. The TUI remains canceled.
+**Status:** the owner approved a local-first web application direction on October 20, 2026. The [W1 local contract](local-web.md) defines downloads/queue management and basic profiles around the existing Go daemon. W1.1a's earlier pure metadata model, update rules, and strict codec are complete. The October 22 [configuration contract](configuration.md) selects CLI/web editing over one XDG JSON file; build its pure foundation and revise the app ledger before ownership/loading. Storage relocation and runtime/UI integration remain unfinished. Hosted operation and browser integration come later. The TUI remains canceled.
 
 W1–W4 are implementation phases. The capability list describes the long-term direction; define a concrete slice and its acceptance tests before adding each behavior.
 
