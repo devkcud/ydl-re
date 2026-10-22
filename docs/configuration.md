@@ -27,7 +27,7 @@ The standalone CLI must work with defaults and no configuration file, daemon, or
 
 ## Configuration and storage design checkpoint
 
-Requested direction, October 22, 2026: provide an optional XDG configuration file, make download settings and state placement follow the selected profile, and keep per-transfer bookkeeping out of the destination's file listing. This is planning work before W1.1b, not a configuration loader or storage-layout change. Additional settings can be added when concrete workflows need them.
+Requested direction, October 22, 2026: provide an optional XDG configuration file with CLI editing, make download settings and state placement follow the selected profile, and keep per-transfer bookkeeping out of the destination's file listing. This is planning work before W1.1b, not a configuration loader, implemented command, or storage-layout change. Additional settings can be added when concrete workflows need them.
 
 Separate these scopes:
 
@@ -44,6 +44,27 @@ The configuration file and web editor must share one authority for profile setti
 Small recovery metadata belongs under the selected persistent state root, with XDG state as the proposed default. Partial download bytes need a separate staging policy: the current atomic hard-link/rename publication requires the destination filesystem. A private hidden staging directory on that filesystem is a candidate. A configured directory on another filesystem must either be refused explicitly or use a separately qualified copy, sync, verification, and final publication path. It cannot be handled as a simple rename.
 
 Before implementation, settle profile ownership and file format, root discovery and precedence, metadata versus partial-data placement, and compatibility with existing sidecars. Resume and `inspect` must still find old jobs after settings change. Writers targeting the same destination must contend on one stable ownership mechanism even when they use different profiles or state roots. Preserve existing partials/manifests and lock identity; deleting leftover locks is not a cleanup strategy. Keep loader, storage relocation, and web integration in separate focused changes.
+
+## Planned CLI configuration
+
+Configuration must be readable and editable from the CLI without opening the web UI or running the transfer daemon. The initial proposed commands are `config list`, `config get`, `config set`, and `config unset`. Syntax and key names below are illustrative and unavailable in the current binary:
+
+```sh
+yoinkdl config list --global
+yoinkdl config list --profile Pato --effective
+yoinkdl config get download.connections --profile Pato --effective
+yoinkdl config set download.connections 4 --global
+yoinkdl config set download.connections 8 --profile Pato
+yoinkdl config unset download.connections --profile Pato
+```
+
+- Require exactly one target: `--global` for this instance's user defaults or `--profile <id-or-name>` for an existing profile. Resolve names to stable IDs; refuse unknown or ambiguous names without creating a profile or changing a different target. Browser selection must not silently choose a CLI target.
+- `list` and `get` show values explicitly stored in that scope. `--effective` additionally resolves inheritance and shows each value's origin: built-in, user default, or profile. These reads must not create files or start services. Per-download overrides remain invocation input, not saved configuration.
+- `set` validates the key, type, scope, bounds, and complete candidate before committing. `unset` removes only that scope's explicit value, restoring inheritance or leaving a setting visibly unconfigured if no fallback exists. It never deletes a profile, accepted job, or transfer artifact. It is distinct from explicitly selecting an unlimited value.
+- CLI and web edits must use the same configuration authority, validation, writer coordination, and revision rules. Serialize updates against current state and refuse stale/manual-edit conflicts instead of overwriting unrelated changes. A successful write means a durable commit; failed or uncertain commits preserve recovery evidence. Do not add a CLI path that blindly rewrites the planned app snapshot while the web process owns it.
+- Changes govern future requests. Report whether a setting applies to new jobs or a later process start; saving configuration must not restart the daemon, change accepted requests, move existing partials, or silently switch an active instance's state root. Root changes remain subject to the storage checkpoint above.
+
+Deliver shared configuration resolution and safe persistence before the CLI adapter, with the CLI available before frontend configuration editing. Test inheritance/unset, explicit unlimited values, invalid inputs with no writes, unknown/ambiguous profiles, concurrent CLI/web/manual edits, failed/uncertain commits, and preservation of accepted jobs. Finalize command output/exit conventions and scripting support with the schema; profile lifecycle commands and extra convenience commands remain separate work.
 
 ## Proposed configuration file
 
