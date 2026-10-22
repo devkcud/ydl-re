@@ -36,7 +36,8 @@ The [W1 contract](local-web.md) selects the local process/build/authentication b
 | [Architecture](architecture.md) | Components, package boundaries, future front ends |
 | [Transfer lifecycle](transfer-lifecycle.md) | States, verification, final publication |
 | [HTTP handling](http.md) | Probing, ranges, validators, fallback, redirects |
-| [Resume and storage](resume-and-storage.md) | Sidecars, manifest, checkpoints, locks, crash recovery |
+| [Resume and storage](resume-and-storage.md) | Current sidecars, manifest, checkpoints, locks, crash recovery |
+| [Managed transfer storage](managed-storage.md) | Selected future roots, hidden staging/locators, legacy compatibility, and config/storage implementation order |
 | [Concurrency and retries](concurrency.md) | Range planning, workers, backoff, rate limits, progress |
 | [Daemon and queue](daemon-and-queue.md) | Linux daemon/queue commands, private storage/IPC, scheduling, shared budgets, and lifecycle |
 | [Local web contract](local-web.md) | Planned W1 workflow, HTTP/authentication, profiles, private metadata, recovery, and delivery order |

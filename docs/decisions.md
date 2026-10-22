@@ -84,11 +84,16 @@ The app ledger must become version 2 and retain frozen submission data without e
 | S06 | Windows publication and wider durability qualification | Extends the implemented Linux publication and manifest-reconciliation policy safely | [Lifecycle](transfer-lifecycle.md#7-finalize) |
 | S08 | Non-Linux configuration discovery and storage | Linux user config/state/runtime selection is specified; other native platforms remain deferred | [Configuration](configuration.md) |
 | S09 | Metadata evolution, library/history, and portable definitions | W1 profile/submission JSON is specified; migration, run/file schemas, retention, source/credential privacy, duplicate identity, and import/export path mapping remain later work | [W1 metadata](local-web.md#private-application-metadata), [application ownership](architecture.md#planned-web-application) |
-| S10 | Profile-aware download state and partial-data placement | Settle metadata/staging roots, destination-wide ownership, same/cross-filesystem publication, and old-job discovery before relocating sidecars | [Configuration checkpoint](configuration.md#configuration-and-storage-design-checkpoint), [current storage](resume-and-storage.md) |
 
 Version 1 uses a half-open sequential prefix. Version 2 uses explicit whole-chunk intervals with independent digests and a fixed chunk size. Neither accepts the original illustrative inclusive range-array format. See the [storage contracts](resume-and-storage.md).
 
 Atomic final publication is implemented and tested locally on Linux. Windows publication, native macOS qualification, and deeper filesystem crash-durability evidence remain open.
+
+## Managed storage decisions made
+
+S10 is selected in [Managed transfer storage](managed-storage.md): checkpoint roots follow config/profile settings; partials use hidden destination staging or a private root on the same publication filesystem. Output-local persistent locks and bounded locators pin recovery independently of later settings. Existing sidecars resume in place, conflicting/foreign state is preserved, and cross-filesystem copying is deferred.
+
+Managed requests require version-2 queue/IPC fields and immutable storage hashing; validated v1 jobs/clients retain legacy semantics. The updated engine coordinates both layouts. Older standalone/daemon executables cannot safely coordinate on hidden locks and are excluded from concurrent managed-layout use; qualify/document cutover rather than silently deleting old locks. These decisions are not runtime evidence. The [ordered slices](managed-storage.md#implementation-order-and-acceptance) start with C1a and retain independent config, app, storage, queue/IPC, CLI, and frontend changes.
 
 ## HTTP and scheduling decisions
 

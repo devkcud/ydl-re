@@ -75,7 +75,7 @@ Preview captures `profile_id`, `config_token`, and complete URL-free normalized 
 
 Use a bounded version-2 JSON ledger at `<daemon-state>/web/app.json`, with a persistent transaction lock `app.lock` and separate web-lifetime lock `web.lock`. Require private owned directories/files and the [configuration/ledger lock order](configuration.md#application-metadata-boundary). The app never edits queue snapshots or transfer manifests.
 
-The ledger has exactly `version`, `instance_id`, `state_dir`, and `submissions`. Each submission has exactly `id`, `profile_id`, `profile_name`, `config_token`, and `settings`. Settings are the frozen URL-free request values, including pinned storage policy once qualified. Keep at most 512 records and 4 MiB raw/canonical JSON. IDs are unique and historical names/tokens valid, but no current-profile membership or revision-order rule applies. Initialize an empty ledger only under ownership with matching initialized config and no ambiguous leftovers. Encountered version-1 app files are refused and preserved; no filesystem app store has shipped and no implicit conversion is selected.
+The ledger has exactly `version`, `instance_id`, `state_dir`, and `submissions`. Each submission has exactly `id`, `profile_id`, `profile_name`, `config_token`, and `settings`. Settings have exactly `output`, `connections`, `retries`, `timeout_ns`, `limit_bps`, `resume`, and the [pinned storage object](managed-storage.md#queue-and-ipc-boundary). These are frozen request values; actual compatible saved artifacts retain their locator-pinned paths. Keep at most 512 records and 4 MiB raw/canonical JSON. IDs are unique and historical names/tokens valid, but no current-profile membership or revision-order rule applies. Initialize an empty ledger only under ownership with matching initialized config and no ambiguous leftovers. Encountered version-1 app files are refused and preserved; no filesystem app store has shipped and no implicit conversion is selected.
 
 Represent int64 values in JSON as canonical decimal strings; bounded counts remain numbers, unknown telemetry remains null, and config tokens remain hex strings. Keep strict field/type/nullability/Unicode/bounds checks, stable instance/state identity, immutable retained submissions, and owned snapshots. Use private exclusive temps, file sync, identity/content revalidation, rename, and directory sync before exposing committed state. Failed or foreign artifacts are never adopted or removed as recovery authority.
 
@@ -155,7 +155,7 @@ Existing evidence to preserve includes `TestDaemonClientNeverStartsOrCreatesStat
 
 ## Delivery order
 
-Implement the [selected configuration foundation](configuration.md#delivery-and-validation) first, revise the pure app ledger to version 2, then retain the W1.1b/W1.1c ownership/persistence split. Finish the transfer-storage contract before its integration. Configuration, filesystem persistence, request/IPC adapters, and frontend remain separate reviewable slices.
+Follow the [complete C1–C3/S10/W1 dependency order](managed-storage.md#implementation-order-and-acceptance): pure config/codec, config IO/CLI, version-2 ledger and W1.1b/W1.1c persistence, managed storage and versioned queue/IPC, request adapters, then the HTTP/frontend rows below. Configuration, filesystem persistence, request/IPC adapters, and frontend remain separate reviewable slices.
 
 | Step | Focus of one reviewable change, with its tests and docs |
 |---|---|
@@ -169,7 +169,7 @@ Implement the [selected configuration foundation](configuration.md#delivery-and-
 | W1.2e | Read-only Downloads UI, polling/stale behavior, profile filters, and daemon status. |
 | W1.3a | Profile create/edit API over the shared config store with token checks, plus pure effective-setting/filename previews. |
 | W1.3b | Profile Settings and preview form UI; Add remains disabled. |
-| W1.3c | Durable binding before one daemon Add, collision checks, unknown replies, crash/restart behavior, and no replay. |
+| W1.3c | HTTP adapter over the shared C3b binding-before-Add service, with collision, unknown-reply, crash/restart, and no-replay coverage. |
 | W1.3d | Enable Add in the UI with submitted-ID retention, stale-config handling, and explicit unknown-outcome recovery. |
 | W1.4a | Queue pause/resume/cancel and parallel adapters with state/publication-race coverage; wire corresponding UI controls in a following focused commit. |
 | W1.4b | Forget/dismiss metadata cleanup and partial-failure semantics; add the UI confirmations/recovery in a following focused commit. |

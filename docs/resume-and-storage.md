@@ -4,6 +4,8 @@
 
 Milestone B implements durable prefix checkpoints, local checksum validation, exclusive ownership, validated HTTP resume, inspection, and recovery after interrupted publication. Milestone C adds parallel transfers and safe resume with exclusive chunk writers and version-2 checkpoints. See [STATUS.md](../STATUS.md) for the current handoff.
 
+The selected [managed-storage contract](managed-storage.md) describes future profile-controlled checkpoint roots and hidden staging/locators. It is not implemented; the layout and recovery rules below remain current behavior.
+
 ## Files and ownership
 
 For the destination `archive.zip`, storage uses:

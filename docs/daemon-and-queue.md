@@ -4,6 +4,8 @@
 
 This is the accepted v0.2 contract. E1 through E6 are complete locally: private storage, FIFO controls/concurrency, safe views, composed caps, Linux IPC/lifecycle, explicit daemon/queue CLI commands, and release qualification. Process fixtures, final native/platform gates, and [local 0.2.0-rc.1 archive/installation checks](releases.md#v02-local-qualification) pass. [Hosted qualification and public installation](releases.md#v02-hosted-qualification-and-publication) also passed; `0.2.0-rc.1` is published as a Linux/amd64 prerelease. The released v0.1 CLI has no daemon, queue store, or queue commands. Initial v0.2 runtime qualification targets Linux/amd64; other targets must reject unsupported daemon operations explicitly.
 
+The later [managed-storage queue/IPC contract](managed-storage.md#queue-and-ipc-boundary) requires pinned storage fields, a version-2 snapshot/Add path, and qualified v1 upgrade/compatibility. None is implemented; this page describes the current version-1 runtime.
+
 ## Scope and ownership
 
 The internal daemon runtime runs the existing transfer engine through a retained `transfer.Budget.Download` runner. Standalone `download`, `inspect`, and `version` keep their current behavior and never contact the daemon or create its directories.
