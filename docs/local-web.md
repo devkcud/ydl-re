@@ -2,7 +2,7 @@
 
 [Documentation index](README.md) · [Product roadmap](roadmap.md#local-web-delivery-order)
 
-**Status:** selected implementation contract, October 20, 2026. W1.1a's pure metadata model/codec is implemented. The web command, HTTP API, filesystem store, and frontend remain unimplemented; the [delivery order](#delivery-order) governs the next work.
+**Status:** W1.1a's pure metadata model/codec is implemented. Before W1.1b, resolve the October 22, 2026 [configuration/storage checkpoint](configuration.md#configuration-and-storage-design-checkpoint), especially profile authority versus this contract's planned `app.json`. The web command, HTTP API, filesystem store, and frontend remain unimplemented. The existing contract below remains the baseline until that review explicitly revises it.
 
 W1 provides a local downloads/queue app and basic profile defaults around the existing Linux daemon. Preserve the [daemon contract](daemon-and-queue.md), independent standalone commands, and [core integrity criteria](testing.md#core-integrity-acceptance). Native qualification starts on Linux/amd64. No daemon protocol or queue schema change is required.
 
@@ -168,6 +168,8 @@ Existing evidence to preserve includes `TestDaemonClientNeverStartsOrCreatesStat
 
 ## Delivery order
 
+First resolve the [configuration/storage checkpoint](configuration.md#configuration-and-storage-design-checkpoint) and update affected model, profile, and storage contracts. This is a design dependency, not permission to bundle a config loader or transfer-storage relocation into W1.1b.
+
 | Step | Focus of one reviewable change, with its tests and docs |
 |---|---|
 | W1.1a — complete | Pure app metadata model and strict codec: IDs, initial profile defaults, URL-free bindings, references, decimal strings, bounds, and immutable snapshot validation. No disk or HTTP work. |
@@ -186,4 +188,4 @@ Existing evidence to preserve includes `TestDaemonClientNeverStartsOrCreatesStat
 | W1.4b | Forget/dismiss metadata cleanup and partial-failure semantics; add the UI confirmations/recovery in a following focused commit. |
 | W1.5 | Remaining process/browser acceptance and usability fixes, each committed by the behavior it qualifies; run the full frontend and Go gates and update current user docs. |
 
-The owner requested smaller commits. These steps set dependency order, not permission to bundle all work in a row: split further when responsibilities differ. Keep each commit buildable, include its behavior tests/docs and STATUS update, and leave unfinished controls disabled. Never combine the metadata model, filesystem persistence, HTTP boundary, and frontend into one commit. No push or release step is part of this sequence. W2–W4 and later Firefox/hosted tracks retain their [roadmap order](roadmap.md#local-web-delivery-order); no further product decision blocks W1.1b.
+The owner requested smaller commits. These steps set dependency order, not permission to bundle all work in a row: split further when responsibilities differ. Keep each commit buildable, include its behavior tests/docs and STATUS update, and leave unfinished controls disabled. Never combine the metadata model, filesystem persistence, HTTP boundary, and frontend into one commit. No push or release step is part of this sequence. W2–W4 and later Firefox/hosted tracks retain their [roadmap order](roadmap.md#local-web-delivery-order).

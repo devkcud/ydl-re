@@ -4,7 +4,7 @@
 
 The current CLI uses built-in defaults and flags. No configuration loader exists yet; the TOML format below remains a proposal.
 
-The [W1 web contract](local-web.md#profiles-and-effective-settings) specifies profiles inside a local instance. Store explicit output-directory and transfer defaults in a separate private `<daemon-state>/web/app.json`, freeze effective settings when submitting, and keep CLI-created jobs Unassigned. The initial Default profile requires directory setup; profile switching/editing never changes accepted jobs. This app store is planned, not implemented, and does not adopt the illustrative TOML schema or add a CLI configuration loader. Shared profile budgets remain a later contract.
+The [W1 web contract](local-web.md#profiles-and-effective-settings) currently specifies profile defaults in a private `<daemon-state>/web/app.json`, with effective settings frozen at submission and CLI-created jobs Unassigned. Its pure model/codec exists; the filesystem store and configuration loader do not. The new [design checkpoint](#configuration-and-storage-design-checkpoint) must reconcile profile configuration ownership before W1.1b. The initial Default profile still requires directory setup, and profile switching/editing must never change accepted jobs. Shared profile budgets remain a later contract.
 
 ## Current defaults
 
@@ -25,9 +25,29 @@ No configuration directories or files are created or read. Transfer artifacts ar
 
 The standalone CLI must work with defaults and no configuration file, daemon, or database.
 
+## Configuration and storage design checkpoint
+
+Requested direction, October 22, 2026: provide an optional XDG configuration file, make download settings and state placement follow the selected profile, and keep per-transfer bookkeeping out of the destination's file listing. This is planning work before W1.1b, not a configuration loader or storage-layout change. Additional settings can be added when concrete workflows need them.
+
+Separate these scopes:
+
+| Scope | Responsibility |
+|---|---|
+| Instance | Configuration discovery, base state/runtime locations, and shared daemon policy; selecting a profile must not select or restart a different daemon |
+| Profile | Output directory, transfer defaults, and the proposed download-state/staging location within that instance |
+| Accepted job | Captured effective settings and artifact locations; later profile edits or root changes must not redirect recovery or move its files |
+
+Proposed precedence is built-in defaults, user defaults, selected profile, then allowed explicit invocation overrides. Preserve omission versus explicit unlimited values and existing validation. This does not enable new W1 request overrides or overwrite behavior. Define CLI profile selection and association explicitly; do not infer it from output paths.
+
+The configuration file and web editor must share one authority for profile settings. Decide how manual edits, web edits, stable IDs, and revisions interact with the current `app.json` model before persisting it. Do not maintain independently editable TOML and JSON copies of the same defaults. Keep preferences separate from checkpoint progress, submission intents, and other recovery state.
+
+Small recovery metadata belongs under the selected persistent state root, with XDG state as the proposed default. Partial download bytes need a separate staging policy: the current atomic hard-link/rename publication requires the destination filesystem. A private hidden staging directory on that filesystem is a candidate. A configured directory on another filesystem must either be refused explicitly or use a separately qualified copy, sync, verification, and final publication path. It cannot be handled as a simple rename.
+
+Before implementation, settle profile ownership and file format, root discovery and precedence, metadata versus partial-data placement, and compatibility with existing sidecars. Resume and `inspect` must still find old jobs after settings change. Writers targeting the same destination must contend on one stable ownership mechanism even when they use different profiles or state roots. Preserve existing partials/manifests and lock identity; deleting leftover locks is not a cleanup strategy. Keep loader, storage relocation, and web integration in separate focused changes.
+
 ## Proposed configuration file
 
-The design suggests `~/.config/yoinkdl/config.toml`:
+The existing TOML proposal would live at `$XDG_CONFIG_HOME/yoinkdl/config.toml`, falling back to `~/.config/yoinkdl/config.toml`. Format and keys remain to be settled; this example does not yet describe profiles:
 
 ```toml
 [download]
@@ -41,28 +61,20 @@ limit = "5MB/s"
 
 This example enables a cap. Omit `network.limit` for the proposed unlimited default. The configuration schema is illustrative; supported keys, strictness, and parser dependency have not been selected.
 
-Recommended precedence is built-in defaults, then the optional file, then explicit CLI flags. This ordering still needs to be adopted and tested. No environment-variable overrides or custom config-path flag are specified.
+The profile-aware precedence above still needs to be adopted and tested. Environment-variable setting overrides, system-wide configuration merging, and a custom config-path flag are not specified.
 
 ## Paths
 
-The proposed organization is:
+The proposed separation follows the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir/latest/):
 
-```text
-~/.config/yoinkdl/
-├── config.toml
-├── state/
-├── logs/
-└── profiles/
-```
-
-| Path | Intended use | Availability |
+| Purpose | Base directory | Standard fallback |
 |---|---|---|
-| `config.toml` | Optional user settings | Proposed |
-| `state/` | Daemon and persistent queue state | Reserved for later |
-| `logs/` | Persistent logs | Reserved for later |
-| `profiles/` | Named configuration profiles | Reserved for later |
+| User configuration | `$XDG_CONFIG_HOME` | `~/.config` |
+| Persistent recovery state | `$XDG_STATE_HOME` | `~/.local/state` |
+| Disposable cache | `$XDG_CACHE_HOME` | `~/.cache` |
+| Live IPC/runtime objects | `$XDG_RUNTIME_DIR` | No standard fixed fallback |
 
-Do not create or depend on the reserved directories until a feature needs them. This original layout remains illustrative. The [v0.2 daemon contract](daemon-and-queue.md#paths-and-access) instead selects XDG state and runtime roots for Linux; cross-platform configuration-file discovery remains open.
+XDG directory overrides must be absolute. Resume metadata and partial bytes are not disposable cache and must survive logout/restart. The existing [Linux daemon path contract](daemon-and-queue.md#paths-and-access), including its private runtime fallback, remains implemented behavior. Profile subdirectories, configurable roots, config discovery/invalid-path handling, and cross-platform support still need their own contract. Do not create directories until the owning feature needs them.
 
 Transfer sidecars are stored beside the destination, outside this configuration root:
 
@@ -72,7 +84,7 @@ archive.zip.yoinkdl.json
 archive.zip.yoinkdl.lock
 ```
 
-That exception makes interrupted CLI transfers discoverable without a central service. Deleting the configuration folder must not be described as deleting every transfer artifact.
+This current layout makes interrupted CLI transfers discoverable without a central service. After successful publication and cleanup, the partial and manifest are removed; the empty persistent `.yoinkdl.lock` remains to prevent competing lock inodes. An empty JSON manifest is not an expected successful-download artifact. Relocation is proposed above; deleting the configuration folder must not be described as deleting every transfer artifact.
 
 ## Daemon settings
 

@@ -64,7 +64,7 @@ Resolve each decision before the milestone or interface depending on it is decla
 | ID | Decision needed | Why it matters | Owner page |
 |---|---|---|---|
 | C08 | Richer web telemetry, subscriptions, and retry counters | W1 safe polling/reconnect is specified; speed/connection/resource metrics and subscriptions remain deferred | [W1 HTTP interface](local-web.md#http-interface), [concurrency](concurrency.md) |
-| C09 | TOML loader, precedence, and unknown keys | Turns the illustrative configuration into a contract while retaining implemented value validation | [Configuration](configuration.md) |
+| C09 | XDG configuration, profile authority, precedence, and file format | Reconcile manual/CLI/web settings and revisions with the pure app model before W1.1b; TOML and keys remain proposed | [Configuration checkpoint](configuration.md#configuration-and-storage-design-checkpoint) |
 | C11 | Aggregate profile limits and richer job controls | W1 defaults/association are specified; shared profile budgets, reassignment/deletion, priorities/reordering, and job editing require later contracts | [W1 profiles](local-web.md#profiles-and-effective-settings), [profile model](roadmap.md#instance-and-profile-model) |
 | C12 | Rules, workflow execution, and trigger/schedule semantics | Defines metadata stages/precedence, versioned runs, loops/subflows, cancellation, retries, deduplication, downtime, and overlap behavior | [Build phases](roadmap.md#local-web-delivery-order) |
 | C13 | Later Firefox interception/bridge and hosted-instance transports | Firefox is selected first; define permissions, pairing/authentication, destination selection, supported captures, takeover/recovery, and duplicate/unknown-outcome handling | [Later integration](roadmap.md#later-browser-integration-and-hosted-operation) |
@@ -79,6 +79,7 @@ The default worker preference is four, the retry default is three additional att
 | S06 | Windows publication and wider durability qualification | Extends the implemented Linux publication and manifest-reconciliation policy safely | [Lifecycle](transfer-lifecycle.md#7-finalize) |
 | S08 | Cross-platform configuration-file discovery | Linux daemon state/runtime paths are settled separately; the optional config loader remains undefined | [Configuration](configuration.md) |
 | S09 | Metadata evolution, library/history, and portable definitions | W1 profile/submission JSON is specified; migration, run/file schemas, retention, source/credential privacy, duplicate identity, and import/export path mapping remain later work | [W1 metadata](local-web.md#private-application-metadata), [application ownership](architecture.md#planned-web-application) |
+| S10 | Profile-aware download state and partial-data placement | Settle metadata/staging roots, destination-wide ownership, same/cross-filesystem publication, and old-job discovery before relocating sidecars | [Configuration checkpoint](configuration.md#configuration-and-storage-design-checkpoint), [current storage](resume-and-storage.md) |
 
 Version 1 uses a half-open sequential prefix. Version 2 uses explicit whole-chunk intervals with independent digests and a fixed chunk size. Neither accepts the original illustrative inclusive range-array format. See the [storage contracts](resume-and-storage.md).
 
