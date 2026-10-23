@@ -2,7 +2,15 @@
 
 [Documentation index](README.md)
 
-**Contract selected October 22, 2026; not implemented.** The current binary uses built-in defaults and flags. It has no configuration loader or configuration commands. The pure W1.1a app model remains the earlier implementation baseline; the selected configuration/state split below requires a model revision before filesystem persistence.
+**C1a model/validation is implemented; resolution and edits are next.** The current binary still uses built-in defaults and flags. It has no configuration loader or configuration commands. The selected configuration/state split below requires an app model revision before filesystem persistence.
+
+## Current implementation
+
+[internal/config/model.go](../internal/config/model.go) provides `New`, structural `Validate`, owned `Clone`, and exact owned `Profile` lookup. IDs and the state path are supplied by the caller. It initializes Default with no overrides and performs no filesystem, randomness, or daemon work. Validation covers profile/name uniqueness, selector ambiguity, Unicode, clean absolute paths, and the derived built-in checkpoint-path bound.
+
+[value.go](../internal/config/value.go) defines the seven keys, immutable typed `Int`/`Text` values, and sparse `Overrides`. Absent keys mean inherit; explicit zero retries and `unlimited` stay distinct. Validation reuses engine bounds and rate parsing plus the CLI's duration grammar. Copies own profile slices and all override maps. Errors are fixed and expose no invalid value.
+
+This is an in-memory model, not the JSON representation: overrides are keyed by full setting name. The future codec must map them to the declared nested objects, reject missing/null required fields, and enforce raw/canonical 256 KiB bounds. Filesystem existence/ownership, effective resolution, scoped edits, tokens, IO, and CLI adapters are not implemented yet.
 
 ## Current defaults
 
