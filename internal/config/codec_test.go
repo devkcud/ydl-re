@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -182,21 +183,28 @@ func FuzzConfigCodec(f *testing.F) {
 			f.Fatal(err)
 		}
 		f.Add(data)
+		f.Add(append([]byte(" \n"), data...))
 	}
 	f.Add([]byte(`null`))
 	f.Add([]byte(`{"version":1,"version":1}`))
 	f.Add([]byte(`"\ud800"`))
 	f.Fuzz(func(t *testing.T, data []byte) {
-		c, err := decodeConfig(data)
+		c, token, err := Decode(data)
 		if err != nil {
-			if err != ErrInvalid || !reflect.DeepEqual(c, Config{}) {
+			if err != ErrInvalid || token != "" || !reflect.DeepEqual(c, Config{}) {
 				t.Fatal("invalid input exposed partial config or parser diagnostics")
 			}
 			return
 		}
-		encoded := encodedConfig(t, c)
-		got, err := decodeConfig(encoded)
-		if err != nil || !reflect.DeepEqual(got, c) || !bytes.Equal(encodedConfig(t, got), encoded) {
+		if token != fmt.Sprintf("%x", sha256.Sum256(data)) {
+			t.Fatal("token does not match validated input bytes")
+		}
+		encoded, canonical, err := Encode(c)
+		if err != nil || canonical != fmt.Sprintf("%x", sha256.Sum256(encoded)) {
+			t.Fatal("valid config failed encoding or token generation", err)
+		}
+		got, token, err := Decode(encoded)
+		if err != nil || token != canonical || !reflect.DeepEqual(got, c) || !bytes.Equal(encodedConfig(t, got), encoded) {
 			t.Fatal("valid config failed canonical round trip", err)
 		}
 	})

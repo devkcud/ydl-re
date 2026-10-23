@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-**The pure model, scoped edits, and strict config codec are implemented; content tokens are next.** The current binary still uses built-in defaults and flags. It has no configuration loader or configuration commands. The selected configuration/state split also requires an app model revision before filesystem persistence.
+**The pure model, scoped edits, strict config codec, and content tokens are implemented.** The current binary still uses built-in defaults and flags. Read-only XDG discovery/loading is next; configuration commands and persistence remain unavailable. The selected app ledger revision remains a separate prerequisite for app persistence.
 
 ## Current implementation
 
@@ -16,7 +16,9 @@
 
 [codec.go](../internal/config/codec.go) and [decode.go](../internal/config/decode.go) implement private `encodeConfig`/`decodeConfig` over the selected nested JSON format. Encoding uses fixed root/profile field order, lexical group/setting order, preserved profile order, two-space indentation, and one final newline. Empty override maps/groups normalize to inheritance. Decoding rejects duplicate, unknown, missing required, null, wrongly typed, malformed-Unicode, and invalid model data without returning partial config or parser diagnostics. Counts retain integer-only JSON syntax.
 
-Both raw input and canonical output are bounded at 256 KiB, including the final newline. A model-text budget bounds work before encoding; the formatted-size check also catches escaping/indentation expansion. `Config.Validate` remains structural; future persistence must use the codec for field/encoding bounds. The shared `internal/jsoncheck` Unicode guard prevents replacement decoding. Filesystem existence/ownership, tokens, IO, and CLI adapters are not implemented yet.
+Both raw input and canonical output are bounded at 256 KiB, including the final newline. A model-text budget bounds work before encoding; the formatted-size check also catches escaping/indentation expansion. `Config.Validate` remains structural; future persistence must use the codec for field/encoding bounds. The shared `internal/jsoncheck` Unicode guard prevents replacement decoding.
+
+[token.go](../internal/config/token.go) exposes `Encode(Config)` returning canonical bytes/token/error and `Decode([]byte)` returning config/token/error. Tokens are lowercase SHA-256 of the exact returned/input bytes, produced only after validation succeeds. Valid whitespace, field order, or escape changes invalidate read tokens even when config values stay equal. Errors return nil bytes or a zero config plus an empty token. Future stores must use these entry points and keep original bytes/tokens for no-op edits rather than rewriting equivalent noncanonical input. Filesystem existence/ownership, IO, and CLI adapters remain unimplemented.
 
 ## Current defaults
 
@@ -159,7 +161,7 @@ Omitting `--limit` means unlimited; explicit zero is invalid CLI rate syntax. Th
 
 The [complete dependency order](managed-storage.md#implementation-order-and-acceptance) is selected. The first implementation slice is a pure `internal/config` model, key catalog, scoped set/unset, profile lookup, inheritance with origins, and effective-setting resolution. It performs no filesystem or daemon work. Preserve the existing engine's normalization and validation responsibilities. A second focused slice adds the strict bounded JSON codec and token computation; separate Linux discovery/loading, durable edits/init, and CLI adapters after that.
 
-Before filesystem work, revise the app ledger model/codec and W1 API from profile revisions to config tokens. Preserve the existing W1.1b ownership/loading and W1.1c atomic persistence split under the new transaction lifetime. Request integration, storage relocation, and queue/IPC changes follow S10a–S10d and C3 in that order; no frontend dependency is required for config work.
+Before app filesystem work, revise the app ledger model/codec and W1 API from profile revisions to config tokens. Preserve the existing W1.1b ownership/loading and W1.1c atomic persistence split under the new transaction lifetime. Request integration, storage relocation, and queue/IPC changes follow S10a–S10d and C3 in that order; no frontend dependency is required for config work.
 
 Test precedence, provenance, missing versus explicit values, unconfigured output, unlimited limits, exact selectors, bounds/types/Unicode, wrong-state binding, absent/corrupt/foreign files, no-op edits, concurrent writers, stale tokens after global/manual edits, failed/uncertain commits, CLI output failures, and immutable accepted requests. Use temporary roots and existing deterministic fixtures. Each implementation gets focused checks, `make check`, its documentation, and a STATUS update. Documentation-only contract work checks local links/anchors, examples, and whitespace; it establishes no runtime evidence.
 

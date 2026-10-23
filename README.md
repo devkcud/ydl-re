@@ -12,7 +12,7 @@ Milestones A through D are complete for the initial Linux/amd64 release. `downlo
 
 The [product roadmap](docs/roadmap.md) now focuses on a local-first web app using Vue 3 + TypeScript, with Vue Flow selected for a later Visual Grabber. Profiles, library/history, rules, scheduling, and browser workflows are planned around the existing daemon. A Firefox extension with link handoff and opt-in download interception, plus hosted-server selection, come later; these features are not implemented. The TUI remains canceled.
 
-The [W1 local web contract](docs/local-web.md) defines the first downloads/profile workflow, local authentication, safe API, metadata/recovery boundaries, and implementation order. Its earlier pure metadata model/codec and the [configuration model, inherited settings, and scoped edits](docs/configuration.md#current-implementation) are implemented. Strict config encoding/loading and an app ledger revision come before persistence/integration. Configuration commands, [managed storage](docs/managed-storage.md), the web command, and the frontend are not available yet.
+The [W1 local web contract](docs/local-web.md) defines the first downloads/profile workflow, local authentication, safe API, metadata/recovery boundaries, and implementation order. Its earlier pure metadata model/codec and the [configuration model, scoped edits, strict codec, and content tokens](docs/configuration.md#current-implementation) are implemented. Read-only config discovery/loading comes next. Configuration commands, [managed storage](docs/managed-storage.md), the web command, and the frontend are not available yet.
 
 ## Build and test
 
