@@ -15,7 +15,7 @@ The current CLI/daemon and pure configuration/application foundations implement 
 | `internal/storage` | Stable OS locks, prefix/chunk manifests and checksums, durable checkpoints, preservation, publication recovery |
 | `internal/queue` | Private atomic state, FIFO admission, durable controls, live concurrency, recovery, safe polling, and draining shutdown |
 | `internal/daemon` | Linux path/endpoint ownership, strict private IPC, peer checks, bounded clients, safe views, and joined runtime lifecycle |
-| `internal/config` | Pure typed settings, profile/identity validation, exact lookup, inherited resolution/origins, and owned scoped edits; no codec/IO/CLI integration |
+| `internal/config` | Pure typed settings, exact lookup, inherited resolution/origins, owned scoped edits, and bounded strict JSON codec; no tokens/IO/CLI integration |
 | `internal/app` | Earlier pure version-1 metadata model/codec/update guards; the selected version-2 ledger and filesystem store remain future work |
 | `internal/jsoncheck` | Shared lossless UTF-8/surrogate validation before schema-specific JSON decoding |
 

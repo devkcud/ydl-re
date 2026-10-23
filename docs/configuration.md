@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-**C1a's pure model, inherited resolution, and scoped edits are implemented.** The current binary still uses built-in defaults and flags. It has no configuration loader or configuration commands. The strict config codec/tokens are next; the selected configuration/state split also requires an app model revision before filesystem persistence.
+**The pure model, scoped edits, and strict config codec are implemented; content tokens are next.** The current binary still uses built-in defaults and flags. It has no configuration loader or configuration commands. The selected configuration/state split also requires an app model revision before filesystem persistence.
 
 ## Current implementation
 
@@ -14,7 +14,9 @@
 
 [edit.go](../internal/config/edit.go) provides pure `Set`/`Unset` returning an owned config and a changed flag. It validates the current model and complete candidate, preserves identity and other scopes, and never mutates its input. Setting an inherited value creates an explicit override even when its effective value matches; repeating an identical explicit value and unsetting an absent key are no-ops. No-op results also own their maps. Invalid edits return no candidate. Unset restores current inheritance without touching files or retained requests.
 
-This is an in-memory model, not the JSON representation: overrides are keyed by full setting name. The future codec must map them to the declared nested objects, reject missing/null required fields, and enforce raw/canonical 256 KiB bounds. Filesystem existence/ownership, tokens, IO, and CLI adapters are not implemented yet.
+[codec.go](../internal/config/codec.go) and [decode.go](../internal/config/decode.go) implement private `encodeConfig`/`decodeConfig` over the selected nested JSON format. Encoding uses fixed root/profile field order, lexical group/setting order, preserved profile order, two-space indentation, and one final newline. Empty override maps/groups normalize to inheritance. Decoding rejects duplicate, unknown, missing required, null, wrongly typed, malformed-Unicode, and invalid model data without returning partial config or parser diagnostics. Counts retain integer-only JSON syntax.
+
+Both raw input and canonical output are bounded at 256 KiB, including the final newline. A model-text budget bounds work before encoding; the formatted-size check also catches escaping/indentation expansion. `Config.Validate` remains structural; future persistence must use the codec for field/encoding bounds. The shared `internal/jsoncheck` Unicode guard prevents replacement decoding. Filesystem existence/ownership, tokens, IO, and CLI adapters are not implemented yet.
 
 ## Current defaults
 
