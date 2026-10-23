@@ -72,7 +72,7 @@ The default worker preference is four, the retry default is three additional att
 
 ## Configuration decisions made
 
-C09 and Linux config discovery in S08 are selected in [Configuration](configuration.md): one strict optional XDG `config.json`, sparse global/profile overrides, shared CLI/web transactions, exact profile selectors, content tokens for stale writes/previews, and `config init/list/get/set/unset` with defined JSON/text results. The pure config model/validation is implemented; resolution, persistence, and commands remain unavailable. The earlier TOML proposal is superseded; other platform discovery remains deferred.
+C09 and Linux config discovery in S08 are selected in [Configuration](configuration.md): one strict optional XDG `config.json`, sparse global/profile overrides, shared CLI/web transactions, exact profile selectors, content tokens for stale writes/previews, and `config init/list/get/set/unset` with defined JSON/text results. The pure config model/validation and inherited resolution are implemented; scoped edits, persistence, and commands remain unavailable. The earlier TOML proposal is superseded; other platform discovery remains deferred.
 
 The app ledger must become version 2 and retain frozen submission data without editable profiles. Config and app locks are per transaction; a separate lock owns the web process lifetime. Managed CLI/web edits serialize; manual editing is supported offline, with explicit advisory-lock limits. Config changes never retarget accepted jobs or change daemon policy. The [implementation order](configuration.md#delivery-and-validation) begins with a pure config model/resolver, not filesystem or HTTP code.
 

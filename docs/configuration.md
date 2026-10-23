@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-**C1a model/validation is implemented; resolution and edits are next.** The current binary still uses built-in defaults and flags. It has no configuration loader or configuration commands. The selected configuration/state split below requires an app model revision before filesystem persistence.
+**C1a model/validation and inherited resolution are implemented; scoped edits are next.** The current binary still uses built-in defaults and flags. It has no configuration loader or configuration commands. The selected configuration/state split below requires an app model revision before filesystem persistence.
 
 ## Current implementation
 
@@ -10,7 +10,9 @@
 
 [value.go](../internal/config/value.go) defines the seven keys, immutable typed `Int`/`Text` values, and sparse `Overrides`. Absent keys mean inherit; explicit zero retries and `unlimited` stay distinct. Validation reuses engine bounds and rate parsing plus the CLI's duration grammar. Copies own profile slices and all override maps. Errors are fixed and expose no invalid value.
 
-This is an in-memory model, not the JSON representation: overrides are keyed by full setting name. The future codec must map them to the declared nested objects, reject missing/null required fields, and enforce raw/canonical 256 KiB bounds. Filesystem existence/ownership, effective resolution, scoped edits, tokens, IO, and CLI adapters are not implemented yet.
+[resolve.go](../internal/config/resolve.go) implements explicit `Scope`, raw `Get`/`List`, and `Resolve` with lexical entries and `builtin`/`global`/`profile` origins. `Defaults` resolves built-ins from a supplied state path without a config file. Resolutions own their entries and contain normalized scalar `Settings`, including exact int64 nanoseconds/bytes-per-second. An unconfigured output has a zero `Value` in the view and an empty `Settings.OutputDir`; it is not an accepted explicit empty path. Later edits cannot mutate an earlier resolution. Per-invocation flags and output filenames remain request-adapter work.
+
+This is an in-memory model, not the JSON representation: overrides are keyed by full setting name. The future codec must map them to the declared nested objects, reject missing/null required fields, and enforce raw/canonical 256 KiB bounds. Filesystem existence/ownership, scoped edits, tokens, IO, and CLI adapters are not implemented yet.
 
 ## Current defaults
 
