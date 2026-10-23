@@ -1,11 +1,11 @@
-package app
+package jsoncheck
 
 import (
 	"strconv"
 	"unicode/utf8"
 )
 
-func validJSONText(data []byte) bool {
+func ValidUnicode(data []byte) bool {
 	if !utf8.Valid(data) {
 		return false
 	}

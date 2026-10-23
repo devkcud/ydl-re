@@ -7,6 +7,8 @@ import (
 	"io"
 	"slices"
 	"strconv"
+
+	"yoinkdl/internal/jsoncheck"
 )
 
 func encodeSnapshot(s Snapshot) ([]byte, error) {
@@ -21,7 +23,7 @@ func encodeSnapshot(s Snapshot) ([]byte, error) {
 }
 
 func decodeSnapshot(data []byte) (Snapshot, error) {
-	if len(data) > MaxSnapshotSize || !validJSONText(data) {
+	if len(data) > MaxSnapshotSize || !jsoncheck.ValidUnicode(data) {
 		return Snapshot{}, ErrInvalid
 	}
 	fields, err := objectFields(data, "", "version", "instance_id", "state_dir", "profiles", "submissions")

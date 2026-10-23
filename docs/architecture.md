@@ -17,6 +17,7 @@ The current CLI/daemon and pure configuration/application foundations implement 
 | `internal/daemon` | Linux path/endpoint ownership, strict private IPC, peer checks, bounded clients, safe views, and joined runtime lifecycle |
 | `internal/config` | Pure typed settings, profile/identity validation, exact lookup, inherited resolution/origins, and owned scoped edits; no codec/IO/CLI integration |
 | `internal/app` | Earlier pure version-1 metadata model/codec/update guards; the selected version-2 ledger and filesystem store remain future work |
+| `internal/jsoncheck` | Shared lossless UTF-8/surrogate validation before schema-specific JSON decoding |
 
 `transfer.Download` is the current application entry point. Storage verifies local bytes before transfer validates remote identity; only then may it truncate uncertain tails. `storage.Inspect` reads metadata without acquiring writer ownership or contacting the server. Existing transfers do not consume the new config model or an app store. Tests live beside the code, including interruption and forced-process-crash checks in `cmd/yoinkdl`.
 
