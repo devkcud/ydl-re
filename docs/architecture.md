@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Milestones A through D and v0.2 E1 through E5 implement the packages below. The diagrams and proposed layout describe the larger target architecture.
+The current CLI/daemon and pure configuration/application foundations implement the packages below. The diagrams and proposed layout describe the larger target architecture.
 
 ## Current packages
 
@@ -15,8 +15,10 @@ Milestones A through D and v0.2 E1 through E5 implement the packages below. The 
 | `internal/storage` | Stable OS locks, prefix/chunk manifests and checksums, durable checkpoints, preservation, publication recovery |
 | `internal/queue` | Private atomic state, FIFO admission, durable controls, live concurrency, recovery, safe polling, and draining shutdown |
 | `internal/daemon` | Linux path/endpoint ownership, strict private IPC, peer checks, bounded clients, safe views, and joined runtime lifecycle |
+| `internal/config` | Pure typed settings, profile/identity validation, exact lookup, inherited resolution/origins, and owned scoped edits; no codec/IO/CLI integration |
+| `internal/app` | Earlier pure version-1 metadata model/codec/update guards; the selected version-2 ledger and filesystem store remain future work |
 
-`transfer.Download` is the current application entry point. Storage verifies local bytes before transfer validates remote identity; only then may it truncate uncertain tails. `storage.Inspect` reads metadata without acquiring writer ownership or contacting the server. No separate app, scheduler, configuration, or progress package is needed for this slice. Tests live beside the code, including interruption and forced-process-crash checks in `cmd/yoinkdl`.
+`transfer.Download` is the current application entry point. Storage verifies local bytes before transfer validates remote identity; only then may it truncate uncertain tails. `storage.Inspect` reads metadata without acquiring writer ownership or contacting the server. Existing transfers do not consume the new config model or an app store. Tests live beside the code, including interruption and forced-process-crash checks in `cmd/yoinkdl`.
 
 `transfer.Normalize` shares the engine's pure URL/option validation, defaults, and automatic filename rules with queue callers. It removes fragments, owns the resolved retry value, preserves explicit output strings, and performs no file/network work. `Download` uses the same normalization internally; filesystem ownership and absolute output resolution still belong to their existing boundaries.
 
@@ -180,7 +182,7 @@ flowchart LR
 
 The [W1 local contract](local-web.md) selects a separate explicit foreground Go web process serving built Vue/Vite assets and a bearer-authenticated, same-origin loopback API. It calls the existing private daemon IPC; web/tab shutdown does not stop daemon work. Standalone Go builds remain independent of the frontend build. Hosted access adds its own transport/identity contract later.
 
-The [configuration contract](configuration.md) selects one XDG JSON authority for global/profile overrides, shared by CLI and web through short transactions and content-token checks. The separate version-2 app ledger stores instance binding and immutable URL-free submissions, not editable defaults. Use a distinct web-lifetime lock. Persist a submission before one daemon Add, never replay it, and poll safe IPC views. Unprofiled CLI jobs remain Unassigned; profiled CLI admission reuses the binding service. The [ordered implementation](local-web.md#delivery-order) starts with pure config/resolution and revising the earlier app model before filesystem stores and HTTP controls. These revised boundaries are not implemented.
+The [configuration contract](configuration.md) selects one XDG JSON authority for global/profile overrides, shared by CLI and web through short transactions and content-token checks. Its pure config model, resolution, and scoped edits are implemented. The planned separate version-2 app ledger stores instance binding and immutable URL-free submissions, not editable defaults. Use a distinct web-lifetime lock. Persist a submission before one daemon Add, never replay it, and poll safe IPC views. Unprofiled CLI jobs remain Unassigned; profiled CLI admission will reuse the binding service. The [ordered implementation](local-web.md#delivery-order) next adds strict config encoding/loading and revises the earlier app model before filesystem stores and HTTP controls. Runtime integration remains unimplemented.
 
 Vue Flow supplies editor interaction. Versioned workflow definitions, run state, cancellation, retries, loop/subflow bounds, and debugging belong to the execution model. An optional Playwright worker handles browser sessions and must qualify the handoff of public, authenticated/expiring, and browser-managed downloads separately. Neither frontend libraries nor browser tooling establish the Go engine's integrity guarantees for a new download path.
 

@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-**C1a model/validation and inherited resolution are implemented; scoped edits are next.** The current binary still uses built-in defaults and flags. It has no configuration loader or configuration commands. The selected configuration/state split below requires an app model revision before filesystem persistence.
+**C1a's pure model, inherited resolution, and scoped edits are implemented.** The current binary still uses built-in defaults and flags. It has no configuration loader or configuration commands. The strict config codec/tokens are next; the selected configuration/state split also requires an app model revision before filesystem persistence.
 
 ## Current implementation
 
@@ -12,7 +12,9 @@
 
 [resolve.go](../internal/config/resolve.go) implements explicit `Scope`, raw `Get`/`List`, and `Resolve` with lexical entries and `builtin`/`global`/`profile` origins. `Defaults` resolves built-ins from a supplied state path without a config file. Resolutions own their entries and contain normalized scalar `Settings`, including exact int64 nanoseconds/bytes-per-second. An unconfigured output has a zero `Value` in the view and an empty `Settings.OutputDir`; it is not an accepted explicit empty path. Later edits cannot mutate an earlier resolution. Per-invocation flags and output filenames remain request-adapter work.
 
-This is an in-memory model, not the JSON representation: overrides are keyed by full setting name. The future codec must map them to the declared nested objects, reject missing/null required fields, and enforce raw/canonical 256 KiB bounds. Filesystem existence/ownership, scoped edits, tokens, IO, and CLI adapters are not implemented yet.
+[edit.go](../internal/config/edit.go) provides pure `Set`/`Unset` returning an owned config and a changed flag. It validates the current model and complete candidate, preserves identity and other scopes, and never mutates its input. Setting an inherited value creates an explicit override even when its effective value matches; repeating an identical explicit value and unsetting an absent key are no-ops. No-op results also own their maps. Invalid edits return no candidate. Unset restores current inheritance without touching files or retained requests.
+
+This is an in-memory model, not the JSON representation: overrides are keyed by full setting name. The future codec must map them to the declared nested objects, reject missing/null required fields, and enforce raw/canonical 256 KiB bounds. Filesystem existence/ownership, tokens, IO, and CLI adapters are not implemented yet.
 
 ## Current defaults
 

@@ -67,7 +67,7 @@ The following order supersedes proceeding directly from the earlier W1.1a model 
 
 | Step | Responsibility and prerequisite |
 |---|---|
-| C1a | Pure config model, seven-key catalog, exact selectors, sparse mutations, inheritance/origins, owned copies, and resolved settings; no IO/codec/CLI work |
+| C1a — complete | Pure config model, seven-key catalog, exact selectors, sparse mutations, inheritance/origins, owned copies, and resolved settings; focused/full Go gates pass; no IO/codec/CLI work |
 | C1b | Strict bounded config JSON codec, canonical encoding, content tokens, malformed input and fuzz coverage |
 | C2a | Linux XDG discovery and private read-only config loading; missing-file reads create nothing |
 | C2b | Config transaction ownership, atomic init/set/unset, current-file reload, stale-token and failed/uncertain-commit behavior |
